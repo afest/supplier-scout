@@ -8,3 +8,5 @@ e2e-out/
 *.tsbuildinfo
 pipeline/.cache/
 __pycache__/
+.venv/
+.data/

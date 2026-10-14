@@ -77,7 +77,7 @@ function SideNav({ path }: { path: string }) {
           <div className="nav-cap">Найти поставщика</div>
           {item("/find", "search", "Поиск по товару", path === "/find")}
           {item("/categories", "categories", "Поиск по категории", inCat)}
-          {item("/assistant", "assistant", "Помощник", path === "/assistant", <span className="nav-soon">скоро</span>)}
+          {item("/assistant", "assistant", "Помощник", path === "/assistant")}
           {item("/add", "add", "Знаю поставщика", path === "/add")}
         </div>
         <div className="nav-group">

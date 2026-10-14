@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { href, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
-import { categoryOf, DATA, rankCategory, readQuery, volParam } from "../data.ts";
+import { CATEGORIES, catById, categoryOf, DATA, rankCategory, readQuery, volParam } from "../data.ts";
 import { flagsText, profileDeclarations } from "../lib/score.ts";
-import { ageYears, isKnown, plural, years } from "../lib/format.ts";
+import { ageYears, isKnown, minOrderText, plural, years } from "../lib/format.ts";
+import { ApiError, collect, health, job as loadJob, type Health, type Job } from "../lib/api.ts";
 import type { Supplier } from "../types.ts";
 import { DemoPill, Hint, Mono, Score } from "../components/ui.tsx";
+import { deliveryText } from "../components/supplier.tsx";
 
-type Phase = "idle" | "run" | "confirm" | "done" | "unknown" | "exists";
+// replay — записанный прогон по примеру (мгновенно, без лимита); live — настоящий сбор на сервере (T-536)
+type Phase = "idle" | "run" | "confirm" | "done" | "exists" | "need-cat" | "live-done" | "live-error";
 interface Step { text: string; state: "done" | "run" | "wait" }
+const POLL_MS = 2000;
+const isInn = (v: string) => /^\d{10}(\d{2})?$/.test(v.replace(/\s/g, ""));
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 const STEP_MS = 900;
 const LIVE = DATA.suppliers.filter((s) => s.live_only);
@@ -44,6 +50,11 @@ export function AddSupplier({ route }: { route: Route }) {
   const [steps, setSteps] = useState<Step[]>([]);
   const [target, setTarget] = useState<Supplier | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [live, setLive] = useState(false);
+  const [liveJob, setLiveJob] = useState<Job | null>(null);
+  const [liveErr, setLiveErr] = useState<string | null>(null);
+  const [cat, setCat] = useState("");
+  const [hl, setHl] = useState<Health | null>(null);
   const timers = useRef<number[]>([]);
 
   const clear = () => {
@@ -51,6 +62,7 @@ export function AddSupplier({ route }: { route: Route }) {
     timers.current = [];
   };
   useEffect(() => clear, []);
+  useEffect(() => { health().then(setHl).catch(() => setHl(null)); }, [phase === "live-done" || phase === "live-error"]);
   useEffect(() => {
     if (phase !== "run") return;
     const t0 = Date.now();
@@ -72,11 +84,43 @@ export function AddSupplier({ route }: { route: Route }) {
     });
   };
 
+  // Живой сбор на сервере: задача в очередь, шаги конвейера — опросом раз в 2 секунды.
+  const startLive = async (value: string) => {
+    const v = value.trim();
+    const inn = isInn(v) ? v.replace(/\s/g, "") : null;
+    setTarget(null); setLiveJob(null); setLiveErr(null); setLive(true);
+    if (inn && !cat) { setPhase("need-cat"); setSteps([]); return; }
+    setPhase("run");
+    setSteps([{ text: "Отправляем на сервер сбора", state: "run" }]);
+    const show = (j: Job) => setSteps(j.state === "queued"
+      ? [{ text: `В очереди: ${j.position ?? 1}-й — сборы идут по одному`, state: "run" }]
+      : j.steps.map((x, i, all) => ({ text: x.text, state: i === all.length - 1 && j.state === "running" ? "run" : "done" })));
+    const poll = async (id: string) => {
+      try {
+        const j = await loadJob(id);
+        show(j);
+        if (j.state === "done") { setLiveJob(j); setPhase("live-done"); return; }
+        if (j.state === "error") { setLiveErr(j.error ?? "Сбор не удался."); setPhase("live-error"); return; }
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) { setLiveErr(e.message); setPhase("live-error"); return; }
+      }
+      timers.current.push(window.setTimeout(() => poll(id), POLL_MS));
+    };
+    try {
+      const j = await collect(inn ? null : v, inn, inn ? cat : null);
+      show(j);
+      timers.current.push(window.setTimeout(() => poll(j.id), POLL_MS));
+    } catch (e) {
+      setLiveErr(e instanceof ApiError ? e.message : "Сервер не ответил."); setPhase("live-error"); setSteps([]);
+    }
+  };
+
   const start = (value: string) => {
     clear();
     setElapsed(0);
     const r = resolve(value);
-    if (!r) { setPhase("unknown"); setTarget(null); setSteps([]); return; }
+    if (!r) { startLive(value); return; }
+    setLive(false);
     setTarget(r.s);
     if (r.by === "exists") { setPhase("exists"); setSteps([]); return; }
     setPhase("run");
@@ -132,10 +176,32 @@ export function AddSupplier({ route }: { route: Route }) {
         })}
       </div>
 
-      {phase === "unknown" && (
+      {hl && (
+        <p className="assist-quota">
+          Сервер сбора работает · демо-стенд: {hl.demo_left.collect.left > 0
+            ? <>осталось {hl.demo_left.collect.left} из {hl.demo_left.collect.per_day} сборов на сегодня</>
+            : <>сборы на сегодня закончились — примеры выше работают всегда</>}
+          <Hint label="Почему лимит">Каждый сбор — вызовы языковой модели за деньги, поэтому на стенде для проверки — несколько сборов в сутки. Примеры выше — записанные прогоны того же конвейера, они лимит не тратят.</Hint>
+        </p>
+      )}
+
+      {phase === "need-cat" && (
+        <div className="panel">
+          <b>По одному ИНН категорию не определить — выберите её.</b>
+          <p className="sub">Без сайта карточка соберётся по реестрам: ФНС, Росаккредитация, «Честный знак», Федресурс. Модель не вызывается.</p>
+          <div className="add-form">
+            <select className="input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Категория">
+              <option value="">Категория…</option>
+              {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <button type="button" className="btn pr" disabled={!cat} onClick={() => startLive(input)}>Собрать по ИНН</button>
+          </div>
+        </div>
+      )}
+      {phase === "live-error" && liveErr && (
         <div className="panel warn">
-          <b>Из интерфейса живой сбор пока работает только для двух примеров выше — их карточки собраны настоящим прогоном конвейера.</b>
-          <p>Сервера сбора ещё нет: конвейер запускается из командной строки — <code>python -m pipeline.one --site адрес</code> или <code>--inn ИНН</code>, — и карточка любого поставщика собирается за минуту. Здесь интерфейс не открывает чужие сайты и не придумывает карточку по адресу — иначе вышли бы выдуманные данные о настоящей компании.</p>
+          <b>{liveErr}</b>
+          <p>Конвейер можно запустить и без сервера, из командной строки: <code>python -m pipeline.one --site адрес</code> или <code>--inn ИНН --category id</code>.</p>
         </div>
       )}
       {phase === "exists" && target && (
@@ -144,14 +210,15 @@ export function AddSupplier({ route }: { route: Route }) {
         </div>
       )}
 
-      {steps.length === 0 && phase !== "exists" && (
+      {steps.length === 0 && !["exists", "need-cat", "live-error"].includes(phase) && (
         <div className="run panel preview">
-          <div className="run-h"><b>Что сделает конвейер</b><span className="sub">30–60 секунд · около 1 ₽<Hint>Если сайт запрещает автоматический сбор или не открылся, карточка всё равно создаётся по ЕГРЮЛ и реестрам, а поля сайта помечаются «○ не собрано» с причиной.</Hint></span></div>
+          <div className="run-h"><b>Что сделает конвейер</b><span className="sub">2–4 минуты · около 1 ₽<Hint>Если сайт запрещает автоматический сбор или не открылся, карточка всё равно создаётся по ЕГРЮЛ и реестрам, а поля сайта помечаются «○ не собрано» с причиной.</Hint></span></div>
           <ol className="steps">
             {[
               "Откроет сайт: главная, «Контакты», «Доставка», «Оптовикам», «Реквизиты» — до 6 страниц, по правилам robots.txt",
               "Найдёт ИНН в реквизитах, оферте или политике конфиденциальности",
               "Разложит текст по полям: у каждого значения — дословная цитата; нет цитаты — нет значения",
+              "Соберёт ассортимент с каталога и прайс-листов — каждую позицию сверит со страницей",
               "Проверит компанию в ФНС: статус, возраст, ОКВЭД, выручка, красные флаги; банкротство — в Федресурсе",
               "Найдёт декларации в реестре Росаккредитации и группы в «Честном знаке»",
               "Посчитает балл и место среди остальных в категории",
@@ -163,8 +230,10 @@ export function AddSupplier({ route }: { route: Route }) {
       {steps.length > 0 && (
         <div className="run panel">
           <div className="run-h">
-            <b>{phase === "done" ? "Готово" : phase === "confirm" ? "Нужно ваше подтверждение" : "Собираем данные"} · <span className="num">0:{String(elapsed).padStart(2, "0")}</span></b>
-            <Hint>Карточка — результат настоящего прогона конвейера по этому поставщику, шаги показаны по ней. Вживую сбор занимает 30–60 секунд.</Hint>
+            <b>{phase === "done" || phase === "live-done" ? "Готово" : phase === "confirm" ? "Нужно ваше подтверждение" : phase === "live-error" ? "Сбор остановился" : "Собираем данные"} · <span className="num">{clock(elapsed)}</span></b>
+            {live
+              ? <Hint>Сбор идёт сейчас на сервере: шаги — вывод конвейера. Обычно 2–4 минуты; дольше всего — разбор страниц языковой моделью.</Hint>
+              : <Hint>Это записанный прогон конвейера по примеру — без очереди и лимита. Любой другой сайт или ИНН соберётся вживую на сервере.</Hint>}
           </div>
           <ol className="steps">
             {steps.map((x, i) => (
@@ -188,6 +257,8 @@ export function AddSupplier({ route }: { route: Route }) {
         </div>
       )}
 
+      {phase === "live-done" && liveJob?.card && <LiveCard s={liveJob.card} spent={liveJob.spent_rub} />}
+
       {result && target && (
         <div className="result-card">
           <Mono s={target} size={56} />
@@ -204,6 +275,39 @@ export function AddSupplier({ route }: { route: Route }) {
         </div>
       )}
 
+    </div>
+  );
+}
+
+/** Карточка живого сбора: главное — сразу на экране. В общий набор не попадает: её никто ещё не проверял. */
+function LiveCard({ s, spent }: { s: Supplier; spent: number | null }) {
+  const cat = catById(s.category);
+  const c = isKnown(s.company) ? s.company.value! : null;
+  const decl = s.documents.declarations.value ?? [];
+  const items = s.assortment?.value?.items ?? [];
+  const rows: [string, string | null][] = [
+    ["Юрлицо", s.legal_name.value],
+    ["ИНН", s.inn.value],
+    ["Компания в ФНС", c ? `${c.status === "active" ? "действует" : c.status} ${years(ageYears(c.registered_at))}, ОКВЭД ${c.okved_main}` : null],
+    ["Адрес", s.address.value],
+    ["Телефоны", s.phones.value?.join(", ") || null],
+    ["Минимальный заказ", isKnown(s.min_order) ? minOrderText(s.min_order.value!) : null],
+    ["Доставка", isKnown(s.delivery) ? deliveryText(s.delivery.value!) : null],
+    ["Декларации", decl.length ? `${decl.length} ${plural(decl.length, "декларация", "декларации", "деклараций")} в Росаккредитации` : null],
+    ["«Честный знак»", s.documents.marking && isKnown(s.documents.marking) ? s.documents.marking.value!.join(", ") : null],
+    ["Ассортимент", items.length ? `${items.length} ${plural(items.length, "позиция", "позиции", "позиций")}: ${items.slice(0, 5).map((x) => x.name).join("; ")}${items.length > 5 ? "…" : ""}` : null],
+  ];
+  return (
+    <div className="panel live-card">
+      <div className="panel-h">
+        <b>{s.name}</b>
+        <span className="sub">{cat?.name ?? "категория не определена"}{spent != null && ` · модель: ${spent.toFixed(2).replace(".", ",")} ₽`}</span>
+      </div>
+      {s.not_supplier && <p className="rev-own">Конвейер решил, что это не поставщик: {s.not_supplier}</p>}
+      {rows.map(([k, v]) => (
+        <div key={k} className="mf-row"><span className="k">{k}</span><span className={v ? "mf-v" : "miss"}>{v ?? "не найдено"}</span></div>
+      ))}
+      <p className="sub">Карточка собрана сейчас и в общий набор не попадает: в продукте её сначала проверил бы человек. Значения с сайта — со слов поставщика, у каждого в данных есть цитата и страница.</p>
     </div>
   );
 }
