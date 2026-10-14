@@ -16,7 +16,9 @@ from pipeline.config import CACHE, REPO
 
 from . import assistant, budget, jobs, limits, probe, quota, reviews
 
-ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://afest.github.io,http://localhost:5173,http://127.0.0.1:5173").split(",")
+# 5174 — второй dev-сервер (ветка server), когда 5173 занят основной копией
+ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://afest.github.io,http://localhost:5173,http://127.0.0.1:5173,"
+                                            "http://localhost:5174,http://127.0.0.1:5174").split(",")
 PERSIST = (Path(os.environ["API_DATA_DIR"]) if os.environ.get("API_DATA_DIR")          # заглушка для проверок — своя папка
            else Path("/data") if os.name == "posix" and Path("/data").is_dir() else REPO / ".data")
 
