@@ -112,8 +112,12 @@ export interface Supplier {
   demo: boolean;
   /** появляется в наборе только после живого сбора («Добавить по сайту или ИНН») */
   live_only?: "site" | "inn";
+  /** основная категория — для рекомендации «вся категория» и счётчиков */
   category: string;
+  /** подкатегории по ассортименту (T-538), в том числе из чужих категорий: стаканы продаёт и оптовик продуктов */
   subcategories: string[];
+  /** позиции-основания: почему поставщик в подкатегории — до пяти названий с сайта */
+  subcategory_basis?: Record<string, string[]>;
   city: string;
 
   legal_name: Field<string>;
@@ -157,6 +161,8 @@ export interface Supplier {
   };
 }
 
+/** Подкатегория — что закупают (T-538). Членство считает конвейер по правилам include / exclude из data/categories.json;
+ *  keywords — слова закупщика для поиска по товару. */
 export interface Subcategory {
   id: string;
   name: string;

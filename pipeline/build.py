@@ -6,7 +6,7 @@ import statistics
 from datetime import date
 from urllib.parse import quote as urlquote
 
-from . import VERSION
+from . import VERSION, subcats
 from .config import CITY
 from .extract import digits, norm
 from .registries import company_from_bo, company_from_pb, declarations_from_fsa, marking_from_crpt
@@ -276,16 +276,14 @@ def build_supplier(c: dict, rec: dict, reg: dict, cat: dict) -> dict:
         tax = F(searched_in=reg_where)
 
     name = rec.get("name") or c["host"]
-    subs = [s for s in (rec["answer"] or {}).get("subcategories", []) if s in {x["id"] for x in cat["subcategories"]}]
-    if not subs:
-        subs = [s for s in c.get("subcategories", {}) if s in {x["id"] for x in cat["subcategories"]}] or [cat["subcategories"][0]["id"]]
 
     sup = {
         "id": slug(name),
         "name": name,
         "demo": False,
         "category": cat["id"],
-        "subcategories": subs,
+        "subcategories": [],            # по ассортименту, ниже — subcats.assign
+        "subcategory_basis": {},
         "city": CITY,
         "legal_name": legal,
         "inn": claimed("inn", lambda v: digits(v)),
@@ -314,6 +312,8 @@ def build_supplier(c: dict, rec: dict, reg: dict, cat: dict) -> dict:
     }
     if is_person(sup, inn):
         redact_person(sup, inn)
+    # подкатегории — по тому, что продаёт, а не по запросу, которым нашли; могут быть и из чужих категорий (T-538)
+    sup["subcategories"], sup["subcategory_basis"] = subcats.assign(sup)
     return sup
 
 

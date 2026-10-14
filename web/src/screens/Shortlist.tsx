@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { href, navigate, useRoute } from "../router.ts";
 import { actions, CONTACT_STATUSES, useStore, type ContactStatus } from "../store.ts";
-import { byId, categoryOf, orphanShortIds, rankCategory, readQuery, shortlistIds, subById, volParam, type Query } from "../data.ts";
+import { byId, categoryOf, orphanShortIds, rankCategory, readQuery, shortlistIds, subsIn, volParam, type Query } from "../data.ts";
 import { draftRequest } from "../lib/explain.ts";
 import { score, type Scored } from "../lib/score.ts";
 import type { Supplier } from "../types.ts";
@@ -136,8 +136,9 @@ function NoteCell({ id, note }: { id: string; note: string }) {
 function Draft({ row }: { row: { s: Supplier; q: Query; sc: Scored } }) {
   const { s, q, sc } = row;
   const cat = categoryOf(s);
-  const sub = subById(cat, s.subcategories[0])!;
-  const d = draftRequest(sc, cat, sub.name, q.volume);
+  // первая подкатегория своей категории; у поставщика без подкатегорий (ассортимент не собран) — категория целиком
+  const sub = subsIn(s, cat)[0];
+  const d = draftRequest(sc, cat, sub ? sub.name : cat.name, q.volume);
   const [text, setText] = useState(d.text);
   const [copied, setCopied] = useState<"" | "ok" | "fail">("");
   const email = isKnown(s.emails) ? s.emails.value![0] : "";

@@ -3,13 +3,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { href, type Route } from "../router.ts";
 import { actions, CONTACT_STATUSES, useStore, type ContactStatus } from "../store.ts";
-import { byId, categoryOf, queryParams, rankCategory, readQuery, volParam } from "../data.ts";
+import { byId, catById, CATEGORIES, categoryOf, inCategory, queryParams, rankCategory, readQuery, subsIn, volParam } from "../data.ts";
 import { asks } from "../lib/explain.ts";
 import { completeness, CRITS, fnsFlags, profileDeclarations, score, stopReason } from "../lib/score.ts";
 import { ageYears, dateRu, isKnown, minOrderText, monthYear, num, plural, years } from "../lib/format.ts";
 import type { FieldStatus, Hours, Supplier } from "../types.ts";
 import { CatGlyph, DemoPill, DocGlyph, Hint, Mono, Rule, StarButton, StatusIcon } from "../components/ui.tsx";
-import { deliveryText, FieldRow, PRICE_MODE, SourceLinks, sourceLabel } from "../components/supplier.tsx";
+import { deliveryText, FieldRow, GuestTag, PRICE_MODE, SourceLinks, sourceLabel } from "../components/supplier.tsx";
 
 const TAX = { general: "общий — счета с НДС", usn: "УСН — без НДС" } as const;
 const PRESENCE = { warehouse: "склад в городе", delivery_only: "без склада в городе", unknown: "не известно" } as const;
@@ -27,15 +27,28 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
       </div>
     );
   }
-  const cat = categoryOf(s);
+  // категория — та, из которой пришли, если поставщик в ней есть хотя бы по подкатегории (T-538); иначе основная
+  const own = categoryOf(s);
+  const asked = catById(route.params.get("cat"));
+  const cat = asked && inCategory(s, asked) ? asked : own;
+  const guest = cat.id !== own.id;
+  const mine = subsIn(s, cat);
   const p = new URLSearchParams(route.params);
   p.set("cat", cat.id);
-  const q = readQuery(p);
+  let q = readQuery(p);
+  // гостя нет в «Вся категория» — место считаем среди тех подкатегорий, где он есть
+  if (guest) {
+    const picked = q.subs.filter((id) => mine.some((x) => x.id === id));
+    q = { ...q, subs: picked.length && picked.length < cat.subcategories.length ? picked : mine.map((x) => x.id) };
+  }
   const base = queryParams(q);
-  const { ranked } = rankCategory(q, st);
+  const { ranked, peers } = rankCategory(q, st, guest ? { members: true } : {});
   const place = ranked.findIndex((x) => x.supplier.id === s.id);
+  // в шапке у гостя — подкатегория, из которой пришли; полный список — в блоке «Ассортимент»
+  const shown = guest ? mine.filter((x) => q.subs.includes(x.id)) : mine;
+  const placeIn = !guest ? "в категории" : q.subs.length === 1 ? `в подкатегории «${mine.find((x) => x.id === q.subs[0])!.name}»` : "в подкатегориях";
   const stop = stopReason(s, new Set(st.returned));
-  const sc = score(s, { volume: q.volume, category: cat, peers: ranked.map((r) => r.supplier) }, q.prio);
+  const sc = score(s, { volume: q.volume, category: cat, peers }, q.prio);
   const comp = completeness(s);
   const short = st.shortlist[s.id];
   const inCompare = st.compare.includes(s.id);
@@ -49,7 +62,7 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
   const inProfile = new Set(profileDeclarations(s, cat).map((d) => d.number));
 
   const toggleCompare = () => {
-    if (st.compare.some((x) => byId.get(x)?.category !== cat.id)) actions.setCompare([s.id]);
+    if (st.compare.some((x) => { const o = byId.get(x); return !o || !inCategory(o, cat); })) actions.setCompare([s.id]);
     else if (!actions.toggleCompare(s.id)) setNotice("В сравнении уже четыре поставщика — уберите одного.");
   };
 
@@ -62,7 +75,8 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
           <Mono s={s} size={88} />
           <div className="card-title">
             <div className="label">
-              <CatGlyph cat={cat} size={18} /> {cat.short} · {s.subcategories.map((x) => cat.subcategories.find((y) => y.id === x)?.name.toLowerCase()).join(", ")}
+              <CatGlyph cat={cat} size={18} /> {cat.short}{shown.length > 0 && ` · ${shown.slice(0, 2).map((x) => x.name.toLowerCase()).join(" · ")}${shown.length > 2 ? ` · ещё ${shown.length - 2}` : ""}`}
+              {guest && <GuestTag s={s} cat={cat} own={own} />}
             </div>
             <h1 className="h1">{s.name}{s.demo && <DemoPill />}{collectedNow && <span className="fresh-pill">собрано сейчас</span>}</h1>
             <div className="sub">
@@ -89,7 +103,7 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
             <>
               <div className="sp-head">
                 <div className="sp-big num">{sc.total}<span>/100</span></div>
-                <div className="sp-place">{place + 1}-й из {ranked.length}<br />в категории</div>
+                <div className="sp-place">{place + 1}-й из {ranked.length}<br />{placeIn}</div>
               </div>
               <div className="sp-crits">
                 {CRITS.map((cr) => (
@@ -245,9 +259,22 @@ function Assortment({ s }: { s: Supplier }) {
     );
   }
   const items = all ? a.items : a.items.slice(0, 12);
+  // подкатегории по ассортименту, основная категория первой; каждая — ссылка на всех, кто её продаёт (T-538)
+  const groups = [categoryOf(s), ...CATEGORIES.filter((c) => c.id !== s.category)].map((c) => ({ c, subs: subsIn(s, c) })).filter((g) => g.subs.length);
   return (
     <section>
       <h2 className="section-h">Ассортимент <span className="find-n num">{a.total_seen}</span></h2>
+      {groups.length > 0 && (
+        <div className="in-subs">
+          <span className="found-k">В подкатегориях<Hint label="Как считаются подкатегории">Поставщик попадает в подкатегорию по позициям со своего сайта — даже если его основная категория другая: стаканы продаёт и оптовик продуктов. Ссылка ведёт ко всем, кто продаёт эту позицию.</Hint></span>
+          {groups.map(({ c, subs }) => (
+            <div key={c.id} className="in-subs-line">
+              <CatGlyph cat={c} size={20} /> <b>{c.short}:</b>{" "}
+              {subs.map((x, i) => <span key={x.id}>{i > 0 && " · "}<a href={href("/results", { cat: c.id, sub: x.id })}>{x.name.toLowerCase()}</a></span>)}
+            </div>
+          ))}
+        </div>
+      )}
       <ul className="assort">
         {items.map((it, i) => <li key={i}><span>{it.name}</span>{it.price && <span className="num muted">{it.price}</span>}</li>)}
       </ul>

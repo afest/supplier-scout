@@ -21,6 +21,27 @@ for (const cat of d.categories) {
   console.log(`${cat.name}: реальных ${real}, демо ${demo.length}`);
 }
 
+// Подкатегории по ассортименту (T-538): 6–10 на категорию, выбор из одного поставщика — не выбор,
+// у каждого членства — позиции-основания, по которым поставщик туда попал.
+const subIds = new Set(d.categories.flatMap((c) => c.subcategories.map((x) => x.id)));
+const base = d.suppliers.filter((s) => !s.live_only);
+for (const cat of d.categories) {
+  const n = cat.subcategories.length;
+  if (n < 6 || n > 10) problems.push(`${cat.name}: ${n} подкатегорий — нужно 6–10`);
+  for (const sub of cat.subcategories) {
+    const k = base.filter((s) => s.subcategories.includes(sub.id)).length;
+    if (k < 2) problems.push(`${cat.name} → ${sub.name}: ${k} поставщиков — меньше двух, слить с соседней или убрать`);
+  }
+}
+for (const s of d.suppliers) {
+  for (const id of s.subcategories) {
+    if (!subIds.has(id)) problems.push(`${s.name}: подкатегории «${id}» нет в описании категорий`);
+    else if (!s.subcategory_basis?.[id]?.length) problems.push(`${s.name}: в подкатегории «${id}» без позиций-оснований`);
+  }
+}
+console.log(`Подкатегорий ${subIds.size}, членств ${base.reduce((a, s) => a + s.subcategories.length, 0)}, из них из чужой категории ${
+  base.reduce((a, s) => a + s.subcategories.filter((id) => !d.categories.find((c) => c.id === s.category).subcategories.some((x) => x.id === id)).length, 0)}`);
+
 // Персональные данные ИП (логика, раздел 10; ревью 14.10, Б3): в публичных файлах — «ИП Фамилия И. О.»,
 // без ИНН физлица (12 цифр с верной контрольной суммой), без полного ФИО и без мобильных номеров ИП.
 const innValid = (s) => {

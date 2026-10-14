@@ -157,7 +157,7 @@ def main() -> int:
         case("robots: своя группа бота важнее «*»", not rb.allowed("SupplierScoutBot", "https://x.ru/private/a")
              and rb.allowed("SupplierScoutBot", "https://x.ru/search")),
     ]
-    res += network_cases() + hours_cases() + assortment_cases() + build_cases()
+    res += network_cases() + hours_cases() + assortment_cases() + build_cases() + subcat_cases()
     print(f"\n{sum(res)} из {len(res)}")
     return 0 if all(res) else 1
 
@@ -309,6 +309,49 @@ def build_cases() -> list[bool]:
              == norm_region("89 субъектов РФ и СНГ") == norm_region("вся территория РФ") == "вся Россия"
              and norm_region("7 городов России") == "7 городов России" and norm_region("за пределами РФ") == "за пределами РФ"
              and norm_region("вся центральная Россия") == "вся центральная Россия"),
+    ]
+
+
+def subcat_cases() -> list[bool]:
+    """Подкатегории по ассортименту (T-538): правила из data/categories.json на позициях, которые ловились ложно."""
+    from .config import load_categories
+    from .subcats import assign
+
+    cats = load_categories()["categories"]
+
+    def subs(items=(), products=(), category="packaging"):
+        return assign({"category": category, "products": {"value": list(products)},
+                       "assortment": {"value": {"items": [{"name": n, "group": g} for n, g in items]}}})
+
+    def has(sid, *names, group=None):
+        return sid in subs([(n, group) for n in names])[0]
+
+    ids = [s["id"] for c in cats for s in c["subcategories"]]
+    fish_cups, basis = subs([("Креветки очищ. в/м 200/300 VICI (1кг/уп)", None), ("Стакан бумажный 250 мл", None)], category="grocery")
+    return [
+        case("подкатегории: у каждой категории 6–10, id не повторяются между категориями",
+             all(6 <= len(c["subcategories"]) <= 10 for c in cats) and len(ids) == len(set(ids))),
+        case("стакан — в «Стаканах»; сметана в стакане, вафельный стаканчик, лапша в стакане — нет",
+             has("cups", "Стакан бумажный 250 мл") and not has("cups", "Сметана м.д.ж.20% стакан 6х0,18 кг")
+             and not has("cups", "88195. Вафельный стаканчик БЕЗ САХАРА 75") and not has("cups", "Суп-лапша в удобном стакане")),
+        case("товар «в пакете» и мешок для мусора — не «Пакеты», «Пакет майка» — «Пакеты»",
+             has("bags", "Пакет Майка 40×70 см") and not has("bags", "Ванилин (1000 гр) пакет SpicExpert")
+             and not has("bags", "Мешок для мусора ПВД 120л")),
+        case("кабачковая икра и икра лососевых: первая не «Икра», вторая не «Лосось»",
+             not has("roe", "Икра кабачковая 500 г") and has("roe", "Икра кеты «Ничира», 250 г")
+             and not has("salmon", "Икра кеты «Ничира», 250 г")),
+        case("рабочие перчатки х/б и паллетная стрейч-плёнка — не «Перчатки, плёнка, фольга»; пищевые перчатки — да",
+             not has("consumables", "Перчатки вязаные х/б с ПВХ черные") and not has("consumables", "Стрейч пленка 500мм 20мкм 1,8кг")
+             and has("consumables", "Перчатки одноразовые полиэтиленовые")),
+        case("перец чили кочукару — «Специи»; замороженный «перец красный полоска» — нет",
+             has("spices", "Перец чили Кочукару мелкого помола") and not has("spices", "Перец красный полоска 10 кг, Китай")),
+        case("«Сливки» в разделе «Бакалея» — сухие, не «Сливки»; «Сливки 33%» — «Сливки»",
+             not has("cream", "Сливки", group="Бакалея") and has("cream", "Сливки Петмол 33% (1л)")),
+        case("раздел каталога — тоже основание: «Кручёная ручка ‹Бумажные крафт пакеты›» — «Пакеты»",
+             has("bags", "Кручёная ручка", group="Бумажные крафт пакеты")),
+        case("подкатегория из чужой категории: у бакалеи с креветками и стаканами — «Креветки» и «Стаканы», с основаниями",
+             "shrimp" in fish_cups and "cups" in fish_cups and basis["shrimp"] == ["Креветки очищ. в/м 200/300 VICI (1кг/уп)"]),
+        case("товары с сайта учитываются вместе с ассортиментом", "rice" in subs([("Азиатская кухня", None)], ["Рис для суши"])[0]),
     ]
 
 

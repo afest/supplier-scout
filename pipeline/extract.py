@@ -305,7 +305,7 @@ def pages_block(pages: list[dict], cap_total: int = 32_000, cap_page: int = 9_00
 
 
 def build_prompt(host: str, pages: list[dict], categories: list[dict]) -> str:
-    tree = "\n".join(f"- {c['name']}: " + "; ".join(f"{s['id']} — {s['name']}" for s in c["subcategories"]) for c in categories)
+    tree = "\n".join(f"- {c['name']}: " + "; ".join(f"{s['id']} — {s['name']}" for s in c["search_subcategories"]) for c in categories)
     return (f"Сайт: {host}\n\nПодкатегории, которые нас интересуют:\n{tree}\n\n"
             f"Страницы сайта ({len(pages)}):\n\n{pages_block(pages)}\n\nЗапиши факты инструментом record_supplier.")
 

@@ -151,8 +151,9 @@ export function search(q: string, suppliers: Supplier[], ix: Index): SearchResul
         continue;
       }
       if (s.subcategories.some((x) => subIds.has(x))) {
-        const cat = ix.cats.find((c) => c.id === s.category)!;
-        out.push({ supplier: s, matched: s.subcategories.filter((x) => subIds.has(x)).map((x) => cat.subcategories.find((y) => y.id === x)!.name), via: "subcategory", n: tokens.length });
+        // подкатегория может быть из чужой категории поставщика (T-538)
+        const name = (x: string) => ix.cats.flatMap((c) => c.subcategories).find((y) => y.id === x)!.name;
+        out.push({ supplier: s, matched: s.subcategories.filter((x) => subIds.has(x)).map(name), via: "subcategory", n: tokens.length });
         continue;
       }
       if (match(words(s.name))) out.push({ supplier: s, matched: [s.name], via: "name", n: hasAny(words(s.name), tokens) });

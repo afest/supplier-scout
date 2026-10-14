@@ -53,8 +53,10 @@ export function Catalog({ route }: { route: Route }) {
   const all = visibleSuppliers(st);
   const pool = all.filter((s) => {
     const cat = catById(s.category)!;
-    if (cats.length && !cats.some((c) => c.id === s.category)) return false;
-    if (subs.length && !s.subcategories.some((x) => subs.includes(x))) return false;
+    // выбрана подкатегория — все, кто её продаёт, из любой категории (T-538); иначе — по основной категории
+    if (subs.length) {
+      if (!s.subcategories.some((x) => subs.includes(x))) return false;
+    } else if (cats.length && !cats.some((c) => c.id === s.category)) return false;
     if (!matchesSupplier(s, text)) return false;
     return passes(s, cat, fs);
   });

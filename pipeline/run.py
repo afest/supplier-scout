@@ -39,7 +39,7 @@ def pick_category(c: dict, rec: dict, cls: dict, cats: list[dict]) -> dict | Non
     subs = set((rec.get("answer") or {}).get("subcategories") or [])
     best, best_score = None, 0.0
     for cat in cats:
-        n_sub = sum(1 for s in cat["subcategories"] if s["id"] in subs)
+        n_sub = sum(1 for s in cat["search_subcategories"] if s["id"] in subs)
         score = 2 * n_sub + (1 if cat["id"] in cls.get("categories", []) else 0) + 0.5 * c["categories"].get(cat["id"], 0)
         if (n_sub or cat["id"] in cls.get("categories", [])) and score > best_score:
             best, best_score = cat, score
@@ -297,10 +297,10 @@ def check_category(rec: dict, cat: dict, cats: list[dict]) -> tuple[dict | None,
         return cat, f"категорию «{cat['name']}» нечем подтвердить: на сайте не нашлось ни товаров, ни ассортимента"
     hay = [norm(n) for n in names]
     # слово, которое есть у двух категорий («пицц» — и коробки, и моцарелла для пиццы), категорию не подтверждает
-    owners = Counter(k for cc in cats for k in {k for s in cc["subcategories"] for k in s["keywords"]})
+    owners = Counter(k for cc in cats for k in {k for s in cc["search_subcategories"] for k in s["keywords"]})
 
     def hits(cc):
-        keys = [k for s in cc["subcategories"] for k in s["keywords"] if owners[k] == 1]
+        keys = [k for s in cc["search_subcategories"] for k in s["keywords"] if owners[k] == 1]
         return sum(1 for h in hay if any(re.search(rf"(?<![а-яa-z]){re.escape(k)}", h) for k in keys))
 
     score = {cc["id"]: hits(cc) for cc in cats}

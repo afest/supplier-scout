@@ -4,6 +4,31 @@ import { ageYears, isKnown, plural, rub, years } from "../lib/format.ts";
 import { activeDeclarations, markingOk, profileDeclarations } from "../lib/score.ts";
 import { Badge, Hint, StatusIcon } from "./ui.tsx";
 
+// ---------- подкатегории по ассортименту (T-538) ----------
+
+/** Позиции-основания по выбранным подкатегориям — только когда смотрят не всю категорию. */
+export function subBasis(s: Supplier, cat: Category, subs: string[]) {
+  if (subs.length === cat.subcategories.length) return [];
+  return [...new Set(subs.flatMap((id) => s.subcategory_basis?.[id] ?? []))];
+}
+
+/** Почему поставщик в подкатегории: первые позиции с его сайта. */
+export function Basis({ items, max = 2 }: { items: string[]; max?: number }) {
+  return (
+    <div className="found-in basis">
+      <span className="found-k">по позициям:</span>{" "}
+      {items.slice(0, max).map((x, i) => <span key={i} className="found-v">{i > 0 && " · "}{x}</span>)}
+      {items.length > max && <span className="muted"> и другие</span>}
+    </div>
+  );
+}
+
+/** Поставщик в чужой категории — пометка, откуда он. */
+export function GuestTag({ s, cat, own }: { s: Supplier; cat: Category; own: Category }) {
+  if (s.category === cat.id) return null;
+  return <span className="guest-tag">основная категория — {own.short.toLowerCase()}</span>;
+}
+
 // ---------- источники ----------
 const REG_LABEL: Record<string, string> = {
   egrul: "ЕГРЮЛ", pb: "ФНС", "fns-open": "ФНС", fsa: "ФСА", cz: "Честный знак", fedresurs: "Федресурс", market: "рынок", search: "поиск",

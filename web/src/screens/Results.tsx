@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, MAX_COMPARE, useStore } from "../store.ts";
-import { byId, countIn, queryParams, rankCategory, readQuery, volParam, type Query } from "../data.ts";
+import { byId, categoryOf, countIn, inCategory, queryParams, rankCategory, readQuery, volParam, type Query } from "../data.ts";
 import { leaderText, followerText } from "../lib/explain.ts";
 import { completeness, PRIORITIES, type Priority, type Scored } from "../lib/score.ts";
 import { activeCount, minRub, passes, readFilters } from "../lib/filters.ts";
@@ -9,7 +9,7 @@ import { isKnown, num, plural } from "../lib/format.ts";
 import { matchesSupplier } from "../lib/search.ts";
 import { Check, Comb, Hint, Mono, Score, StarButton, StatusIcon } from "../components/ui.tsx";
 import { FiltersPanel } from "../components/Filters.tsx";
-import { companyShort, deliveryShort, documentsShort, minOrderShort, pricesShort, RowBadges, supplierMeta } from "../components/supplier.tsx";
+import { Basis, companyShort, deliveryShort, documentsShort, GuestTag, minOrderShort, pricesShort, RowBadges, subBasis, supplierMeta } from "../components/supplier.tsx";
 
 export function Results({ route }: { route: Route }) {
   const st = useStore();
@@ -44,9 +44,11 @@ export function Results({ route }: { route: Route }) {
   const top = visible.slice(0, 3);
   const nFilters = activeCount(fs);
 
-  const compareIds = st.compare.filter((id) => byId.get(id)?.category === q.cat.id);
+  // сравнивать можно всех, кто есть в этой категории, — и поставщиков из чужих по подкатегории
+  const fits = (id: string) => { const s = byId.get(id); return !!s && inCategory(s, q.cat); };
+  const compareIds = st.compare.filter(fits);
   const onCompare = (id: string) => {
-    if (st.compare.some((x) => byId.get(x)?.category !== q.cat.id)) actions.setCompare([id]);
+    if (!st.compare.every(fits)) actions.setCompare([id]);
     else actions.toggleCompare(id);
   };
   const cardHref = (id: string) => href(`/s/${id}`, { ...base });
@@ -229,6 +231,7 @@ function FirstZone({ top, q, cardHref, whyHref }: { top: Scored[]; q: Query; car
                 <div>
                   <div className="nm">{sc.supplier.name}</div>
                   <div className="sub">{c.status === "found" ? `${sc.supplier.company.value!.form} · ${c.text.replace("действует ", "")}` : "компания не проверена"}</div>
+                  <GuestTag s={sc.supplier} cat={q.cat} own={categoryOf(sc.supplier)} />
                 </div>
               </div>
               <div className="why">{t.why}</div>
@@ -246,16 +249,19 @@ function Row({ sc, rank, q, hrefCard, inCompare, onCompare, starred, collected }
 }) {
   const s = sc.supplier;
   const c = completeness(s);
+  const basis = subBasis(s, q.cat, q.subs);
   return (
-    <div className={`row${inCompare ? " sel" : ""}`}>
+    <div className={`row${inCompare ? " sel" : ""}${basis.length ? " has-basis" : ""}`}>
       <Check checked={inCompare} onChange={onCompare}><span className="sr-only">Сравнить {s.name}</span><span className="chk-l" aria-hidden="true">сравнить</span></Check>
       <Mono s={s} size={48} />
       <div className="row-main">
         <div className="row-title">
           <a className="nm" href={hrefCard}>{s.name}</a>
           {collected && <span className="fresh-pill">собрано сейчас</span>}
+          <GuestTag s={s} cat={q.cat} own={categoryOf(s)} />
         </div>
         <div className="row-meta">{!isKnown(s.company) && <StatusIcon status="not_found" size={10} />} {supplierMeta(s)}</div>
+        {basis.length > 0 && <Basis items={basis} />}
         <RowBadges s={s} cat={q.cat} />
       </div>
       <div className="comb-cell"><Comb found={c.found} total={c.total} /></div>
@@ -289,7 +295,7 @@ function ResultsTable({ list, q, cardHref, compareIds, onCompare, shortlist }: {
             return (
               <tr key={s.id} className={compareIds.includes(s.id) ? "sel" : ""}>
                 <td><Check checked={compareIds.includes(s.id)} onChange={() => onCompare(s.id)}><span className="sr-only">Сравнить {s.name}</span></Check></td>
-                <td><a className="nm" href={cardHref(s.id)}>{s.name}</a></td>
+                <td><a className="nm" href={cardHref(s.id)}>{s.name}</a><GuestTag s={s} cat={q.cat} own={categoryOf(s)} /></td>
                 <td className="r"><Score value={sc.total} className="sm" /></td>
                 <td>{cell(minOrderShort(s))}</td>
                 <td>{isKnown(s.delivery) ? cell({ status: s.delivery.status, text: deliveryShort(s.delivery.value!) }) : cell({ status: "not_found", text: "не найдено" })}</td>
