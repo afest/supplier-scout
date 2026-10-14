@@ -192,30 +192,44 @@ def build_supplier(c: dict, rec: dict, reg: dict, cat: dict) -> dict:
     else:
         legal = claimed("legal_name")
 
-    # адрес и присутствие в городе
+    # адрес и присутствие в городе: «склад в городе» — только склад или производство; офис, магазин и пункт выдачи
+    # товар здесь не хранят (ревью 14.10, А3) — для них присутствие решается по доставке, как без адреса
+    presence = None
     if facts.get("city_address"):
         fa = facts["city_address"]
         kind = fa.get("kind")
         address = F(fa["value"] + (f" — {kind}" if kind else ""), "claimed", sid(fa), fa["quote"])
-        presence = F("warehouse", "claimed", sid(fa), fa["quote"])
+        if kind in ("склад", "производство"):
+            presence = F("warehouse", "claimed", sid(fa), fa["quote"])
+    elif company_info and company_info.get("address"):
+        address = F(f"{company_info['address']} (юридический адрес)", "found", [fns])
+    elif facts.get("home_city"):
+        fh = facts["home_city"]
+        address = F(fh["value"], "claimed", sid(fh), fh["quote"])
     else:
-        if company_info and company_info.get("address"):
-            address = F(f"{company_info['address']} (юридический адрес)", "found", [fns])
-        elif facts.get("home_city"):
-            fh = facts["home_city"]
-            address = F(fh["value"], "claimed", sid(fh), fh["quote"])
-        else:
-            address = F(searched_in=where)
+        address = F(searched_in=where)
+    if presence is None:
         regs = facts.get("regions_served", {}).get("value", []) if facts.get("regions_served") else []
         d = facts.get("delivery")
         serves_city = any(r in ("Екатеринбург", "Свердловская область", "Урал", "вся Россия") for r in regs)
         if serves_city or (d and (d["value"].get("to_door") or d["value"].get("transport_company"))):
             fr = facts.get("regions_served") or d
             presence = F("delivery_only", "claimed", sid(fr), fr.get("quote"))
+        elif facts.get("city_address"):        # адрес в городе есть, но это офис или магазин, а про доставку ни слова
+            presence = F("unknown", "not_found", searched_in=[f"адрес в городе — {facts['city_address'].get('kind') or 'тип не указан'}, "
+                                                              "не склад; про доставку на сайте ничего"])
         else:
             presence = F("unknown", "not_found", searched_in=where)
 
     regions = claimed("regions_served")
+    # Адрес в городе и доставка до двери или самовывоз — значит, работает в Екатеринбурге, даже если в регионах сайт
+    # пишет «7 городов России»: иначе интерфейс исключит местного поставщика как «не возит в Екатеринбург»
+    dv = (facts.get("delivery") or {}).get("value") or {}
+    if regions["value"] and CITY not in regions["value"] and facts.get("city_address") and (dv.get("to_door") or dv.get("pickup")):
+        regions["value"] = regions["value"] + [CITY]
+        regions["sources"] = list(dict.fromkeys(regions["sources"] + sid(facts["city_address"]) + sid(facts["delivery"])))
+        regions["basis"] = (f"«{CITY}» добавлен конвейером: адрес в городе ({facts['city_address']['value']}) и "
+                            + ("доставка до двери" if dv.get("to_door") else "самовывоз") + " — см. адрес и доставку")
 
     # минимальный заказ, цены, доставка
     min_order = claimed("min_order", lambda v: {"amount": v.get("amount"), "unit": v.get("unit") or "RUB", "text": v.get("text") or ""})
@@ -276,6 +290,8 @@ def build_supplier(c: dict, rec: dict, reg: dict, cat: dict) -> dict:
         "legal_name": legal,
         "inn": claimed("inn", lambda v: digits(v)),
         "products": claimed("products", quote=False),
+        "assortment": assortment_field(rec, src),
+        "hours": hours_field(rec, where),
         "address": address,
         "presence": presence,
         "regions_served": regions,
@@ -296,7 +312,113 @@ def build_supplier(c: dict, rec: dict, reg: dict, cat: dict) -> dict:
         "meta": {"collected_at": TODAY, "pipeline_version": VERSION, "sources": src,
                  "not_collected_reason": rec.get("error"), "pages": len(rec["pages"])},
     }
+    if is_person(sup, inn):
+        redact_person(sup, inn)
     return sup
+
+
+SERVES = ("Екатеринбург", "Свердловская область", "Урал", "вся Россия")     # = SERVES в web/src/lib/score.ts
+
+
+def excluded_by_region(s: dict) -> str | None:
+    """Повтор правила stopReason из web/src/lib/score.ts: регионы известны, ни один не наш, склада в городе нет —
+    интерфейс исключит поставщика без права вернуть. Конвейер проверяет набор этим же правилом до публикации."""
+    known = lambda f: bool(f) and f["value"] is not None and f["status"] in ("found", "claimed", "user")
+    regions = s["regions_served"]["value"] if known(s["regions_served"]) else []
+    warehouse = s["city"] == CITY and known(s["presence"]) and s["presence"]["value"] == "warehouse"
+    if regions and not any(r in SERVES for r in regions) and not warehouse:
+        return f"не возит в {CITY}: только {', '.join(regions)}"
+    return None
+
+
+# ---------- ассортимент и часы работы (T-535) ----------
+
+def assortment_field(rec: dict, src: list[dict]) -> dict:
+    """Позиции с каталога или прайса; страницы-источники добавляются в справочник источников карточки."""
+    from .fetch import Fetcher
+    a = rec.get("assortment")
+    if not a or not a.get("items"):
+        return F(searched_in=(a or {}).get("searched") or ["каталог не собирался"])
+    ids = []
+    for url in a["sources"]:
+        sid_ = next((s["id"] for s in src if s["url"].rstrip("/") == url.rstrip("/")), None)
+        if not sid_:
+            sid_ = f"catalog-{sum(1 for s in src if s['id'].startswith('catalog-')) + 1}"
+            page = Fetcher.cached(url) or {}
+            title = page.get("title") or re.sub(r"^https?://[^/]+", "", url) or url
+            kind = "Прайс-лист" if page.get("kind") in ("xlsx", "pdf") else "Каталог"
+            src.append({"id": sid_, "kind": "site", "url": url, "title": f"{kind}: " + (title[:70] + "…" if len(title) > 70 else title),
+                        "fetched_at": page.get("fetched_at") or TODAY})
+        ids.append(sid_)
+    return F({"items": a["items"], "total_seen": a["total_seen"], "truncated": a["truncated"], "from": a["from"]}, "claimed", ids)
+
+
+def hours_field(rec: dict, where: list[str]) -> dict:
+    """Часы — фразы со страниц сайта как есть; цитата — эти же фразы через «…», источники — их страницы."""
+    h = rec.get("hours")
+    if not h:
+        return F(searched_in=[w + " — ни режима работы, ни времени доставки" for w in where])
+    return F(h["value"], "claimed", sorted({f"site-p{i + 1}" for _, i in h["quotes"]}), " … ".join(q for q, _ in h["quotes"]))
+
+
+# ---------- персональные данные ИП: в публичный набор — «ИП Фамилия И. О.», без ИНН и личных мобильных ----------
+
+PERSON_RX = re.compile(r"(ИП|Индивидуальный предприниматель)\s+([А-ЯЁ][а-яё-]+)\s+([А-ЯЁ])[а-яё]+(?:\s+([А-ЯЁ])[а-яё]+)?")
+
+
+def is_person(sup: dict, inn: str | None) -> bool:
+    legal = sup["legal_name"]["value"] or ""
+    form = (sup["company"]["value"] or {}).get("form")
+    return bool((inn and len(inn) == 12) or form == "ИП" or PERSON_RX.match(legal))
+
+
+def _short(m: re.Match) -> str:
+    return f"ИП {m.group(2)} {m.group(3)}." + (f" {m.group(4)}." if m.group(4) else "")
+
+
+def redact_person(sup: dict, inn: str | None):
+    """ИНН физлица, полное ФИО и мобильные — персональные данные: в карточку не идут. Цитата с полным ФИО снимается,
+    источник-страница остаётся — по ссылке видно, откуда значение."""
+    legal = sup["legal_name"]["value"] or ""
+    m = PERSON_RX.match(legal)
+    names = [x for x in (m.group(0).split()[2:] if m else [])]          # имя и отчество — по ним ищем ФИО в цитатах
+    if m:
+        sup["legal_name"]["value"] = _short(m)
+    if sup["name"] and PERSON_RX.search(sup["name"]):
+        sup["name"] = PERSON_RX.sub(_short, sup["name"])
+    if inn:
+        reg_src = sup["inn"]["sources"] if sup["inn"]["status"] == "found" else []
+        sup["inn"] = F(searched_in=["ИНН индивидуального предпринимателя не публикуем: это персональные данные. "
+                                    "Реестры ФНС, Росаккредитации, «Честного знака» и Федресурса проверены по нему"])
+        sup["inn"]["sources"] = reg_src
+    phones = sup["phones"]["value"] or []
+    keep = [p for p in phones if not re.match(r"9", digits(p)[-10:])]
+    if phones and not keep:
+        sup["phones"] = F(searched_in=["у ИП на сайте только мобильные номера — это личные данные, в карточку не берём; "
+                                       "связь — через почту или сайт"])
+    elif len(keep) < len(phones):
+        sup["phones"]["value"] = keep
+    for s in sup["meta"]["sources"]:                                   # ссылки на реестры с ИНН в адресе
+        if inn and inn in s["url"]:
+            s["url"] = re.sub(r"[?#].*$", "", s["url"]).replace(inn, "")
+
+    def walk(x):
+        if isinstance(x, dict):
+            if isinstance(x.get("quote"), str) and (PERSON_RX.search(x["quote"]) or any(n in x["quote"] for n in names)
+                                                     or (inn and inn in digits(x["quote"]))):
+                x["quote"] = None
+            for k, v in x.items():
+                if isinstance(v, str):
+                    x[k] = PERSON_RX.sub(_short, v).replace(inn, "(ИНН скрыт)") if inn else PERSON_RX.sub(_short, v)
+                else:
+                    walk(v)
+        elif isinstance(x, list):
+            for i, v in enumerate(x):
+                if isinstance(v, str):
+                    x[i] = PERSON_RX.sub(_short, v).replace(inn, "(ИНН скрыт)") if inn else PERSON_RX.sub(_short, v)
+                else:
+                    walk(v)
+    walk(sup)
 
 
 def add_estimates(sups: list[dict], recs_by_id: dict[str, dict]):

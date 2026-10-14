@@ -4,8 +4,9 @@ from __future__ import annotations
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date, timedelta
 
-from .config import CACHE, MAX_PAGES, PAGE_HINTS, load_categories
+from .config import CACHE, CACHE_TTL_EXTRACT_DAYS, INN_PAGES, MAX_PAGES, PAGE_HINTS, load_categories
 from .extract import SYSTEM, build_prompt, check_answer, supplier_tool
 from .fetch import Fetcher, pick_pages
 from .kie import BudgetExceeded, KieError
@@ -84,17 +85,37 @@ def collect_pages(fetcher: Fetcher, c: dict, home: dict) -> list[dict]:
     return [p for p in pages if p.get("text")]
 
 
+def extracted_on(rec: dict) -> str:
+    """Дата раскладки: поле записи, у старых записей — самая поздняя загрузка страниц."""
+    return rec.get("extracted_at") or max((p.get("fetched_at") or "" for p in rec.get("pages", [])), default="") or "1970-01-01"
+
+
+def cached_extract(host: str) -> dict | None:
+    """Раскладка из кэша, если она годна: оплаченный ответ модели не старше срока. Запись-ошибка («сайт не открылся»)
+    не годна никогда — временный сбой не должен навсегда оставить поставщика несобранным."""
+    path = EXTRACT_DIR / f"{host}.json"
+    if not path.exists():
+        return None
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    if not rec.get("answer"):
+        return None
+    if extracted_on(rec) < (date.today() - timedelta(days=CACHE_TTL_EXTRACT_DAYS)).isoformat():
+        return None
+    return rec
+
+
 def extract_one(kie, fetcher: Fetcher, c: dict, home: dict, cats: list[dict]) -> dict:
     path = EXTRACT_DIR / f"{c['host']}.json"
-    if path.exists():
-        return json.loads(path.read_text(encoding="utf-8"))
+    hit = cached_extract(c["host"])
+    if hit:
+        return hit
     pages = collect_pages(fetcher, c, home)
-    blocked = [p for p in [home] if p.get("error") == "robots.txt запрещает"]
+    blocked = "robots.txt" in (home.get("error") or "")
     rec = {"host": c["host"], "pages": [{"url": p["final_url"], "title": p.get("title", ""), "via": p.get("via"),
                                          "kind": p.get("kind"), "fetched_at": p["fetched_at"]} for p in pages],
-           "answer": None, "facts": {}, "rejected": [], "error": None}
+           "answer": None, "facts": {}, "rejected": [], "error": None, "extracted_at": date.today().isoformat()}
     if blocked:
-        rec["error"] = "robots.txt запрещает сбор"
+        rec["error"] = f"сбор закрыт: {home['error']}"
     elif not pages:
         rec["error"] = f"сайт не открылся: {home.get('error') or 'пустая страница'}"
     else:
@@ -107,7 +128,7 @@ def extract_one(kie, fetcher: Fetcher, c: dict, home: dict, cats: list[dict]) ->
         checked = check_answer(ans, pages)
         rec.update(facts=checked.facts, rejected=checked.rejected)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(rec, ensure_ascii=False, indent=1), encoding="utf-8")
+    path.write_text(json.dumps(rec, ensure_ascii=False, indent=1), encoding="utf-8")   # запись-ошибка — для отчёта, повтор её не возьмёт
     return rec
 
 
@@ -143,7 +164,7 @@ def find_inn(c: dict, rec: dict, fetcher: Fetcher) -> dict:
     hit = _scan_inn(pages)
     if not hit and pages:
         visited = {p["url"].rstrip("/") for p in rec["pages"]}
-        extra = [u for u in pick_pages(pages[0], [], INN_HINTS, 6) if u.rstrip("/") not in visited][:3]
+        extra = [u for u in pick_pages(pages[0], [], INN_HINTS, 6) if u.rstrip("/") not in visited][:INN_PAGES]
         new = [p for p in (fetcher.page(u) for u in extra) if p.get("text")]
         hit = _scan_inn(new, offset=len(pages))
         if hit:

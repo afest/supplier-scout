@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from collections import Counter
 from pathlib import Path
@@ -16,8 +17,10 @@ import httpx
 
 from .config import CACHE, CITY, NOT_SUPPLIER_DOMAINS, QUERY_TEMPLATES, SEARCH_TERMS, load_categories
 from .fetch import host_of
+from .kie import KieError
 
 OUT = CACHE / "candidates.json"
+SEARCH_DIR = CACHE / "search"
 
 GEMINI_PROMPT = (
     "Выполни поиск в Google по запросу: «{query}». Найди компании-поставщики (оптовые компании, производители, "
@@ -83,7 +86,20 @@ def from_gemini(kie, cands: dict, queries: list, log=print):
         for sub in cat["subcategories"]:
             for tpl in QUERY_TEMPLATES:
                 q = tpl.format(term=SEARCH_TERMS[sub["id"]], city=CITY)
-                res = kie.gemini_search(GEMINI_PROMPT.format(query=q, city=CITY), label=f"search:{q}")
+                # оплаченная выдача — на диск сразу: падение на 29-м запросе из 30 не должно оплачивать первые 28 заново
+                path = SEARCH_DIR / f"{hashlib.sha1(q.encode()).hexdigest()[:16]}.json"
+                if path.exists():
+                    res = json.loads(path.read_text(encoding="utf-8"))
+                else:
+                    try:
+                        res = kie.gemini_search(GEMINI_PROMPT.format(query=q, city=CITY), label=f"search:{q}")
+                    except KieError as e:
+                        queries.append({"query": q, "category": cat["id"], "subcategory": sub["id"], "engine": "Gemini + Google (Kie)",
+                                        "google_queries": [], "results": 0, "credits": None, "error": str(e)[:200]})
+                        log(f"  поиск «{q}»: ошибка — {str(e)[:120]}")
+                        continue
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(json.dumps(res, ensure_ascii=False), encoding="utf-8")
                 urls = []
                 for ch in res["chunks"]:
                     url = _resolve(ch["uri"]) or f"https://{ch['title']}/"
