@@ -174,6 +174,18 @@ const hash = (page) => decodeURIComponent(new URL(page.url()).hash);
     check(false, "сценарий оборвался", e.message.split("\n")[0]);
   }
 
+  // Как на Amvera: левые адреса X-Forwarded-For присылает клиент, крайний правый дописывает прокси (T-539)
+  step("Адрес клиента за прокси: подменённый X-Forwarded-For «один отзыв с адреса в сутки» не обходит");
+  {
+    const post = (xff, text) => fetch(`${api.url}/reviews/rosspak`, { method: "POST", body: JSON.stringify({ rating: 4, text }),
+      headers: { "Content-Type": "application/json", "X-Forwarded-For": xff } });
+    const a = await post("203.0.113.1, 198.51.100.7", "Проверка адреса: первый отзыв из-за прокси");
+    const b = await post("203.0.113.2, 198.51.100.7", "Проверка адреса: левый адрес подменён, правый тот же");
+    const c = await post("203.0.113.3, 198.51.100.8", "Проверка адреса: другой клиент за тем же прокси");
+    check(a.status === 201 && b.status === 422 && c.status === 201,
+      "первый отзыв принят, второй с подменённым левым адресом — отказ, другой клиент — принят", `${a.status} · ${b.status} · ${c.status}`);
+  }
+
   step("Ошибки консоли");
   check(errs.length === 0, "0 ошибок консоли и страницы", errs.join(" | "));
   check(expected.length === 1, "ровно один ожидаемый отказ 422 — повторный отзыв", `${expected.length}`);

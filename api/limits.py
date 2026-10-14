@@ -1,6 +1,7 @@
 """Лимит запросов на IP: скользящее окно в памяти процесса. Перезапуск сервера счётчики обнуляет — для прототипа хватает."""
 from __future__ import annotations
 
+import os
 import threading
 import time
 from collections import defaultdict, deque
@@ -10,12 +11,18 @@ from fastapi import HTTPException, Request
 _hits: dict[tuple[str, str], deque] = defaultdict(deque)
 _lock = threading.Lock()
 
+# Сколько прокси стоит перед приложением и дописывает адрес в X-Forwarded-For. Свой адрес каждый дописывает справа,
+# поэтому адрес клиента — N-й с конца; всё левее прислал сам клиент. На Amvera — один (замер на стенде, T-539).
+TRUSTED_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "1"))
+
 
 def client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.headers.get("x-real-ip") or (request.client.host if request.client else "?")
+    """Адрес для лимитов и «один отзыв с адреса в сутки». Первый адрес X-Forwarded-For присылает клиент — подменив его,
+    лимит обходили (ревью T-536); берём тот, что дописал прокси Amvera."""
+    fwd = [x.strip() for x in (request.headers.get("x-forwarded-for") or "").split(",") if x.strip()]
+    if fwd and TRUSTED_PROXY_HOPS > 0:
+        return fwd[-min(TRUSTED_PROXY_HOPS, len(fwd))]
+    return request.client.host if request.client else "?"
 
 
 def check(request: Request, bucket: str, limit: int, window_sec: int = 3600):
