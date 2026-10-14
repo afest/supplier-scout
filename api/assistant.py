@@ -7,13 +7,12 @@
 from __future__ import annotations
 
 import json
-import math
 import re
 import threading
 from collections import OrderedDict
 
 from pipeline.config import DATA, load_categories
-from pipeline.kie import BudgetExceeded, Kie, KieError, spent_rub
+from pipeline.kie import BudgetExceeded, Kie, KieError
 
 from . import budget, quota
 
@@ -69,21 +68,29 @@ def _stems(text: str) -> list[str]:
     return [w[:5] if len(w) > 5 else w for w in words if len(w) >= 3 and w not in STOP and not w.isdigit()]
 
 
-def _hit(term: list[str], row: set[str]) -> bool:
-    """Позиция подходит под фразу: совпали все слова, или главное (первое) и не меньше 60 % остальных.
+def _has(x: str, words: set[str]) -> bool:
+    return any(w.startswith(x) or (len(w) >= 3 and x.startswith(w)) for w in words)
+
+
+def _hit(term: list[str], name: set[str], group: set[str]) -> float:
+    """Насколько позиция подходит под фразу: 1 — совпали все слова, доля — главное и не меньше 60 % остальных, 0 — нет.
 
     Модель пишет фразами («нори листы для роллов»), а в прайсе — «морская капуста нори для роллов»: требовать все
-    слова — терять реальных поставщиков. Главное слово обязательно — иначе «сыр сливочный» находил бы моцареллу.
+    слова — терять реальных поставщиков. Главное слово обязательно и только в названии позиции, не в разделе
+    каталога — иначе «сыр сливочный» находил бы сливочное масло из раздела «Молочные продукты, сыр».
     """
-    have = [any(w.startswith(x) or (len(w) >= 3 and x.startswith(w)) for w in row) for x in term]
-    return all(have) or (have[0] and sum(have) >= math.ceil(len(have) * 0.6))
+    if not _has(term[0], name):
+        return 0.0
+    share = sum(_has(x, name | group) for x in term) / len(term)
+    return share if share == 1 or share >= 0.6 else 0.0
 
 
-def _items(s: dict) -> list[str]:
+def _items(s: dict) -> list[tuple[str, str]]:
+    """Позиции поставщика: (название, раздел каталога). Без ассортимента — список продуктов с сайта."""
     a = s.get("assortment") or {}
     if (a.get("value") or {}).get("items"):
-        return [" ".join(x for x in (i.get("name"), i.get("group")) if x) for i in a["value"]["items"]]
-    return list((s.get("products") or {}).get("value") or [])
+        return [(i.get("name") or "", i.get("group") or "") for i in a["value"]["items"]]
+    return [(p, "") for p in (s.get("products") or {}).get("value") or []]
 
 
 class Index:
@@ -92,19 +99,21 @@ class Index:
         cats = {c["id"]: c["name"] for c in load_categories()["categories"]}
         self.sups = [s for s in sups if not s.get("not_supplier") and not s.get("live_only")]
         self.cat_name = cats
-        self.rows = {s["id"]: [(name, set(_stems(name))) for name in _items(s)] for s in self.sups}
+        self.rows = {s["id"]: [(name, set(_stems(name)), set(_stems(group))) for name, group in _items(s) if name]
+                     for s in self.sups}
 
     def find(self, terms: list[str], limit: int = 12) -> list[dict]:
-        """Поставщики, у которых есть позиция, подходящая хотя бы под одну поисковую фразу (правило — _hit)."""
+        """Поставщики с позицией хотя бы под одну поисковую фразу. Точные совпадения — первыми, частичные — ниже."""
         stems = [list(dict.fromkeys(_stems(t))) for t in terms if _stems(t)]
         out = []
         for s in self.sups:
-            hits = [name for name, row in self.rows[s["id"]] if any(_hit(st, row) for st in stems)]
+            scored = [(max(_hit(st, nm, gr) for st in stems), name) for name, nm, gr in self.rows[s["id"]]] if stems else []
+            hits = sorted(((q, n) for q, n in scored if q > 0), key=lambda x: -x[0])
             if hits:
                 out.append({"id": s["id"], "name": s["name"], "category": s["category"],
                             "category_name": self.cat_name.get(s["category"]), "demo": s.get("demo", False),
-                            "matched": hits[:3], "matched_total": len(hits)})
-        out.sort(key=lambda x: -x["matched_total"])
+                            "exact": hits[0][0] == 1, "matched": [n for _, n in hits[:3]], "matched_total": len(hits)})
+        out.sort(key=lambda x: (-x["exact"], -x["matched_total"]))
         return out[:limit]
 
 
@@ -124,8 +133,9 @@ def _ask_model(text: str) -> dict:
     if budget.left_today_rub() < 0.2:
         raise Unavailable("Помощник на сегодня исчерпал дневной лимит — попробуйте завтра или выберите категорию.")
     try:
-        # запас 5 коп., а не рубль по умолчанию: потолок вызова сам меньше рубля, и параллельный сбор не должен его съесть
-        kie = Kie(budget_rub=spent_rub() + min(CALL_CAP_RUB, budget.left_today_rub()), reserve_rub=0.05)
+        # потолок — на этот вызов (у Kie он считается от момента создания клиента); запас 5 коп., а не рубль по умолчанию:
+        # потолок сам меньше рубля
+        kie = Kie(budget_rub=min(CALL_CAP_RUB, budget.left_today_rub()), reserve_rub=0.05)
         return kie.claude_tool(f"Описание точки: «{text}»", TOOL, label="assist", system=SYSTEM, max_tokens=1200)
     except SystemExit as e:                      # keys.get: ключа нет — сервер не настроен
         raise Unavailable("Помощник не настроен на сервере.") from e

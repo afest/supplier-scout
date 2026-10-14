@@ -10,6 +10,7 @@ import { ageYears, dateRu, isKnown, minOrderText, monthYear, num, plural, years 
 import type { FieldStatus, Hours, Supplier } from "../types.ts";
 import { CatGlyph, DemoPill, DocGlyph, Hint, Mono, Rule, StarButton, StatusIcon } from "../components/ui.tsx";
 import { deliveryText, FieldRow, PRICE_MODE, SourceLinks, sourceLabel } from "../components/supplier.tsx";
+import { addReview, ApiError, reviews as loadReviews, type Reviews as ReviewList } from "../lib/api.ts";
 
 const TAX = { general: "общий — счета с НДС", usn: "УСН — без НДС" } as const;
 const PRESENCE = { warehouse: "склад в городе", delivery_only: "без склада в городе", unknown: "не известно" } as const;
@@ -260,18 +261,86 @@ function Assortment({ s }: { s: Supplier }) {
   );
 }
 
-/** Отзывы: с карт — только ссылкой (их условия запрещают хранить данные), свои — после сервера (T-536). */
+/** Отзывы: с карт — только ссылкой (их условия запрещают хранить данные); свои — на сервере (T-536), видны всем. */
 function Reviews({ s }: { s: Supplier }) {
   const q = encodeURIComponent(`${s.name} ${s.city}`);
   const gis = s.map_link ?? `https://2gis.ru/ekaterinburg/search/${encodeURIComponent(s.name)}`;
+  const [list, setList] = useState<ReviewList | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [text, setText] = useState("");
+  const [author, setAuthor] = useState("");
+  const [trap, setTrap] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendErr, setSendErr] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    setList(null); setLoadErr(null); setOpen(false); setSent(false);
+    loadReviews(s.id).then(setList).catch((e) => setLoadErr(e instanceof ApiError ? e.message : "Отзывы не загрузились."));
+  }, [s.id]);
+
+  const send = async () => {
+    setSending(true); setSendErr(null);
+    try {
+      setList(await addReview(s.id, { rating, text, author, website: trap }));
+      setSent(true); setOpen(false); setText(""); setRating(0);
+    } catch (e) {
+      setSendErr(e instanceof ApiError ? e.message : "Отзыв не отправился. Попробуйте ещё раз.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="panel">
-      <div className="panel-h"><b>Отзывы клиентов<Hint label="Почему только ссылки">Рейтинги и отзывы с Яндекс Карт и 2ГИС хранить и показывать у себя запрещают условия карт, поэтому — переход к ним. Отзывы закупщиков в самом сервисе появятся вместе с сервером.</Hint></b></div>
+      <div className="panel-h"><b>Отзывы клиентов<Hint label="Откуда отзывы">Отзывы закупщиков хранятся в сервисе и видны всем; оставить можно без регистрации, модерации в прототипе нет. Рейтинги с Яндекс Карт и 2ГИС хранить у себя запрещают условия карт, поэтому — переход к ним.</Hint></b></div>
       <div className="rev-links">
         <a className="pill-out sm" href={`https://yandex.ru/maps/54/yekaterinburg/?text=${q}`} target="_blank" rel="noreferrer">Яндекс Карты ↗</a>
         <a className="pill-out sm" href={gis} target="_blank" rel="noreferrer">2ГИС ↗</a>
       </div>
-      <p className="rev-own">Оставить свой отзыв для других закупщиков — скоро.</p>
+
+      {loadErr && <p className="rev-own">{loadErr}</p>}
+      {list && (
+        <>
+          <div className="rev-sum">
+            {list.count ? <><b className="num">{list.avg?.toFixed(1)}</b><span className="rev-stars" aria-hidden="true">{"★".repeat(Math.round(list.avg ?? 0))}</span><span className="sub">{list.count} {plural(list.count, "отзыв закупщика", "отзыва закупщиков", "отзывов закупщиков")}</span></>
+              : <span className="sub">Отзывов закупщиков пока нет — станьте первым.</span>}
+          </div>
+          {list.items.length > 0 && (
+            <ul className="rev-list">
+              {list.items.slice(0, 5).map((r, i) => (
+                <li key={i}>
+                  <span className="rev-stars" aria-label={`Оценка ${r.rating} из 5`}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span> {r.text}
+                  <span className="sub">{r.author ?? "Закупщик"} · {new Date(r.created_at).toLocaleDateString("ru-RU")}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {sent && <p className="rev-own">Спасибо — отзыв виден всем, кто откроет карточку.</p>}
+          {!open && !sent && <div className="row-btns"><button type="button" className="btn sec sm" onClick={() => setOpen(true)}>Оставить отзыв</button></div>}
+          {open && (
+            <div className="rev-form">
+              <span className="label">Оценка</span>
+              <div className="rev-rate" role="group" aria-label="Оценка от 1 до 5">
+                {[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" className={n <= rating ? "on" : ""} aria-pressed={n === rating} onClick={() => setRating(n)}>{n}</button>)}
+              </div>
+              <label className="label" htmlFor={`rev-t-${s.id}`}>Отзыв</label>
+              <textarea id={`rev-t-${s.id}`} className="input" rows={3} maxLength={1000} value={text} onChange={(e) => setText(e.target.value)}
+                placeholder="например: привозят вовремя, цены как в прайсе; минимальный заказ на деле выше" />
+              <label className="label" htmlFor={`rev-a-${s.id}`}>Кто вы — по желанию</label>
+              <input id={`rev-a-${s.id}`} className="input" maxLength={60} value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="например: кафе на Ленина" />
+              <input className="rev-trap" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap} onChange={(e) => setTrap(e.target.value)} name="website" />
+              {sendErr && <p className="rev-own">{sendErr}</p>}
+              <div className="row-btns">
+                <button type="button" className="btn pr sm" disabled={!rating || text.trim().length < 10 || sending} onClick={send}>{sending ? "Отправляю…" : "Отправить"}</button>
+                <button type="button" className="btn sec sm" onClick={() => setOpen(false)}>Отмена</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

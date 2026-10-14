@@ -6,8 +6,8 @@ $repo = Split-Path $PSScriptRoot -Parent
 $remote = "https://git.msk1.amvera.ru/afest/supplier-scout-api"
 $out = Join-Path $env:TEMP "supplier-scout-amvera"
 
-# Что едет на сервер. Набор data/suppliers.json — ниже, отдельным шагом.
-$files = @("amvera.yaml", "requirements.txt", "data\categories.json")
+# Что едет на сервер. Набор нужен живому сбору для оценок ◇, помощнику — для подбора, отзывам — как список поставщиков.
+$files = @("amvera.yaml", "requirements.txt", "data\categories.json", "data\suppliers.json")
 $dirs = @("api", "pipeline")
 
 if (Test-Path $out) { Remove-Item -Recurse -Force $out }
@@ -21,12 +21,6 @@ foreach ($d in $dirs) {
     robocopy (Join-Path $repo $d) (Join-Path $out $d) /E /XD __pycache__ .cache /NFL /NDL /NJH /NJS /R:1 /W:1 | Out-Null
     if ($LASTEXITCODE -ge 8) { Write-Host "Не скопировалась папка $d (robocopy $LASTEXITCODE)" -ForegroundColor Red; exit 1 }
 }
-
-# Набор: живому сбору он нужен для оценок ◇, отзывам — как список поставщиков. Пока ПДн ИП не вычищены (T-535) — без ИП.
-$py = Join-Path $repo ".venv\Scripts\python.exe"
-if (-not (Test-Path $py)) { $py = "C:\Users\1\AppData\Local\Programs\Python\Python312\python.exe" }
-& $py (Join-Path $PSScriptRoot "server_set.py") (Join-Path $repo "data\suppliers.json") (Join-Path $out "data\suppliers.json")
-if ($LASTEXITCODE -ne 0) { Write-Host "Набор для сервера не собрался." -ForegroundColor Red; exit 1 }
 
 $src = git -C $repo rev-parse --short HEAD
 $dirty = if (git -C $repo status --porcelain) { " + незакоммиченные правки" } else { "" }

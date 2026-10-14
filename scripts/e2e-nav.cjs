@@ -2,13 +2,14 @@
 // поиск по товару, пустой ответ, шорт-лист и его счётчик, отсутствие горизонтального скролла на 390.
 // Всё кликами и вводом в headless Chromium; сервер dist — в том же процессе.
 //
-// Запуск (нужен Playwright с установленным Chromium):
-//   npm --prefix web run build
+// Запуск (нужен Playwright с установленным Chromium; экраны с сервером ходят в заглушку API — scripts/api-stub.cjs):
+//   VITE_API_URL=http://127.0.0.1:8765 npm --prefix web run build
 //   NODE_PATH=<папка с node_modules/playwright> node scripts/e2e-nav.cjs [файл-протокола]
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 const { serveDist } = require("./serve-dist.cjs");
+const { startApiStub } = require("./api-stub.cjs");
 const ROOT = path.resolve(__dirname, "..");
 const DATA = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "suppliers.json"), "utf8"));
 const byName = new Map(DATA.suppliers.map((s) => [s.name.trim(), s]));
@@ -29,6 +30,7 @@ const rowNames = (page) => page.locator(".rows .row .nm").allInnerTexts();
 
 (async () => {
   const { server, base } = await serveDist(path.join(ROOT, "web", "dist"));
+  const api = await startApiStub();          // помощник, отзывы и живой сбор ходят в сервер (T-536)
   const browser = await chromium.launch({ headless: true });
   const errs = [];
   const newPage = async (w, h) => {
@@ -254,6 +256,7 @@ const rowNames = (page) => page.locator(".rows .row .nm").allInnerTexts();
 
   await browser.close();
   server.close();
+  api.stop();
   const head = `# Навигация — сценарии кликами\n\nПрогон ${new Date().toISOString()}, \`web/dist\`, headless Chromium. Проверок с ошибкой: ${failed}.\n`;
   const out = process.argv[2] || path.join(ROOT, "e2e-out", "nav.md");
   fs.mkdirSync(path.dirname(out), { recursive: true });

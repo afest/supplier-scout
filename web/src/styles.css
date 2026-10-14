@@ -984,3 +984,42 @@ code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-siz
   .sub-jump .pill-out, .find-related .pill-out { white-space: normal; height: auto; min-height: 46px; padding-top: 8px; padding-bottom: 8px; text-align: left; }
   .empty-ways .btn { width: 100%; }
 }
+
+/* ---- Сервер (T-536): помощник, отзывы закупщиков, живой сбор ---- */
+.assist-quota { margin: 14px 0 0; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.assist-wait { margin-top: 24px; color: var(--muted); }
+.assist-step { margin-top: 32px; }
+.assist-q { margin: 0 0 12px; font-size: 15px; }
+.assist-needs { display: flex; flex-wrap: wrap; gap: 8px; }
+.assist-need { display: inline-flex; align-items: center; gap: 10px; height: 42px; padding: 0 8px 0 16px; border-radius: var(--r-pill); border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.assist-need:hover { border-color: var(--ink); }
+.assist-need.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.assist-n { min-width: 28px; height: 28px; padding: 0 8px; display: inline-grid; place-items: center; border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font-size: 12.5px; }
+.assist-n.zero { color: var(--muted); }
+.assist-need.on .assist-n { background: rgba(255, 255, 255, .18); color: #fff; }
+.assist-step .row-btns { margin-top: 20px; }
+.assist-res { display: grid; gap: 16px; margin-top: 32px; }
+.assist-res .panel.warn { margin-top: 0; }
+.assist-best { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.assist-best-i { display: grid; gap: 4px; padding: 16px; border-radius: 18px; background: #fff; color: var(--ink); text-decoration: none !important; }
+.assist-best-i:hover { box-shadow: inset 0 0 0 1px var(--ink); }
+.assist-covers { font-size: 13px; }
+.assist-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.assist-list li { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(120px, auto) 2fr; gap: 4px 16px; align-items: baseline; }
+.assist-item { font-size: 13.5px; color: var(--steel-ink, var(--muted)); overflow-wrap: anywhere; }
+.rev-sum { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 8px; font-size: 14px; }
+.rev-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.rev-list li { padding: 14px 16px; border-radius: 16px; background: #fff; font-size: 14px; }
+.rev-list .sub { display: block; margin-top: 6px; }
+.rev-stars { letter-spacing: 2px; color: var(--ink); }
+.rev-form { display: grid; gap: 10px; margin-top: 16px; }
+.rev-rate { display: flex; gap: 6px; }
+.rev-rate button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font: inherit; cursor: pointer; }
+.rev-rate button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.rev-trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.live-card { display: grid; gap: 6px; margin-top: 24px; }
+.live-card .mf-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; font-size: 14px; }
+@media (max-width: 640px) {
+  .assist-list li { grid-template-columns: 1fr; }
+  .live-card .mf-row { grid-template-columns: 1fr; gap: 2px; }
+}

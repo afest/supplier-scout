@@ -25,8 +25,8 @@ from pipeline.extract import digits, inn_valid
 
 from . import budget, quota
 
-RUN_BUDGET_RUB = 2.0          # потолок модели на один сбор; обычный сбор — 0,3–0,6 ₽
-JOB_TIMEOUT_SEC = 300
+RUN_BUDGET_RUB = 3.0          # потолок модели на один сбор: поля + ассортимент, обычно 0,6–1,2 ₽
+JOB_TIMEOUT_SEC = 480         # раскладка на сервере шла до 150 с, ассортимент — ещё вызов
 MAX_WAITING = 3
 KEEP_JOBS = 50
 

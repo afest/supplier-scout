@@ -17,10 +17,11 @@ from pipeline.config import CACHE, REPO
 from . import assistant, budget, jobs, limits, probe, quota, reviews
 
 ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://afest.github.io,http://localhost:5173,http://127.0.0.1:5173").split(",")
-PERSIST = Path("/data") if os.name == "posix" and Path("/data").is_dir() else REPO / ".data"
+PERSIST = (Path(os.environ["API_DATA_DIR"]) if os.environ.get("API_DATA_DIR")          # заглушка для проверок — своя папка
+           else Path("/data") if os.name == "posix" and Path("/data").is_dir() else REPO / ".data")
 
 # Кэш конвейера — на постоянный диск: журнал расхода переживает перезапуск, и дневной потолок считается честно.
-if PERSIST != REPO / ".data" and not CACHE.exists():
+if PERSIST == Path("/data") and not CACHE.exists():
     (PERSIST / "cache").mkdir(parents=True, exist_ok=True)
     CACHE.symlink_to(PERSIST / "cache", target_is_directory=True)
 reviews.init(PERSIST)
