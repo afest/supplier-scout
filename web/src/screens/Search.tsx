@@ -1,156 +1,90 @@
-import { useMemo, useState, type FormEvent } from "react";
-import { href, navigate, type Route } from "../router.ts";
-import { actions, useStore } from "../store.ts";
-import { baseCount, CATEGORIES, matchQuery, queryParams, readQuery, visibleSuppliers } from "../data.ts";
-import { PRIORITIES, type Priority } from "../lib/score.ts";
-import { num } from "../lib/format.ts";
-import { Check, Hint, Seg } from "../components/ui.tsx";
+// Главная: четыре равных способа найти поставщика, каждый ведёт на свой экран.
+// Поле поиска здесь не живёт — вход в поиск по товару на #/find.
+import type { ReactNode } from "react";
+import { CATEGORIES } from "../data.ts";
+import { CatGlyph } from "../components/ui.tsx";
 
-export function Search({ route }: { route: Route }) {
-  const st = useStore();
-  const init = useMemo(() => {
-    const p = route.params.has("cat") ? route.params : new URLSearchParams(st.last ? { cat: st.last.cat, sub: st.last.sub, vol: st.last.vol, prio: st.last.prio } : {});
-    return readQuery(p);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+const SearchIc = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="5.2" /><path d="M12 12l4 4" /></svg>
+);
 
-  const [text, setText] = useState(init.q);
-  const [catId, setCatId] = useState(route.params.has("cat") || st.last ? init.cat.id : "");
-  const [subs, setSubs] = useState<string[]>(init.subs.length === init.cat.subcategories.length ? [] : init.subs);
-  const [vol, setVol] = useState(init.volume ? num(init.volume) : "");
-  const [prio, setPrio] = useState<Priority>(init.prio);
-  const [region, setRegion] = useState(true);
-  const [known, setKnown] = useState("");
-
-  const match = useMemo(() => matchQuery(text), [text]);
-  const counts = useMemo(() => {
-    const vis = visibleSuppliers(st);
-    return Object.fromEntries(CATEGORIES.map((c) => [c.id, vis.filter((s) => s.category === c.id).length]));
-  }, [st]);
-
-  const onText = (v: string) => {
-    setText(v);
-    const m = matchQuery(v);
-    if (m) {
-      setCatId(m.cat.id);
-      setSubs([m.sub.id]);
-    }
-  };
-  const pickCat = (id: string) => {
-    setCatId(id);
-    setSubs([]);
-  };
-  const toggleSub = (id: string) => setSubs((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
-
-  const cat = CATEGORIES.find((c) => c.id === catId) ?? null;
-  const unknownText = text.trim().length >= 3 && !match;
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!cat) return;
-    const volume = Number(vol.replace(/\D/g, "")) || null;
-    const q = { cat, subs: subs.length ? subs : cat.subcategories.map((s) => s.id), volume, prio, q: text.trim() };
-    const params = queryParams(q);
-    actions.rememberQuery({ cat: cat.id, sub: params.sub ?? "", vol: volume ? String(volume) : "", prio });
-    navigate("/results", params);
-  };
-
+// Графика плашек — у каждого способа свой силуэт, различимый и без цвета:
+// поле с подсказками · четыре глифа категорий · реплика и варианты-кнопки · поле → карточка.
+function ArtSearch() {
   return (
-    <div className="search">
-      <form className="search-main" onSubmit={submit}>
+    <div className="art art-search" aria-hidden="true">
+      <div className="art-field"><SearchIc /><span>моцарелла</span><i className="art-caret" /></div>
+      <div className="art-sugg">
+        <div><span>Моцарелла для пиццы</span><em>подкатегория</em></div>
+        <div><span>Сыр и молочное</span><em>категория</em></div>
+      </div>
+    </div>
+  );
+}
+
+function ArtCats() {
+  return (
+    <div className="art art-cats" aria-hidden="true">
+      {CATEGORIES.map((c) => (
+        <span key={c.id} className="art-cat"><CatGlyph cat={c} size={56} /><span>{c.short}</span></span>
+      ))}
+    </div>
+  );
+}
+
+function ArtAssist() {
+  return (
+    <div className="art art-assist" aria-hidden="true">
+      <div className="art-bubble">у меня бабл-ти в ТЦ</div>
+      <div className="art-chips">
+        {["молоко", "сиропы", "тапиока", "стаканы"].map((x, i) => <span key={x} className={i < 2 ? "on" : ""}>{x}</span>)}
+      </div>
+    </div>
+  );
+}
+
+function ArtKnown() {
+  return (
+    <div className="art art-known" aria-hidden="true">
+      <div className="art-field sm"><span>сайт или ИНН</span></div>
+      <span className="art-arrow">→</span>
+      <div className="art-card"><span className="art-mono">П</span><i /><i className="short" /><i className="tiny" /></div>
+    </div>
+  );
+}
+
+const WAYS: { to: string; title: string; when: string; ex: ReactNode; art: ReactNode; soon?: boolean }[] = [
+  { to: "#/find", title: "Поиск по товару", when: "Знаю, какой товар нужен", ex: "моцарелла, нори", art: <ArtSearch /> },
+  { to: "#/categories", title: "Поиск по категории", when: "Хочу посмотреть всех в категории", ex: "упаковка целиком или только коробки для пиццы", art: <ArtCats /> },
+  { to: "#/assistant", title: "Помощник", when: "Не знаю, что нужно — опишу точку", ex: "у меня бабл-ти в ТЦ", art: <ArtAssist />, soon: true },
+  { to: "#/add", title: "Знаю поставщика", when: "Уже есть на примете — проверить и сравнить", ex: "сайт или ИНН", art: <ArtKnown /> },
+];
+
+export function Search() {
+  return (
+    <div className="home">
+      <section className="home-head">
         <div className="label">Закупка для ресторанов · Екатеринбург</div>
         <h1 className="hero">Найти поставщика</h1>
         <p className="lead">Условия со всех сайтов в одной форме — <em>с источником у каждого поля</em> и подсказкой, кому написать первым.</p>
+      </section>
 
-        <div className="block">
-          <label className="label" htmlFor="q">
-            Что ищем
-            <Hint>Строка сводится к дереву категорий: «лосось охлаждённый» → рыба для суши. В продукте это делает языковая модель, в прототипе — словарь. Можно не писать, а выбрать категорию ниже.</Hint>
-          </label>
-          <input id="q" className="input xl" value={text} onChange={(e) => onText(e.target.value)} placeholder="например, контейнеры для роллов" autoComplete="off" />
-          <div className="match" aria-live="polite">
-            {match && <span className="match-chip">→ {match.cat.short} · {match.sub.name.toLowerCase()}</span>}
-            {unknownText && <span className="match-chip off">в собранном наборе такой категории нет — выберите одну из четырёх</span>}
-          </div>
-        </div>
-
-        <div className="block">
-          <div className="label">
-            Категория
-            <Hint>Четыре категории собраны заранее — закупка суши- и пицца-сети. Другая категория в продукте — живой поиск на несколько минут; в демо он не подключён.</Hint>
-          </div>
-          <div className="cat-tiles" role="radiogroup" aria-label="Категория">
-            {CATEGORIES.map((c) => (
-              <button key={c.id} type="button" role="radio" aria-checked={c.id === catId} className={`tile${c.id === catId ? " on" : ""}`} onClick={() => pickCat(c.id)}>
-                <img src={c.illustration} alt="" width={132} height={132} />
-                <span className="tile-name">{c.name}</span>
-                <span className="tile-meta num">{counts[c.id]}</span>
-              </button>
-            ))}
-          </div>
-          {cat && (
-            <div className="subs">
-              {cat.subcategories.map((s) => (
-                <button key={s.id} type="button" className={`pill-out sm${subs.includes(s.id) ? " on" : ""}`} aria-pressed={subs.includes(s.id)} onClick={() => toggleSub(s.id)}>
-                  {s.name}
-                </button>
-              ))}
+      <section className="ways" aria-label="Способы найти поставщика">
+        {WAYS.map((w) => (
+          <a key={w.to} className="way" href={w.to}>
+            {w.art}
+            <div className="way-body">
+              <div className="way-t">
+                <h2>{w.title}</h2>
+                {w.soon && <span className="way-soon">скоро</span>}
+                <span className="way-go" aria-hidden="true">→</span>
+              </div>
+              <p className="way-when">{w.when}</p>
+              <div className="way-ex"><span className="label">Например</span><span>{w.ex}</span></div>
             </div>
-          )}
-        </div>
-
-        <div className="params">
-          <div>
-            <label className="label" htmlFor="city">Город</label>
-            <select id="city" className="input" defaultValue="ekb">
-              <option value="ekb">Екатеринбург</option>
-              <option disabled>Другие города — после сбора</option>
-            </select>
-            <Check checked={region} onChange={setRegion}>и Свердловская область</Check>
-          </div>
-          <div>
-            <label className="label" htmlFor="vol">
-              Закупка в неделю
-              <Hint>Необязательно. Сравним с минимальным заказом поставщика: тот, у кого минимум больше вашей закупки, опустится ниже.</Hint>
-            </label>
-            <div className="input-unit">
-              <input id="vol" className="input num" inputMode="numeric" value={vol} onChange={(e) => setVol(e.target.value.replace(/[^\d\s]/g, ""))} placeholder="20 000" />
-              <span>₽</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="block">
-          <div className="label">
-            Что важнее
-            <Hint>Меняет веса рекомендации: надёжность, документы, минимальный заказ, доставка, цены. Тот же переключатель есть на разборе — порядок пересчитается без нового поиска.</Hint>
-          </div>
-          <Seg label="Что важнее" options={PRIORITIES.map((p) => ({ id: p.id, label: p.label }))} value={prio} onChange={setPrio} />
-        </div>
-
-        <div className="search-cta">
-          <button className="btn pr xl" type="submit" disabled={!cat}>Найти поставщиков</button>
-        </div>
-      </form>
-
-      <aside className="search-side">
-        <div className="known">
-          <div className="label light">Живой сбор</div>
-          <h2>Уже знаете поставщика?</h2>
-          <p>Вставьте сайт или ИНН — соберём карточку и сравним с остальными.</p>
-          <form onSubmit={(e) => { e.preventDefault(); navigate("/add", { q: known.trim() || null }); }}>
-            <input className="input" value={known} onChange={(e) => setKnown(e.target.value)} placeholder="сайт или ИНН" aria-label="Сайт или ИНН поставщика" />
-            <button className="btn light" type="submit">Собрать данные</button>
-          </form>
-        </div>
-        <a className="browse" href={href("/catalog")}>
-          <span className="browse-imgs" aria-hidden="true">
-            {CATEGORIES.map((c) => <img key={c.id} src={c.illustration} alt="" width={64} height={64} />)}
-          </span>
-          <span className="label">Не знаете, что нужно?</span>
-          <b>Все {baseCount} поставщиков</b>
-          <span className="browse-go">Смотреть по алфавиту →</span>
-        </a>
-      </aside>
+          </a>
+        ))}
+      </section>
     </div>
   );
 }

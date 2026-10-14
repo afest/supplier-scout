@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Category, Delivery, Field, FieldStatus, Prices, Source, Supplier } from "../types.ts";
 import { ageYears, isKnown, plural, rub, years } from "../lib/format.ts";
-import { activeDeclarations, markingOk } from "../lib/score.ts";
+import { activeDeclarations, markingOk, profileDeclarations } from "../lib/score.ts";
 import { Badge, Hint, StatusIcon } from "./ui.tsx";
 
 // ---------- источники ----------
@@ -83,7 +83,7 @@ export function FieldRow({ s, label, f, value, extra }: { s: Supplier; label: st
         {body}
         {alts.map((a, i) => (
           <div key={i} className="alt">
-            <span className="alt-tag">расходится <Hint label="Страницы расходятся">Страницы одного сайта говорят разное — так было у 5 из 17 поставщиков в пробе. Оставляем оба значения со ссылками, выберет закупщик при звонке.</Hint></span>
+            <span className="alt-tag">расходится <Hint label="Страницы расходятся">Страницы одного сайта говорят разное. Оставляем оба значения со ссылками, выберет закупщик при звонке.</Hint></span>
             {a.quote && <Quote text={a.quote} where={pageTitle(s, a)} />}
             <SourceLinks s={s} ids={a.sources} />
           </div>
@@ -101,21 +101,21 @@ export function FieldRow({ s, label, f, value, extra }: { s: Supplier; label: st
 // ---------- значения полей текстом ----------
 export function deliveryText(d: Delivery) {
   const parts: string[] = [];
-  if (d.transport_company) parts.push("транспортной компанией со склада в другом городе");
-  else if (d.to_door) {
+  if (d.to_door) {
     if (d.free_from === 0) parts.push("до точки бесплатно");
     else if (d.free_from != null) parts.push(`до точки бесплатно от ${rub(d.free_from)}${d.cost ? `, иначе ${rub(d.cost)}` : ""}`);
     else parts.push(d.cost ? `до точки — ${rub(d.cost)}` : "до точки, платно");
-  }
+    if (d.transport_company) parts.push("в другие города — транспортной компанией");
+  } else if (d.transport_company) parts.push("транспортной компанией со склада в другом городе");
   if (d.lead_time) parts.push(d.lead_time);
   if (d.pickup) parts.push(d.to_door ? "есть самовывоз" : "только самовывоз");
   return parts.join(", ");
 }
 
 export function deliveryShort(d: Delivery) {
-  if (d.transport_company) return `ТК, ${d.lead_time ?? "срок не указан"}`;
   if (d.to_door && d.free_from != null) return `бесплатно от ${rub(d.free_from)}`;
   if (d.to_door) return `до точки${d.cost ? ` ${rub(d.cost)}` : ", платно"}`;
+  if (d.transport_company) return `ТК, ${d.lead_time ?? "срок не указан"}`;
   if (d.pickup) return `самовывоз${d.lead_time ? ` ${d.lead_time}` : ""}`;
   return "—";
 }
@@ -127,10 +127,12 @@ export const PRICE_SHORT: Record<Prices["mode"], string> = {
   pricelist: "прайс", partial: "цены частично", on_request: "цены по запросу", after_login: "цены после входа",
 };
 
+/** Где поставщик относительно города закупщика — так в списке виден регион, а не только название города. */
 export function presenceText(s: Supplier) {
-  if (!isKnown(s.presence)) return s.city !== "Екатеринбург" ? s.city : "адрес не указан";
-  if (s.presence.value === "warehouse" && s.city === "Екатеринбург") return "склад в Екатеринбурге";
-  return `${s.city}, доставка в Екатеринбург`;
+  if (!isKnown(s.presence) || s.presence.value === "unknown") return "где склад — не указано";
+  if (s.presence.value === "warehouse") return "склад в Екатеринбурге";
+  const tc = isKnown(s.delivery) && s.delivery.value!.transport_company && !s.delivery.value!.to_door;
+  return tc ? "склад в другом городе, везут ТК" : "без склада в городе, привозят";
 }
 
 export function companyShort(s: Supplier): { status: FieldStatus; text: string } {
@@ -141,7 +143,7 @@ export function companyShort(s: Supplier): { status: FieldStatus; text: string }
 }
 
 export function documentsShort(s: Supplier, cat: Category): { status: FieldStatus; text: string } {
-  const n = activeDeclarations(s).length;
+  const n = profileDeclarations(s, cat).length;
   const mk = markingOk(s, cat);
   if (n || mk) {
     const parts = [];
@@ -149,6 +151,7 @@ export function documentsShort(s: Supplier, cat: Category): { status: FieldStatu
     if (mk) parts.push("Честный знак");
     return { status: "found", text: parts.join(" · ") };
   }
+  if (activeDeclarations(s).length) return { status: "found", text: "декларации не по категории" };
   if (isKnown(s.documents.site_mentions)) return { status: "claimed", text: "документы — упоминание" };
   return { status: "not_found", text: "документы" };
 }
@@ -156,7 +159,9 @@ export function documentsShort(s: Supplier, cat: Category): { status: FieldStatu
 export function minOrderShort(s: Supplier): { status: FieldStatus; text: string } {
   const f = s.min_order;
   if (f.status === "not_found") return { status: "not_found", text: "мин. заказ" };
-  return { status: f.status, text: `мин. заказ ${f.value!.text}` };
+  const m = f.value!;
+  if (f.status !== "estimated" && m.unit === "RUB" && !m.amount) return { status: f.status, text: "без минимального заказа" };
+  return { status: f.status, text: `мин. заказ ${m.text}` };
 }
 
 export function pricesShort(s: Supplier): { status: FieldStatus; text: string } {

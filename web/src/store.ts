@@ -78,13 +78,22 @@ export const actions = {
   addShort(id: string) {
     if (!state.shortlist[id]) actions.toggleShort(id);
   },
+  // статус и заметка — у записи шорт-листа; в шорт-лист поставщик попадает только звёздочкой или «Написать»
   setStatus(id: string, status: ContactStatus) {
-    const item = state.shortlist[id] ?? { status, note: "", note_at: null, added_at: new Date().toISOString() };
+    const item = state.shortlist[id];
+    if (!item) return;
     set({ ...state, shortlist: { ...state.shortlist, [id]: { ...item, status } } });
   },
   setNote(id: string, note: string) {
-    const item = state.shortlist[id] ?? { status: "Не связывались" as ContactStatus, note: "", note_at: null, added_at: new Date().toISOString() };
+    const item = state.shortlist[id];
+    if (!item) return;
     set({ ...state, shortlist: { ...state.shortlist, [id]: { ...item, note, note_at: new Date().toISOString() } } });
+  },
+  /** Убрать записи разом — для поставщиков, которых больше нет в наборе. */
+  dropShort(ids: string[]) {
+    const s = { ...state.shortlist };
+    for (const id of ids) delete s[id];
+    set({ ...state, shortlist: s });
   },
   toggleCompare(id: string) {
     const has = state.compare.includes(id);

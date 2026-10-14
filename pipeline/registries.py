@@ -18,6 +18,10 @@ from .config import CACHE, CACHE_TTL_REGISTRY_DAYS
 REG_DIR = CACHE / "registries"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"}
 
+# Не секрет: общая учётная запись «anonymous», под которой открытый реестр pub.fsa.gov.ru пускает любого посетителя
+# без регистрации. Вынесена сюда, чтобы сканер секретов видел пояснение, а не голую строку пароля в запросе.
+FSA_ANONYMOUS_LOGIN = {"username": "anonymous", "password": "hrgesf7HDR67Bd"}  # gitleaks:allow
+
 FSA_STATUS = {6: "действует", 16: "действует", 3: "действует", 14: "прекращена", 15: "приостановлена", 19: "приостановлена",
               11: "недействительна", 1: "архивная", 5: "действует", 10: "действует"}
 CRPT_GROUPS = {"milk": "Молочная продукция", "seafood": "Морепродукты", "frozen": "Замороженная продукция", "water": "Вода",
@@ -115,7 +119,7 @@ class Registries:
 
     # ---- Росаккредитация: декларации по ИНН заявителя ----
     def _fsa_login(self):
-        r = self.http.post("https://pub.fsa.gov.ru/login", json={"username": "anonymous", "password": "hrgesf7HDR67Bd"})  # gitleaks:allow
+        r = self.http.post("https://pub.fsa.gov.ru/login", json=FSA_ANONYMOUS_LOGIN)
         self._fsa_token = r.headers.get("Authorization")
         if not self._fsa_token:
             raise RuntimeError(f"анонимный вход ФСА: HTTP {r.status_code}")

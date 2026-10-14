@@ -14,7 +14,7 @@ import time
 from datetime import date
 from urllib.parse import urlparse
 
-from . import VERSION, build, site
+from . import VERSION, build, catalog, hours, site
 from .config import DATA, load_categories
 from .extract import digits, inn_valid
 from .fetch import Fetcher, host_of
@@ -116,8 +116,8 @@ def main(argv=None) -> int:
         home = fetcher.page(c["root"])
         if home.get("error") and not home.get("text"):
             log(f"   главная не открылась: {home['error']}")
-        cached = (site.EXTRACT_DIR / f"{c['host']}.json").exists()
-        kie = None if cached else Kie(budget_rub=spent_rub() + args.budget_rub)    # потолок — на этот запуск, а не на весь журнал
+        cached = site.cached_extract(c["host"]) is not None
+        kie = Kie(budget_rub=args.budget_rub)          # потолок — на этот запуск; ключ читается, только если нужна модель
         log("2/4 Раскладка по полям " + ("— из кэша, модель не вызывается" if cached else "моделью, цитаты проверяет код"))
         try:
             rec = site.extract_one(kie, fetcher, c, home, cats)
@@ -130,6 +130,16 @@ def main(argv=None) -> int:
             + (f", ошибка: {rec['error']}" if rec.get("error") else ""))
         if rec.get("answer") and not ans.get("is_supplier", True):
             log(f"   модель решила: это не поставщик — {ans.get('not_supplier_reason') or 'причина не названа'}")
+        pages = [Fetcher.cached(p["url"]) or {} for p in rec["pages"]]
+        rec["hours"] = hours.find_hours(pages)
+        if home.get("text") and ans.get("is_supplier", True):
+            log("2б/4 Ассортимент: каталог и прайс-листы, позиции сверяются со страницей")
+            try:
+                rec["assortment"] = catalog.collect(kie, fetcher, c["host"], home, pages[1:])
+            except (BudgetExceeded, KieError) as e:
+                rec["assortment"] = {"items": [], "searched": [f"ассортимент не собран: {e}"[:200]]}
+            log(f"   позиций {len(rec['assortment'].get('items', []))}" + (f" из {rec['assortment']['total_seen']} увиденных"
+                                                                         if rec["assortment"].get("total_seen") else ""))
     else:
         c = candidate_from_inn(given_inn)
         rec = {"host": given_inn, "pages": [], "answer": None, "facts": {}, "rejected": [], "error": None, "no_site": NO_SITE}

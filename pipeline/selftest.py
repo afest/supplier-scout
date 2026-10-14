@@ -73,6 +73,81 @@ def main() -> int:
         case("мессенджер без следа на странице отброшен", c.facts["messengers"]["value"] == ["WhatsApp"]),
         case("ссылка на прайс, которой нет на странице, убрана", c.facts["prices"]["value"]["pricelist_url"] is None),
     ]
+
+    # ---- ревью 14.10: значение сверяется с цитатой, а не только цитата со страницей (В2) ----
+    def one(field, value, quote, text=None, page_url="https://example.ru/delivery"):
+        page = {"final_url": page_url, "title": "", "links": [], "text": text or quote}
+        return check_answer({field: {"value": value, "quote": quote, "page": "P1"}}, [page])
+
+    retail = one("works_with_horeca", True, "Продаём только в розницу физлицам")
+    no_word = one("works_with_horeca", True, "Свежая рыба каждый день с доставкой")
+    horeca = one("works_with_horeca", True, "Работаем с ресторанами и кафе по договору")
+    bad_addr = one("city_address", "г. Екатеринбург, ул. Ленина 5", "Склад: г. Екатеринбург, ул. Завокзальная 13")
+    good_addr = one("city_address", "г. Екатеринбург, ул. Завокзальная 13", "Адрес склада: г. Екатеринбург, ул. Завокзальная 13 (вход со двора)")
+    pay_num = one("payment_terms", "отсрочка 30 дней", "Отсрочка платежа 14 дней для сетей")
+    doc_ok = one("doc_mentions", "декларации, ветеринарные документы в Меркурии",
+                 "На всю продукцию есть декларации и ветеринарные документы в системе Меркурий")
+    res += [
+        case("«работает с ресторанами» при цитате «только в розницу физлицам» отброшено", "works_with_horeca" not in retail.facts),
+        case("«работает с ресторанами» без слов про рестораны и опт в цитате отброшено", "works_with_horeca" not in no_word.facts),
+        case("«работает с ресторанами» с цитатой про рестораны принято", horeca.facts.get("works_with_horeca", {}).get("value") is True),
+        case("адрес, которого нет в цитате, отброшен", "city_address" not in bad_addr.facts),
+        case("адрес из цитаты принят", "city_address" in good_addr.facts),
+        case("условие оплаты с чужим числом не проходит — значением стала дословная цитата",
+             pay_num.facts["payment_terms"]["value"] == "Отсрочка платежа 14 дней для сетей"),
+        case("пересказ про документы, совпадающий с цитатой, принят", "doc_mentions" in doc_ok.facts),
+    ]
+    office_text = "Офис: г. Екатеринбург, ул. Репина 42А"
+    kind_office = check_answer({"city_address": {"value": "г. Екатеринбург, ул. Репина 42А", "quote": office_text, "page": "P1"},
+                                "city_address_kind": "склад"},
+                               [{"final_url": "https://example.ru/contacts", "links": [], "text": office_text}])
+    door = one("delivery", {"to_door": True, "free_from": None, "cost": None, "lead_time": None, "pickup": True, "zones": None,
+                            "transport_company": False}, "Доставка по Екатеринбургу в день заказа")
+    kg = one("min_order", {"amount": 5000, "unit": "kg", "text": "от 5000 кг"}, "Минимальный заказ от 5000 рублей")
+    res += [
+        case("«склад» без слова «склад» в цитате адреса — тип адреса снят", kind_office.facts["city_address"]["kind"] is None),
+        case("самовывоз без слова про самовывоз в цитате — не подтверждён",
+             door.facts["delivery"]["value"]["pickup"] is False and door.facts["delivery"]["value"]["to_door"] is True),
+        case("минимум в кг при цитате в рублях отброшен", "min_order" not in kg.facts),
+    ]
+
+    # ---- минимальный заказ ↔ порог бесплатной доставки в обе стороны (В3) ----
+    gross_q = "Минимальная сумма - 20 000 рублей, подробности уточняйте у менеджера при оформлении заявки."
+    gross = one("delivery", {"to_door": True, "free_from": 20000, "cost": None, "lead_time": None, "pickup": False, "zones": None,
+                             "transport_company": False}, gross_q, text="Доставка по городу. " + gross_q)
+    both_text = "Бесплатная доставка от 5000, минимальный заказ 3000 рублей"
+    both = check_answer({"min_order": {"value": {"amount": 3000, "unit": "RUB", "text": "3 000 ₽"}, "quote": both_text, "page": "P1"},
+                         "delivery": {"value": {"to_door": True, "free_from": 5000, "cost": None, "lead_time": None, "pickup": False,
+                                                "zones": None, "transport_company": False}, "quote": both_text, "page": "P1"}},
+                        [{"final_url": "https://example.ru/d", "links": [], "text": both_text}])
+    free_min = one("min_order", {"amount": 5000, "unit": "RUB", "text": "5 000 ₽"}, "При заказе от 5000 руб. доставка бесплатная")
+    italika = one("delivery", {"to_door": True, "free_from": 3000, "cost": 300, "lead_time": None, "pickup": False, "zones": None,
+                               "transport_company": False}, "Стоимость доставки От 3 000 руб. - бесплатно До 3 000 руб. - 300 руб.")
+    res += [
+        case("Гросс Фуд: «Минимальная сумма — 20 000» — не порог доставки, а минимальный заказ",
+             gross.facts["delivery"]["value"]["free_from"] is None
+             and gross.facts.get("min_order", {}).get("value", {}).get("amount") == 20000),
+        case("«бесплатная доставка от 5000, минимальный заказ 3000»: оба значения на своих местах",
+             both.facts.get("min_order", {}).get("value", {}).get("amount") == 3000
+             and both.facts.get("delivery", {}).get("value", {}).get("free_from") == 5000),
+        case("порог бесплатной доставки, записанный минимумом, переносится в доставку",
+             "min_order" not in free_min.facts and free_min.facts.get("delivery", {}).get("value", {}).get("free_from") == 5000),
+        case("«От 3 000 руб. — бесплатно»: точка после «руб.» фразу не рвёт, порог принят",
+             italika.facts["delivery"]["value"]["free_from"] == 3000),
+    ]
+
+    # ---- условие другого города: в значении и в адресе страницы (В4) ----
+    q11 = "Сумма для оформления заказа от 11 000 ₽."
+    gfc = one("min_order", {"amount": 11000, "unit": "RUB", "text": "от 11 000 ₽ (Москва)"}, q11)
+    gfc_page = one("min_order", {"amount": 11000, "unit": "RUB", "text": "от 11 000 ₽"}, q11, page_url="https://gfc-russia.ru/delivery/moskva")
+    ekb_page = one("min_order", {"amount": 11000, "unit": "RUB", "text": "от 11 000 ₽"},
+                   "Сумма для оформления заказа в Екатеринбурге от 11 000 ₽.", page_url="https://gfc-russia.ru/delivery/moskva")
+    res += [
+        case("gfc-russia: минимум «от 11 000 ₽ (Москва)» — город в значении, отброшен", "min_order" not in gfc.facts),
+        case("минимум со страницы /delivery/moskva отброшен", "min_order" not in gfc_page.facts),
+        case("Екатеринбург в цитате важнее адреса страницы", "min_order" in ekb_page.facts),
+    ]
+
     rb = Robots("User-agent: *\nDisallow: /?\nDisallow: /search\n\nUser-agent: SupplierScoutBot\nDisallow: /private\n")
     rb2 = Robots("User-agent: *\nDisallow: /?\nDisallow: *test\n")
     res += [
@@ -82,8 +157,232 @@ def main() -> int:
         case("robots: своя группа бота важнее «*»", not rb.allowed("SupplierScoutBot", "https://x.ru/private/a")
              and rb.allowed("SupplierScoutBot", "https://x.ru/search")),
     ]
+    res += network_cases() + hours_cases() + assortment_cases() + build_cases()
     print(f"\n{sum(res)} из {len(res)}")
     return 0 if all(res) else 1
+
+
+def network_cases() -> list[bool]:
+    """Загрузка и платные вызовы — на подменённом транспорте httpx, без сети и без денег (ревью 14.10, В10, В11, В13)."""
+    import tempfile
+    from pathlib import Path
+
+    import httpx
+
+    from . import fetch, kie
+    from .fetch import Fetcher, _decode
+
+    body = "<html><body><p>Доставка по Екатеринбургу</p></body></html>".encode("cp1251")
+    res = [case("заголовок ISO-8859-1 при теле cp1251 — кириллица, а не мусор",
+                "Доставка" in _decode(body, "text/html; charset=ISO-8859-1"))]
+
+    jina_calls = []
+    saved_dir, saved_jina = fetch.PAGES_DIR, Fetcher._jina
+    fetch.PAGES_DIR = Path(tempfile.mkdtemp())
+    Fetcher._jina = lambda self, url, r: jina_calls.append(url)
+    try:
+        def site(request):
+            if request.url.host == "down.example" and request.url.path == "/robots.txt":
+                raise httpx.ConnectError("нет связи")
+            if request.url.path == "/robots.txt":
+                return httpx.Response(404)
+            return httpx.Response(403, text="Forbidden")
+        f = Fetcher(delay=0)
+        f.http = httpx.Client(transport=httpx.MockTransport(site))
+        res.append(case("robots.txt не открылся из-за сети — сайт закрыт для сбора (RFC 9309)",
+                        not f.allowed("https://down.example/catalog/")))
+        p = f.page("https://shop.example/catalog/")
+        res.append(case("после 403 посредник Jina не зовётся", p["error"] == "HTTP 403" and not jina_calls))
+        f.max_per_site = 1
+        f.page("https://shop.example/a")
+        res.append(case("общий лимит загрузок на сайт", "лимит" in (f.page("https://shop.example/b").get("error") or "")))
+        off = Fetcher(offline=True).page("https://nowhere.example/")
+        res.append(case("офлайн — без сети: страницы нет в кэше, значит ошибка", "офлайн" in (off.get("error") or "")))
+    finally:
+        fetch.PAGES_DIR, Fetcher._jina = saved_dir, saved_jina
+
+    calls = []
+
+    def slow(request):
+        calls.append(1)
+        raise httpx.ReadTimeout("180 с без ответа")
+    saved_sleep = kie.time.sleep
+    kie.time.sleep = lambda s: None
+    try:
+        k = kie.Kie(budget_rub=5)
+        k._http = httpx.Client(transport=httpx.MockTransport(slow))
+        try:
+            k._post("/claude/v1/messages", {})
+            timeout_ok = False
+        except kie.KieError:
+            timeout_ok = len(calls) == 1
+        res.append(case("ReadTimeout платного вызова не повторяется — двойного списания нет", timeout_ok))
+        res.append(case("потолок — на расход прогона, а не на журнал за всё время", k.run_rub() == 0))
+        k2 = kie.Kie(budget_rub=2.5, reserve_rub=1.0)
+        with k2._slot(), k2._slot():
+            try:
+                with k2._slot():
+                    pass
+                slot_ok = False
+            except kie.BudgetExceeded:
+                slot_ok = True
+        res.append(case("третий параллельный вызов не уходит, если резерв двух в полёте уже упирается в потолок", slot_ok))
+    finally:
+        kie.time.sleep = saved_sleep
+    return res
+
+
+def build_cases() -> list[bool]:
+    """Сборка карточки, кэш раскладки, запись набора и категория по товарам (ревью 14.10: А3, В9, В12, Italika)."""
+    import json
+    import tempfile
+    from datetime import date, timedelta
+    from pathlib import Path
+
+    from . import build, run, site
+    from .config import load_categories
+
+    cats = load_categories()["categories"]
+    cat = {c["id"]: c for c in cats}
+
+    def card(kind):
+        rec = {"facts": {"city_address": {"value": "г. Екатеринбург, ул. Репина 42А", "quote": "Екатеринбург, ул. Репина 42А", "page": 0,
+                                          "kind": kind},
+                         "delivery": {"value": {"to_door": True, "transport_company": False}, "quote": "Доставка по городу", "page": 0}},
+               "pages": [{"url": "https://x.ru/", "title": "", "fetched_at": "2026-10-14"}], "answer": {"subcategories": []}}
+        return build.build_supplier({"host": "x.ru", "root": "https://x.ru/", "urls": [], "queries": []}, rec, {},
+                                    cat["packaging"])["presence"]["value"]
+
+    tmp = Path(tempfile.mkdtemp())
+    saved_dir, saved_runs = site.EXTRACT_DIR, run.RUNS
+    site.EXTRACT_DIR, run.RUNS = tmp / "extract", tmp / "runs"
+    try:
+        site.EXTRACT_DIR.mkdir()
+        old = (date.today() - timedelta(days=40)).isoformat()
+        for host, rec in {"err.example": {"answer": None, "error": "сайт не открылся"},
+                          "old.example": {"answer": {"brand": "x"}, "extracted_at": old},
+                          "ok.example": {"answer": {"brand": "x"}, "extracted_at": date.today().isoformat()}}.items():
+            (site.EXTRACT_DIR / f"{host}.json").write_text(json.dumps({"host": host, "pages": [], **rec}), encoding="utf-8")
+        cache_ok = (site.cached_extract("err.example") is None and site.cached_extract("old.example") is None
+                    and site.cached_extract("ok.example") is not None)
+        run.RUNS.mkdir()
+        first = run.report_path()
+        run.write_atomic(first, {"a": 1})
+        second = run.report_path()
+        run.write_atomic(second, {"a": 2})
+        report_ok = (first != second and json.loads(first.read_text(encoding="utf-8")) == {"a": 1}
+                     and not list(run.RUNS.glob("*.tmp")))
+    finally:
+        site.EXTRACT_DIR, run.RUNS = saved_dir, saved_runs
+
+    # Упакофф (ревью Дир 61): «7 городов России» + адрес в Екатеринбурге + доставка до двери — интерфейс не исключает
+    from .extract import norm_region
+
+    def regional(delivery):
+        facts = {"city_address": {"value": "Екатеринбург, ул. Машиностроителей, 33", "quote": "Екатеринбург, ул. Машиностроителей, 33",
+                                  "page": 0, "kind": None},
+                 "regions_served": {"value": ["7 городов России"], "quote": "Работаем в 7 городах России", "page": 0}}
+        if delivery:
+            facts["delivery"] = {"value": {"to_door": True, "pickup": False, "transport_company": False}, "quote": "Доставка до двери", "page": 0}
+        rec = {"facts": facts, "pages": [{"url": "https://x.ru/", "title": "", "fetched_at": "2026-10-14"}], "answer": {"subcategories": []}}
+        return build.build_supplier({"host": "x.ru", "root": "https://x.ru/", "urls": [], "queries": []}, rec, {}, cat["packaging"])
+
+    upakoff, no_door = regional(True), regional(False)
+
+    boxes = {"facts": {"products": {"value": ["Коробки для пиццы", "Коробки для тортов"]}},
+             "assortment": {"items": [{"name": "Коробка для пиццы 30 см", "group": None}, {"name": "Пакет крафт", "group": None}]}}
+    new, note = run.check_category(boxes, cat["dairy"], cats)
+    return [
+        case("«склад в городе» — только склад или производство", card("склад") == "warehouse" and card("производство") == "warehouse"),
+        case("офис, магазин, пункт выдачи в городе — не склад, присутствие по доставке",
+             all(card(k) == "delivery_only" for k in ("офис", "магазин", "пункт выдачи", None))),
+        case("кэш раскладки: запись-ошибка и раскладка старше 30 дней не берутся, свежая — берётся", cache_ok),
+        case("второй отчёт за день не затирает первый, запись набора без недописанного .tmp", report_ok),
+        case("поставщик коробок в «Сыре» без единого сырного товара переезжает в «Упаковку» с пометкой в отчёте",
+             new["id"] == "packaging" and bool(note)),
+        case("Упакофф: «7 городов России» + адрес в Екатеринбурге + до двери — «Екатеринбург» в регионах, не исключается",
+             "Екатеринбург" in upakoff["regions_served"]["value"] and build.excluded_by_region(upakoff) is None),
+        case("тот же поставщик без доставки и склада — исключается, правило stopReason повторено верно",
+             build.excluded_by_region(no_door) is not None),
+        case("FoodFace: «любой город России», «все регионы РФ» — это «вся Россия», а «7 городов России» — нет",
+             norm_region("любой город России") == norm_region("все регионы РФ") == norm_region("регионы РФ")
+             == norm_region("89 субъектов РФ и СНГ") == norm_region("вся территория РФ") == "вся Россия"
+             and norm_region("7 городов России") == "7 городов России" and norm_region("за пределами РФ") == "за пределами РФ"
+             and norm_region("вся центральная Россия") == "вся центральная Россия"),
+    ]
+
+
+def hours_cases() -> list[bool]:
+    from .hours import find_hours
+
+    def h(text, url="https://x.ru/dostavka"):
+        got = find_hours([{"final_url": "https://x.ru/", "text": ""}, {"final_url": url, "text": text}])
+        return got["value"] if got else {}
+
+    late = h("Доставка осуществляется с понедельника по пятницу с 12:00 до 22:00.")
+    return [
+        case("часы: «Пн-Пт 9:00-18:00» — режим работы", h("Пн-Пт 9:00-18:00", "https://x.ru/contacts").get("office") == "Пн-Пт 9:00-18:00"),
+        case("часы: доставка до 22:00 — окно доставки и «возят вечером»",
+             late.get("delivery_window") and late.get("evening_or_night") is True),
+        case("часы: доставка с 9 до 18 — вечером не возят", h("Доставка в рабочие дни с 9 до 18 часов.").get("evening_or_night") is False),
+        case("часы: «заказы до 18:00 — на следующий день» — время приёма заказа",
+             h("Заказы, оформленные до 18:00, доставляются на следующий рабочий день.").get("order_cutoff") is not None),
+        case("часы: «в течение 2–3 рабочих дней» — срок, а не дни доставки", not h("Отгрузка в течение 2-3 рабочих дней.")),
+        case("часы: «от 7 до 21 дня» — не время заказа", not h("Изготовление заказа занимает от 7 до 21 дня.")),
+        case("часы: «Сеть магазинов 24/7» — не круглосуточная работа", not h("Сеть магазинов «24/7»")),
+        case("часы: доставка по Москве закупщику из Екатеринбурга не показывается", not h("МСК: Доставка с понедельника по пятницу.")),
+    ]
+
+
+def assortment_cases() -> list[bool]:
+    from .catalog import assemble, verify, xlsx_items
+
+    page = {"url": "https://x.ru/catalog/syry/", "group": "Сыры", "kind": "html",
+            "text": "Сыры\nСыр Моцарелла для пиццы 42%\nЦена 710 ₽/кг\nВ корзину\nСливки Петмол 33% (1л)\nЦена 430 ₽/шт"}
+    ans = {"products": [{"name": "Сыр Моцарелла для пиццы 42%", "group": None, "price": "710 ₽/кг", "page": "P1"},
+                        {"name": "Молоко Простоквашино 3,2%", "group": None, "price": None, "page": "P1"},
+                        {"name": "Сливки Петмол 33% (1л)", "group": None, "price": "999 ₽", "page": "P1"},
+                        {"name": "В корзину", "group": None, "price": None, "page": "P1"}],
+           "sections": [{"name": "Сыры", "parent": None}]}
+    products, sections, rejected = verify(ans, [page])
+    names = [p["name"] for p in products]
+    rows = [["Прайс-лист"], ["Наименование", "Ед.изм.", "Цена"], ["РЫБА"], ["Лосось филе", "кг.", 1450], ["Нори Gold 50л", "уп.", 890], None]
+    xl = xlsx_items(rows)
+    many = [{"name": f"Товар {p}-{i}", "group": None, "price": None, "page": p} for p in (0, 1) for i in range(5)]
+    items, total = assemble(many, [], limit=4)
+
+    # уценка и акции (ревью Дир 61): раздел «Уцененные товары» и «УЦЕНКА!» в названии — не ассортимент
+    from .catalog import is_sale
+    sale_page = {"url": "https://x.ru/catalog/ucenennye/", "group": "Уцененные товары", "kind": "html",
+                 "text": "Бак мусорный 75л с крышкой\n500.00 руб."}
+    shop_page = {"url": "https://x.ru/catalog/muka/", "group": "Мучная продукция", "kind": "html",
+                 "text": "Сухари Панко фракция 3 мм\nДиспенсер 337х203 УЦЕНКА! (царапины)\nУцененные товары"}
+    sale_ans = {"products": [{"name": "Бак мусорный 75л с крышкой", "group": None, "price": "500.00 руб.", "page": "P1"},
+                             {"name": "Сухари Панко фракция 3 мм", "group": None, "price": None, "page": "P2"},
+                             {"name": "Диспенсер 337х203 УЦЕНКА! (царапины)", "group": None, "price": None, "page": "P2"}],
+                "sections": [{"name": "Уцененные товары", "parent": None}]}
+    s_products, s_sections, s_rejected = verify(sale_ans, [sale_page, shop_page])
+    s_names = [p["name"] for p in s_products]
+    return [
+        case("ассортимент: позиция со страницы принята, цена рядом с ней — тоже",
+             "Сыр Моцарелла для пиццы 42%" in names and products[0]["price"] == "710 ₽/кг"),
+        case("ассортимент: позиции, которой нет на странице, нет в результате", "Молоко Простоквашино 3,2%" not in names),
+        case("ассортимент: цена, которой нет рядом с товаром, снята, позиция осталась",
+             next(p for p in products if p["name"].startswith("Сливки"))["price"] is None),
+        case("ассортимент: кнопка «В корзину» — не товар", "В корзину" not in names),
+        case("ассортимент: группа товара — раздел каталога, откуда страница", products[0]["group"] == "Сыры"),
+        case("прайс xlsx: шапка «Наименование … Цена», строка-заголовок — группа, цена с единицей",
+             xl == [{"name": "Лосось филе", "group": "РЫБА", "price": "1450 ₽/кг."}, {"name": "Нори Gold 50л", "group": "РЫБА", "price": "890 ₽/уп."}]),
+        case("ассортимент: при лимите позиции берутся по очереди со всех страниц, а не только с первой",
+             total == 10 and {x["name"].split("-")[0] for x in items} == {"Товар 0", "Товар 1"}),
+        case("уценка: позиции раздела «Уцененные товары» и с «УЦЕНКА!» в названии в ассортимент не попадают, сам раздел — тоже",
+             s_names == ["Сухари Панко фракция 3 мм"] and not s_sections
+             and sum(1 for r in s_rejected if r["field"] == "assortment.sale") == 3),
+        case("уценка: «Товары со скидкой - 50%», «Наши акции», «Распродажа» — разделы акций; «фракция», «Сливки 33%», "
+             "«Транзакции» — нет",
+             all(is_sale(g) for g in ("Товары со скидкой - 50%", "Наши акции", "Распродажа", "Спецпредложения", "Акции и Скидки"))
+             and not any(is_sale(g) for g in ("Мучная продукция", "Сухари Панко фракция 3 мм", "Сливки 33%", "Транзакции"))),
+    ]
 
 
 if __name__ == "__main__":

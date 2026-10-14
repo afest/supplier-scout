@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { href, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
-import { categoryOf, DATA, rankCategory, readQuery } from "../data.ts";
-import { activeDeclarations } from "../lib/score.ts";
+import { categoryOf, DATA, rankCategory, readQuery, volParam } from "../data.ts";
+import { flagsText, profileDeclarations } from "../lib/score.ts";
 import { ageYears, isKnown, plural, years } from "../lib/format.ts";
 import type { Supplier } from "../types.ts";
 import { DemoPill, Hint, Mono, Score } from "../components/ui.tsx";
@@ -26,12 +26,12 @@ function resolve(input: string): { s: Supplier; by: "site" | "inn" } | { s: Supp
 
 function siteSteps(s: Supplier): string[] {
   const pages = s.meta.sources.filter((x) => x.kind === "site").map((x) => `«${x.title.replace("Сайт: ", "")}»`);
-  const decl = activeDeclarations(s).length;
+  const decl = profileDeclarations(s, categoryOf(s)).length;
   return [
     `Открыли сайт: ${pages.slice(0, 4).join(", ")} — ${pages.length} ${pages.length < 5 ? "страницы" : "страниц"}`,
     isKnown(s.inn) ? `Нашли ИНН в реквизитах: ${s.inn.value}` : "ИНН на сайте не нашли — реестры проверить не выйдет",
     "Раскладываем текст по полям — модель выносит цитату к каждому значению, без цитаты значение отбрасываем",
-    isKnown(s.company) ? `ФНС: действует ${years(ageYears(s.company.value!.registered_at))}, ОКВЭД ${s.company.value!.okved_main}, ${s.company.value!.flags.length ? "есть флаги" : "красных флагов нет"}` : "ФНС: без ИНН не проверить",
+    isKnown(s.company) ? `ФНС: действует ${years(ageYears(s.company.value!.registered_at))}, ОКВЭД ${s.company.value!.okved_main}, ${flagsText(s.company.value!.flags)}` : "ФНС: без ИНН не проверить",
     `Росаккредитация: ${decl} ${plural(decl, "действующая декларация", "действующие декларации", "действующих деклараций")}${s.documents.marking && isKnown(s.documents.marking) ? "; «Честный знак» — участник" : ""}`,
     "Считаем балл и место среди остальных в категории",
   ];
@@ -134,8 +134,8 @@ export function AddSupplier({ route }: { route: Route }) {
 
       {phase === "unknown" && (
         <div className="panel warn">
-          <b>В демо-версии живой сбор подключён только для двух примеров выше.</b>
-          <p>Сервер сбора (Python, FastAPI) разворачивается вместе с публикацией сервиса. Демо-версия не открывает чужие сайты и не придумывает карточку по введённому адресу — иначе вышли бы выдуманные данные о настоящей компании.</p>
+          <b>Из интерфейса живой сбор пока работает только для двух примеров выше — их карточки собраны настоящим прогоном конвейера.</b>
+          <p>Сервера сбора ещё нет: конвейер запускается из командной строки — <code>python -m pipeline.one --site адрес</code> или <code>--inn ИНН</code>, — и карточка любого поставщика собирается за минуту. Здесь интерфейс не открывает чужие сайты и не придумывает карточку по адресу — иначе вышли бы выдуманные данные о настоящей компании.</p>
         </div>
       )}
       {phase === "exists" && target && (
@@ -164,7 +164,7 @@ export function AddSupplier({ route }: { route: Route }) {
         <div className="run panel">
           <div className="run-h">
             <b>{phase === "done" ? "Готово" : phase === "confirm" ? "Нужно ваше подтверждение" : "Собираем данные"} · <span className="num">0:{String(elapsed).padStart(2, "0")}</span></b>
-            <Hint>В продукте 30–60 секунд; в демо шаги проигрываются по заранее собранной карточке.</Hint>
+            <Hint>Карточка — результат настоящего прогона конвейера по этому поставщику, шаги показаны по ней. Вживую сбор занимает 30–60 секунд.</Hint>
           </div>
           <ol className="steps">
             {steps.map((x, i) => (
@@ -198,8 +198,8 @@ export function AddSupplier({ route }: { route: Route }) {
           </div>
           <Score value={result.sc.total} unit />
           <div className="row-btns">
-            <a className="btn pr" href={href(`/s/${target.id}`, { vol: result.q.volume, prio: result.q.prio === "balanced" ? null : result.q.prio })}>Открыть карточку</a>
-            <a className="btn sec" href={href("/results", { cat: target.category, vol: result.q.volume, prio: result.q.prio === "balanced" ? null : result.q.prio })}>Сравнить с остальными</a>
+            <a className="btn pr" href={href(`/s/${target.id}`, { vol: volParam(result.q.volume), prio: result.q.prio === "balanced" ? null : result.q.prio })}>Открыть карточку</a>
+            <a className="btn sec" href={href("/results", { cat: target.category, vol: volParam(result.q.volume), prio: result.q.prio === "balanced" ? null : result.q.prio })}>Сравнить с остальными</a>
           </div>
         </div>
       )}

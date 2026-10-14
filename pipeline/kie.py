@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import threading
 import time
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -39,18 +40,43 @@ def spent_rub() -> float:
 
 
 class Kie:
+    """budget_rub — потолок на этот прогон, а не на весь журнал расхода. reserve_rub — сколько держим в запасе
+    на каждый вызов, который уже ушёл, но ещё не списан: при трёх потоках проверка «до вызова» иначе пропустит
+    три вызова на последний рубль."""
+
     def __init__(self, budget_rub: float, reserve_rub: float = 1.0):
         self.budget_rub = budget_rub
         self.reserve_rub = reserve_rub
-        # Kie — напрямую, мимо системного прокси: через VPN соединение рвётся (канон AI content generation).
-        self.http = httpx.Client(trust_env=False, timeout=httpx.Timeout(180, connect=20),
-                                 headers={"Authorization": f"Bearer {keys.get('KIE_API_KEY')}"})
+        self.start_rub = spent_rub()
         self.run_credits = 0.0
+        self.inflight = 0
+        self._http: httpx.Client | None = None
+
+    @property
+    def http(self) -> httpx.Client:
+        # Ключ читается при первом платном вызове: --offline и --until candidates работают без него.
+        # Kie — напрямую, мимо системного прокси: через VPN соединение рвётся (канон AI content generation).
+        if self._http is None:
+            self._http = httpx.Client(trust_env=False, timeout=httpx.Timeout(180, connect=20),
+                                      headers={"Authorization": f"Bearer {keys.get('KIE_API_KEY')}"})
+        return self._http
 
     # ---- учёт ----
-    def _guard(self):
-        if spent_rub() + self.reserve_rub > self.budget_rub:
-            raise BudgetExceeded(f"потолок {self.budget_rub:.0f} ₽: уже потрачено {spent_rub():.2f} ₽")
+    def run_rub(self) -> float:
+        return spent_rub() - self.start_rub
+
+    @contextmanager
+    def _slot(self):
+        with _LOCK:
+            spent = self.run_rub()
+            if spent + (self.inflight + 1) * self.reserve_rub > self.budget_rub:
+                raise BudgetExceeded(f"потолок прогона {self.budget_rub:.0f} ₽: потрачено {spent:.2f} ₽, ещё {self.inflight} вызов(а) в работе")
+            self.inflight += 1
+        try:
+            yield
+        finally:
+            with _LOCK:
+                self.inflight -= 1
 
     def _log(self, kind: str, model: str, label: str, credits: float | None, usage: dict):
         LEDGER.parent.mkdir(parents=True, exist_ok=True)
@@ -74,12 +100,18 @@ class Kie:
         for attempt in range(4):
             try:
                 r = self.http.post(f"{BASE}{path}", json=body)
-            except httpx.TransportError as e:
+            except (httpx.ConnectError, httpx.ConnectTimeout) as e:     # запрос не ушёл — повтор ничего не стоит
                 if attempt == 3:
                     raise KieError(f"сеть: {e}") from e
                 time.sleep(3 * (attempt + 1))
                 continue
-            if r.status_code in (429, 500, 502, 503, 504) and attempt < 3:
+            except httpx.TransportError as e:
+                # запрос ушёл, а ответ не пришёл (ReadTimeout после 180 с, обрыв): модель могла отработать и списать
+                # кредиты — повтор рискует двойным списанием, поэтому сайт остаётся несобранным до следующего прогона
+                raise KieError(f"ответ не пришёл ({type(e).__name__}) — вызов мог списаться, повтор не делаем") from e
+            # 429 и 502/503 — запрос до модели не дошёл; 500 Kie отдаёт при сбое поставщика модели без списания
+            # (Gemini 13.10: десятки 500, журнал пуст). 504 не повторяем: модель могла отработать.
+            if r.status_code in (429, 500, 502, 503) and attempt < 3:
                 time.sleep(5 * (attempt + 1))
                 continue
             return r
@@ -88,20 +120,20 @@ class Kie:
     # ---- Claude: ответ строго через инструмент с JSON-схемой ----
     def claude_tool(self, prompt: str, tool: dict, label: str, system: str | None = None,
                     max_tokens: int = 4096, model: str = CLAUDE_MODEL) -> dict:
-        self._guard()
         body = {"model": model, "messages": [{"role": "user", "content": prompt}], "tools": [tool],
                 "tool_choice": {"type": "tool", "name": tool["name"]},
                 "thinkingFlag": False, "thinking": {"type": "disabled"}, "stream": False, "max_tokens": max_tokens}
         if system:
             body["system"] = system
-        r = self._post("/claude/v1/messages", body)
-        try:
-            j = r.json()
-        except ValueError as e:
-            raise KieError(f"Claude: HTTP {r.status_code}, не JSON: {r.text[:300]}") from e
-        if "content" not in j:
-            raise KieError(f"Claude: {str(j)[:400]}")
-        self._log("claude", j.get("model", model), label, j.get("credits_consumed"), j.get("usage", {}))
+        with self._slot():          # резерв снимается после записи в журнал — иначе соседний поток его не увидит
+            r = self._post("/claude/v1/messages", body)
+            try:
+                j = r.json()
+            except ValueError as e:
+                raise KieError(f"Claude: HTTP {r.status_code}, не JSON: {r.text[:300]}") from e
+            if "content" not in j:
+                raise KieError(f"Claude: {str(j)[:400]}")
+            self._log("claude", j.get("model", model), label, j.get("credits_consumed"), j.get("usage", {}))
         for block in j["content"]:
             if block.get("type") == "tool_use" and block.get("name") == tool["name"]:
                 return block["input"]
@@ -109,42 +141,42 @@ class Kie:
 
     # ---- Gemini + поиск Google: текст ответа и источники выдачи ----
     def gemini_search(self, prompt: str, label: str, model: str = GEMINI_MODEL) -> dict:
-        self._guard()
         body = {"stream": True, "contents": [{"role": "user", "parts": [{"text": prompt}]}],
                 "tools": [{"googleSearch": {}}],
                 "generationConfig": {"thinkingConfig": {"includeThoughts": False, "thinkingLevel": "low"}}}
-        r = self._post(f"/gemini/v1/models/{model}:streamGenerateContent", body, stream=True)
-        text, chunks, queries, credits, usage, errors = [], [], [], None, {}, []
-        for line in r.text.splitlines():
-            if not line.startswith("data:"):
-                continue
-            payload = line[5:].strip()
-            if not payload or payload == "[DONE]":
-                continue
-            try:
-                ev = json.loads(payload)
-            except ValueError:
-                continue
-            if ev.get("code") not in (None, 200):
-                errors.append(ev)
-            for cand in ev.get("candidates", []):
-                for part in (cand.get("content") or {}).get("parts", []):
-                    if part.get("text") and not part.get("thought"):
-                        text.append(part["text"])
-                gm = cand.get("groundingMetadata") or {}
-                for ch in gm.get("groundingChunks", []):
-                    web = ch.get("web") or {}
-                    if web.get("uri"):
-                        chunks.append({"uri": web["uri"], "title": web.get("title", "")})
-                queries += gm.get("webSearchQueries", [])
-            if ev.get("usageMetadata"):
-                usage = ev["usageMetadata"]
-            if ev.get("credits_consumed") is not None:
-                credits = ev["credits_consumed"]
-        if not text and not chunks:
-            if r.text.strip().startswith("{"):
-                errors.append(r.text[:400])
-            raise KieError(f"Gemini: пустой ответ, HTTP {r.status_code}: {errors or r.text[:400]}")
-        self._log("gemini-search", model, label, credits, usage)
-        return {"text": "".join(text), "chunks": chunks, "queries": list(dict.fromkeys(queries)),
-                "credits": credits, "usage": usage}
+        with self._slot():
+            r = self._post(f"/gemini/v1/models/{model}:streamGenerateContent", body, stream=True)
+            text, chunks, queries, credits, usage, errors = [], [], [], None, {}, []
+            for line in r.text.splitlines():
+                if not line.startswith("data:"):
+                    continue
+                payload = line[5:].strip()
+                if not payload or payload == "[DONE]":
+                    continue
+                try:
+                    ev = json.loads(payload)
+                except ValueError:
+                    continue
+                if ev.get("code") not in (None, 200):
+                    errors.append(ev)
+                for cand in ev.get("candidates", []):
+                    for part in (cand.get("content") or {}).get("parts", []):
+                        if part.get("text") and not part.get("thought"):
+                            text.append(part["text"])
+                    gm = cand.get("groundingMetadata") or {}
+                    for ch in gm.get("groundingChunks", []):
+                        web = ch.get("web") or {}
+                        if web.get("uri"):
+                            chunks.append({"uri": web["uri"], "title": web.get("title", "")})
+                    queries += gm.get("webSearchQueries", [])
+                if ev.get("usageMetadata"):
+                    usage = ev["usageMetadata"]
+                if ev.get("credits_consumed") is not None:
+                    credits = ev["credits_consumed"]
+            if not text and not chunks:
+                if r.text.strip().startswith("{"):
+                    errors.append(r.text[:400])
+                raise KieError(f"Gemini: пустой ответ, HTTP {r.status_code}: {errors or r.text[:400]}")
+            self._log("gemini-search", model, label, credits, usage)
+            return {"text": "".join(text), "chunks": chunks, "queries": list(dict.fromkeys(queries)),
+                    "credits": credits, "usage": usage}

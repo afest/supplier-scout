@@ -1,17 +1,18 @@
 // Фильтры по дополнительным полям — общие для результатов поиска и каталога «Все поставщики».
 import type { Category, Supplier } from "../types.ts";
 import { ageYears, isKnown } from "./format.ts";
-import { activeDeclarations, markingOk } from "./score.ts";
+import { fnsFlags, markingOk, profileDeclarations } from "./score.ts";
 
-export type FilterId = "door" | "pickup" | "warehouse" | "pricelist" | "horeca" | "active" | "age3" | "decl" | "marking" | "noflags";
+export type FilterId = "door" | "pickup" | "warehouse" | "evening" | "pricelist" | "horeca" | "active" | "age3" | "decl" | "marking" | "noflags";
 
-export const FILTER_GROUPS: { title: string; items: { id: FilterId; label: string; markingOnly?: boolean }[] }[] = [
+export const FILTER_GROUPS: { title: string; items: { id: FilterId; label: string; markingOnly?: boolean; hoursOnly?: boolean }[] }[] = [
   {
     title: "Условия",
     items: [
       { id: "door", label: "Доставка до точки" },
-      { id: "pickup", label: "Самовывоз в городе" },
+      { id: "pickup", label: "Самовывоз со склада в городе" },
       { id: "warehouse", label: "Склад в Екатеринбурге" },
+      { id: "evening", label: "Возят вечером или ночью", hoursOnly: true },
       { id: "pricelist", label: "Прайс на сайте" },
       { id: "horeca", label: "Работает с ресторанами" },
     ],
@@ -21,26 +22,32 @@ export const FILTER_GROUPS: { title: string; items: { id: FilterId; label: strin
     items: [
       { id: "active", label: "Компания действует" },
       { id: "age3", label: "Старше 3 лет" },
-      { id: "decl", label: "Есть декларации" },
+      { id: "decl", label: "Декларации на продукцию категории" },
       { id: "marking", label: "В «Честном знаке»", markingOnly: true },
-      { id: "noflags", label: "Без красных флагов ФНС" },
+      { id: "noflags", label: "ФНС проверила: флагов нет" },
     ],
   },
 ];
 
-const local = (s: Supplier) => s.city === "Екатеринбург";
+const warehouse = (s: Supplier) => isKnown(s.presence) && s.presence.value === "warehouse";
 
 export const PRED: Record<FilterId, (s: Supplier, cat: Category) => boolean> = {
   door: (s) => isKnown(s.delivery) && s.delivery.value!.to_door,
-  pickup: (s) => isKnown(s.delivery) && s.delivery.value!.pickup && local(s),
-  warehouse: (s) => isKnown(s.presence) && s.presence.value === "warehouse" && local(s),
+  pickup: (s) => isKnown(s.delivery) && s.delivery.value!.pickup && warehouse(s),
+  warehouse: (s) => warehouse(s),
+  evening: (s) => !!s.hours && isKnown(s.hours) && s.hours.value!.evening_or_night === true,
   pricelist: (s) => isKnown(s.prices) && s.prices.value!.mode === "pricelist",
   horeca: (s) => isKnown(s.works_with_horeca) && s.works_with_horeca.value === true,
   active: (s) => isKnown(s.company) && s.company.value!.status === "active",
   age3: (s) => isKnown(s.company) && ageYears(s.company.value!.registered_at) >= 3,
-  decl: (s) => activeDeclarations(s).length > 0,
+  decl: (s, cat) => profileDeclarations(s, cat).length > 0,
   marking: (s, cat) => markingOk(s, cat),
-  noflags: (s) => isKnown(s.company) && s.company.value!.flags.length === 0,
+  // «не проверены» — не «чисто»: фильтр оставляет только тех, кого ФНС действительно проверила
+  noflags: (s) => {
+    if (!isKnown(s.company)) return false;
+    const f = fnsFlags(s.company.value!.flags);
+    return !f.real.length && !f.unchecked;
+  },
 };
 
 export const MAX_RANGE = 50000;
