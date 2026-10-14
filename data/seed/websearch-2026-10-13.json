@@ -1,0 +1,1091 @@
+{
+ "note": "Выдача веб-поиска Claude Code (режим extended) 13.10.2026 по подкатегориям демо-набора (23 запроса; последние три — добор по сыру и молочному, где местных поставщиков меньше шести), Екатеринбург. Записана целиком, без отбора: агрегаторы, карты и маркетплейсы отсеивает конвейер. Автоматический поиск через Gemini + Google на Kie 13.10 отвечал ошибкой 500, поэтому шаг «кандидаты» прочитал этот файл. Второй источник — 17 поставщиков из пробы полноты 10.10 (тот же поиск, режим extended).",
+ "engine": "Claude Code WebSearch, extended",
+ "date": "2026-10-13",
+ "searches": [
+  {
+   "query": "контейнеры для роллов и суши оптом Екатеринбург",
+   "category": "packaging",
+   "subcategory": "containers",
+   "results": [
+    {
+     "title": "Купить упаковку для суши и роллов, китайские палочки оптом",
+     "url": "https://academy.chibbis.ru/lunchbox-upakovka"
+    },
+    {
+     "title": "Контейнеры для суши и роллов в Екатеринбурге. Купить упаковку роллов и суши оптом и в розницу",
+     "url": "https://ekaterinburg.trial-market.ru/pishchevaya-upakovka/kontejnery-pod-sushi/"
+    },
+    {
+     "title": "Пластиковые контейнеры для суши - купить оптом в Екатеринбурге",
+     "url": "https://rm-pack.ru/catalog/_korreksy/korreksy_dlya_sushi_i_rollov/"
+    },
+    {
+     "title": "Контейнеры для суши и роллов купить оптом в интернет-магазине",
+     "url": "https://edaprof.ru/upakovka/upakovka-dlya-sushi-i-rollov/kontejner-dlya-sushi-i-rollov/"
+    },
+    {
+     "title": "Упаковка контейнеры для суши, роллов - купить оптом",
+     "url": "https://plastikko.ru/c521"
+    },
+    {
+     "title": "Упаковка для роллов купить оптом и в розницу",
+     "url": "https://domupack.ru/product-category/upakovka-dlya-fast-fuda/dlya-sushi-i-rollov/"
+    },
+    {
+     "title": "Упаковка для доставки суши, ролов и блюд восточной кухни оптом",
+     "url": "https://yarus-market.ru/upakovka_po_otraslyam/upakovka_dlya_sushi/"
+    },
+    {
+     "title": "Упаковки контейнеры для суши, роллов - купить в Екатеринбурге",
+     "url": "http://eco-plate.ru/catalog/upakovka/korobki_dlya_rollov/"
+    },
+    {
+     "title": "Одноразовые пластиковые контейнеры для суши и роллов",
+     "url": "https://rosspak.ru/catalog/konteynery-plastikovye/konteynery-dlya-sushi-i-rollov/"
+    }
+   ]
+  },
+  {
+   "query": "поставщик упаковки для суши и роллов для ресторанов Екатеринбург",
+   "category": "packaging",
+   "subcategory": "containers",
+   "results": [
+    {
+     "title": "Контейнеры для суши и роллов в Екатеринбурге. Купить упаковку роллов и суши оптом и в розницу",
+     "url": "https://ekaterinburg.trial-market.ru/pishchevaya-upakovka/kontejnery-pod-sushi/"
+    },
+    {
+     "title": "Упаковку для суши и роллов купить в Екатеринбурге, производство одноразовых контейнеров для роллов и суши, цены",
+     "url": "https://ekb.protekgroup.com/catalog/upakovka_dlya_sushi_i_rollov/"
+    },
+    {
+     "title": "Упаковка для шаурмы и роллов купить оптом в Екатеринбурге",
+     "url": "https://po-karton.com/catalog/upakovka_dlya_fast_fuda/584/"
+    },
+    {
+     "title": "Пищевая упаковка с логотипом компании заказать в Екатеринбурге по низкой цене",
+     "url": "https://parusekb.ru/product/upakovka/pishchevaya-upakovka/"
+    },
+    {
+     "title": "Упаковка для суши и роллов с логотипом на заказ в Екатеринбурге по низкой цене",
+     "url": "https://parusekb.ru/catalog/pishchevaya-upakovka/dlya-rollov-i-sushi/"
+    },
+    {
+     "title": "Для роллов и суши заказать в Екатеринбурге по низкой цене",
+     "url": "https://parusekb.ru/product/upakovka/pishchevaya-upakovka/dlya-rollov-i-sushi/"
+    },
+    {
+     "title": "Упаковка для ролов и суши купить оптом контейнеры для суши в Екатеринбурге. ГУД-издат",
+     "url": "https://www.good-izdat.ru/produkcija/fast-fud-upakovka/korobki-dlja-sushirollov/"
+    },
+    {
+     "title": "Коробки для роллов и суши купить в Екатеринбурге по выгодной цене в интернет-магазине Food-Face",
+     "url": "https://food-face.ru/product-category/po-produkczii/korobki-dlya-rollov/"
+    },
+    {
+     "title": "Упаковка для роллов и суши в Екатеринбурге",
+     "url": "https://www.infoyar.ru/%D0%95%D0%BA%D0%B0%D1%82%D0%B5%D1%80%D0%B8%D0%BD%D0%B1%D1%83%D1%80%D0%B3/%D0%A3%D0%BF%D0%B0%D0%BA%D0%BE%D0%B2%D0%BA%D0%B0_%D0%B4%D0%BB%D1%8F_%D1%80%D0%BE%D0%BB%D0%BB%D0%BE%D0%B2_%D0%B8_%D1%81%D1%83%D1%88%D0%B8.htm"
+    }
+   ]
+  },
+  {
+   "query": "коробки для пиццы оптом Екатеринбург",
+   "category": "packaging",
+   "subcategory": "pizza-boxes",
+   "results": [
+    {
+     "title": "Коробки для пиццы в Екатеринбурге оптом и в розницу - Триал Маркет",
+     "url": "https://ekaterinburg.trial-market.ru/pishchevaya-upakovka/korobki-dlya-pizzy/"
+    },
+    {
+     "title": "Коробка для пиццы, 300х300х40мм, белая, микрогофрокартон E",
+     "url": "https://ekb.mystery.ru/catalog/3112/72899/"
+    },
+    {
+     "title": "Картонные коробки для пиццы купить оптом в Екатеринбурге — упаковка для пиццы и пирогов от производителя",
+     "url": "https://po-karton.com/catalog/korobki_dlya_pitstsy_i_pirogov/"
+    },
+    {
+     "title": "Коробки для пиццы от производителя - купить упаковку для пиццы оптом и в розницу |«УРАЛГОФРОПАК»",
+     "url": "https://tara174.ru/catalog/korobki-dlya-piccy"
+    },
+    {
+     "title": "Коробки для пиццы купить в Екатеринбурге по оптовым ценам.",
+     "url": "https://ekb.tara-tovara.ru/goods/upakovka-dlya-internet-magazinov/korobki/korobki-dlya-pitstsi/"
+    },
+    {
+     "title": "Коробки для пиццы - оптом в Екатеринбурге от производителя",
+     "url": "https://www.uralkarton-ekb.ru/pizza"
+    },
+    {
+     "title": "Коробки для пиццы: купить коробки для пиццы в Екатеринбурге - УРАЛПАКСИСТЕМ.",
+     "url": "http://gofra66.ru/korobki-dlia-pitctcy/"
+    },
+    {
+     "title": "Упаковка для пиццы: коробки, бумагу, пакеты",
+     "url": "https://yes-upak.ru/upakovka-dlja-pitstsy.html"
+    },
+    {
+     "title": "Коробки для пиццы, пирогов",
+     "url": "https://ekaterinburg.upakoff.biz/category/korobki-dlya-piccy-pirogov"
+    }
+   ]
+  },
+  {
+   "query": "поставщик коробок для пиццы для пиццерий Екатеринбург",
+   "category": "packaging",
+   "subcategory": "pizza-boxes",
+   "results": [
+    {
+     "title": "Коробки для пиццы купить оптом с доставкой по всей России и Москве",
+     "url": "https://academy.chibbis.ru/pizza-upakovka"
+    },
+    {
+     "title": "Коробки для пиццы купить в Екатеринбурге по выгодной цене - 24 предложения",
+     "url": "https://ekaterinburg.tradedir.ru/good/korobki_dlya_piccy.html"
+    },
+    {
+     "title": "Коробки для пиццы в Екатеринбурге оптом и в розницу - Триал Маркет",
+     "url": "https://ekaterinburg.trial-market.ru/pishchevaya-upakovka/korobki-dlya-pizzy/"
+    },
+    {
+     "title": "Коробка для пиццы купить оптом - цена от производителя",
+     "url": "https://pack24.ru/kartonnye-korobki/korobki-dlya-piccy"
+    },
+    {
+     "title": "Картонные коробки для пиццы купить оптом в Екатеринбурге — упаковка для пиццы и пирогов от производителя",
+     "url": "https://po-karton.com/catalog/korobki_dlya_pitstsy_i_pirogov/"
+    },
+    {
+     "title": "Купить коробки для пиццы купить в интернет-магазине Юни-Пак",
+     "url": "https://uny-pak.ru/catalog/kupit-korobki-dlya-pitstsy/"
+    },
+    {
+     "title": "Коробки для пиццы оптом от производителя с печатью - PizzaKorob",
+     "url": "https://pizzakorob.ru/"
+    },
+    {
+     "title": "Упаковка для пиццы, продажа картонных коробок с печатью дизайна под пиццу с доставкой",
+     "url": "https://yes-upak.ru/upakovka-dlja-pitstsy.html"
+    },
+    {
+     "title": "Коробки для пиццы оптом с печатью логотипа — от 5 000 шт",
+     "url": "https://kzgk.ru/pizza/"
+    }
+   ]
+  },
+  {
+   "query": "крафт пакеты для доставки еды оптом Екатеринбург",
+   "category": "packaging",
+   "subcategory": "bags",
+   "results": [
+    {
+     "title": "Крафт пакеты бумажные в Екатеринбурге оптом и в розницу - Триал Маркет",
+     "url": "https://ekaterinburg.trial-market.ru/pakety/bumazhnye/bumazhnye-pakety-kraft/"
+    },
+    {
+     "title": "Бумажные пакеты купить оптом и в розницу в Екатеринбурге по выгодной цене - Триал Маркет",
+     "url": "https://ekaterinburg.trial-market.ru/pakety/bumazhnye/"
+    },
+    {
+     "title": "Упаковка для фаст-фуда в Екатеринбурге. Купить упаковку для fastfood оптом и в розницу",
+     "url": "https://ekaterinburg.trial-market.ru/pishchevaya-upakovka/upakovka-dlya-fast-fud/"
+    },
+    {
+     "title": "Купить упаковку для доставки еды оптом и в розницу",
+     "url": "https://webpack.ru/po-vidam-deyatelnosti/upakovka-dlya-dostavki-edy-i-na-vynos/"
+    },
+    {
+     "title": "Крафт Упаковка - Производитель Бумажной Продукции Екатеринбург",
+     "url": "https://kraft-upakovka.ru/"
+    },
+    {
+     "title": "Каталог Продукции Бумажная Упаковка и Аксессуары Крафт-Упаковка",
+     "url": "https://kraft-upakovka.ru/katalog-produkcii/"
+    },
+    {
+     "title": "Крафт пакеты с кручеными ручками купить оптом в г. Екатеринбург.",
+     "url": "https://ekb.tara-tovara.ru/goods/khoztovari/tovari-dlya-upakovki-i-sklada/paketi/kraft-paketi/paketi-s-kruchenimi-ruchkami/"
+    },
+    {
+     "title": "Отзывы ⋆ О Компании Крафт-Упаковка Екатеринбург",
+     "url": "https://kraft-upakovka.ru/otzyvy/"
+    },
+    {
+     "title": "Крафт пакеты оптом",
+     "url": "https://upak-komplekt.ru/product/kraft-paketyi"
+    }
+   ]
+  },
+  {
+   "query": "поставщик крафт пакетов для ресторанов Екатеринбург",
+   "category": "packaging",
+   "subcategory": "bags",
+   "results": [
+    {
+     "title": "Бумажные пакеты, пакеты крафт изготавливаем и продаем , купить в Екатеринбурге",
+     "url": "https://ekaterinburg.tradedir.ru/good/p137775-bumazhnye_pakety_pakety_kraft_izgotavlivaem_i_prodaem_v_ekaterinburge.htm"
+    },
+    {
+     "title": "Бумажные пакеты купить оптом и в розницу в Екатеринбурге по выгодной цене - Триал Маркет",
+     "url": "https://ekaterinburg.trial-market.ru/pakety/bumazhnye/"
+    },
+    {
+     "title": "Купить крафт пакеты в Екатеринбурге от компании \"ПромоТехнологии\"",
+     "url": "https://pr-ekb.ru/paketi-s-logotipom/kraft/"
+    },
+    {
+     "title": "Крафт пакеты с логотипом",
+     "url": "https://paketykraft.ru/"
+    },
+    {
+     "title": "Крафт-пакеты, купить бумажные крафт пакеты в Екатеринбурге оптом по низкой цене.",
+     "url": "https://ekb.tara-tovara.ru/goods/khoztovari/tovari-dlya-upakovki-i-sklada/paketi/kraft-paketi/"
+    },
+    {
+     "title": "Каталог Продукции Бумажная Упаковка и Аксессуары Крафт-Упаковка",
+     "url": "https://kraft-upakovka.ru/katalog-produkcii/"
+    },
+    {
+     "title": "Бумажные крафт пакеты от производителя",
+     "url": "https://mokeevs.ru/"
+    },
+    {
+     "title": "Бумажные пакеты оптом, бумажные пакеты в Челябинске производство продажа, ООО УралЭкоПак",
+     "url": "https://paket74.ru/"
+    },
+    {
+     "title": "Бумажные крафт пакеты купить в Екатеринбурге - УБпластиК",
+     "url": "https://ubplastik.ru/produktsiya/bumajnyie-paketyi/"
+    }
+   ]
+  },
+  {
+   "query": "рыба для суши лосось оптом Екатеринбург",
+   "category": "fish",
+   "subcategory": "fish-sushi",
+   "results": [
+    {
+     "title": "Лосось охлажденная опт в Екатеринбурге на карте: ☎ телефоны, ★ отзывы — 2ГИС",
+     "url": "https://2gis.ru/ekaterinburg/search/%D0%9B%D0%BE%D1%81%D0%BE%D1%81%D1%8C%20%D0%BE%D1%85%D0%BB%D0%B0%D0%B6%D0%B4%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F%20%D0%BE%D0%BF%D1%82"
+    },
+    {
+     "title": "Лосось в Екатеринбурге по выгодной цене - купить на Пульсе цен",
+     "url": "https://ekb.pulscen.ru/price/400501-losos"
+    },
+    {
+     "title": "Свежая рыба, икра, раки, морепродукты, форель, лосось, Екатеринбург",
+     "url": "https://xn--96-6kcaee1aq8eufub.xn--p1ai/"
+    },
+    {
+     "title": "Свежая рыба купить в розницу в Екатеринбурге",
+     "url": "https://www.xn---96-6cde8dorg7hsb.xn--p1ai/catalog/k-8992992-svezhaya_ryba"
+    },
+    {
+     "title": "Рыба и морепродукты оптом в Екатеринбурге по цене производителя",
+     "url": "https://atlant-group.info/"
+    },
+    {
+     "title": "Рыба и морепродукты замороженные в Екатеринбурге с доставкой, купить мелким и крупным оптом по низкой цене",
+     "url": "https://prod66.ru/riba"
+    },
+    {
+     "title": "Купить лосось в Екатеринбурге: цена за кг",
+     "url": "https://2rybnyy.ru/ryba-svezhemorozhennaya/losos/"
+    },
+    {
+     "title": "Лосось - Торговая компания Редфиш все для суши о роллов с доставкой по Москве и МО",
+     "url": "https://www.redfish24.ru/produkty/ryba/losos-1"
+    },
+    {
+     "title": "Продажа рыбы свежемороженой речной в Екатеринбурге от поставщиков, прайс и цены на оптом и в розницу",
+     "url": "https://dikoekachestvo.ru/catalog/ryba_svezhemorozhenaya/"
+    }
+   ]
+  },
+  {
+   "query": "поставщик охлаждённой рыбы для ресторанов Екатеринбург",
+   "category": "fish",
+   "subcategory": "fish-sushi",
+   "results": [
+    {
+     "title": "Поставщики (для розницы) — компании",
+     "url": "https://www.fishnet.ru/companies/postavschiki_dlya_roznitsy/"
+    },
+    {
+     "title": "Живая и охлажденная рыба купить в розницу и мелким оптом по низкой цене в Екатеринбурге.",
+     "url": "https://xn--80abcmafq6de1dwc.xn--p1ai/"
+    },
+    {
+     "title": "Свежая охлаждённая рыба в Екатеринбурге — купить лосось, сёмгу, щуку",
+     "url": "https://xn--96-6kcaee1aq8eufub.xn--p1ai/okhlazhdennaya-ryba"
+    },
+    {
+     "title": "Свежая рыба, икра, раки, морепродукты, форель, лосось, Екатеринбург",
+     "url": "https://xn--96-6kcaee1aq8eufub.xn--p1ai/"
+    },
+    {
+     "title": "Рыба и морепродукты оптом в Екатеринбурге по цене производителя",
+     "url": "https://atlant-group.info/"
+    },
+    {
+     "title": "Охлажденная рыба купить оптом по низкой цене c доставкой от поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/ryba-i-moreprodukty/ohlazhdennaya-ryba"
+    },
+    {
+     "title": "Охлажденная рыба и морепродукты",
+     "url": "https://gastronomija.ru/catalog/ryba_moreprodukty/okhlazhdennaya_ryba_i_moreprodukty/"
+    },
+    {
+     "title": "Рыба и морепродукты замороженные в Екатеринбурге с доставкой, купить мелким и крупным оптом по низкой цене",
+     "url": "https://prod66.ru/riba"
+    },
+    {
+     "title": "Купить рыбу оптом в Екатеринбурге - Гросс Фуд",
+     "url": "https://ekat.grossfood.ru/catalog/ryba/"
+    }
+   ]
+  },
+  {
+   "query": "креветки и морепродукты оптом Екатеринбург",
+   "category": "fish",
+   "subcategory": "seafood",
+   "results": [
+    {
+     "title": "Рыба и морепродукты оптом в Екатеринбурге - адреса, телефоны и отзывы",
+     "url": "https://ekaterinburg.spravker.ru/ryibnaya-produktsiya-i-moreproduktyi/"
+    },
+    {
+     "title": "Морепродукты в Екатеринбурге",
+     "url": "https://xn--96-6kcaee1aq8eufub.xn--p1ai/moreprodukty-ekaterinburg"
+    },
+    {
+     "title": "Креветки оптом - купить в Екатеринбурге по цене производителя свежемороженые креветки!",
+     "url": "https://atlant-group.info/product/krevetki-optom/"
+    },
+    {
+     "title": "Морепродукты оптом купить в Екатеринбурге по цене производителя!",
+     "url": "https://atlant-group.info/product/moreproducty-optom/"
+    },
+    {
+     "title": "Морепродукты купить в Екатеринбурге с доставкой по доступным ценам - интернет-магазин Морское счастье",
+     "url": "https://morskoe96.ru/"
+    },
+    {
+     "title": "Морепродукты свежемороженные супер качества с доставкой можно купить у нас",
+     "url": "https://prod66.ru/moreprod"
+    },
+    {
+     "title": "Морепродукты оптом и в розницу в Екатеринбурге - Дикое Качество",
+     "url": "https://dikoekachestvo.ru/catalog/moreprodukty/"
+    },
+    {
+     "title": "Купить креветки оптом в Екатеринбурге - Гросс Фуд",
+     "url": "https://ekat.grossfood.ru/catalog/ryba/krevetki/"
+    },
+    {
+     "title": "Купить рыбу оптом в Екатеринбурге - Гросс Фуд",
+     "url": "https://ekat.grossfood.ru/catalog/ryba/"
+    }
+   ]
+  },
+  {
+   "query": "поставщик морепродуктов HoReCa Екатеринбург",
+   "category": "fish",
+   "subcategory": "seafood",
+   "results": [
+    {
+     "title": "Поставщики (для общепита, horeca)",
+     "url": "https://www.fishnet.ru/companies/postavschiki_dlya_obschepita_i_horeca/"
+    },
+    {
+     "title": "ХоРеКа - рыба и морепродукты для ресторанов, кафе, столовых, отелей",
+     "url": "https://defagroup.com/horeca.html"
+    },
+    {
+     "title": "Рыба и морепродукты купить оптом для ресторанов и кафе по низкой цене с доставкой от поставщика Horeca",
+     "url": "https://gfc-russia.ru/catalog/ryba-i-moreprodukty"
+    },
+    {
+     "title": "Морепродукты в Екатеринбурге",
+     "url": "https://xn--96-6kcaee1aq8eufub.xn--p1ai/moreprodukty-ekaterinburg"
+    },
+    {
+     "title": "Продукты оптом — купить от поставщика продуктов питания",
+     "url": "https://ekorfish.com/"
+    },
+    {
+     "title": "Моллюска — доставка морских деликатесов в Екатеринбурге с доставкой",
+     "url": "https://molluska.ru/"
+    },
+    {
+     "title": "Морепродукты оптом - купить с доставкой по России",
+     "url": "https://interfoodgroup.ru/catalog-seafood"
+    },
+    {
+     "title": "ANFISH",
+     "url": "https://anfish.ru/"
+    },
+    {
+     "title": "Шеф порт - Рыба и морепродукты высокого качества",
+     "url": "https://chefport.ru/"
+    }
+   ]
+  },
+  {
+   "query": "сыр моцарелла для пиццы оптом Екатеринбург",
+   "category": "dairy",
+   "subcategory": "mozzarella",
+   "results": [
+    {
+     "title": "Купить сыр Моцарелла для пиццы оптом, Умалат, Unagrande, Pretto",
+     "url": "https://www.almin.ru/goods-and-price/syry-/motsarella/"
+    },
+    {
+     "title": "СЫР Моцарелла (40% / 42% / 46% / 50%) оптом - поставка продуктов HoReCa для ресторанов и кафе - Ароса",
+     "url": "https://arosa.ru/catalog/italyanskaya-kukhnya/syr-/syr-motsarella-40-42-46-50-/"
+    },
+    {
+     "title": "Сыр моцарелла: купить оптом по самым низким ценам",
+     "url": "https://napolke.ru/collection/syr_mocarella"
+    },
+    {
+     "title": "Моцарелла для пиццы купить оптом по низкой цене с доставкой от поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/moloko-syr-yaytsa/syr/criterii-mocarella-dlya-piccy"
+    },
+    {
+     "title": "Сыр Моцарелла − купить оптом, цена сыра Моцарелла 36% тертого кубиком (для пиццы) №10 Preferita 1кг для ресторанов, кафе, баров",
+     "url": "https://marr.ru/catalog/syry/tverdye-polutverdye-syry/motsarella-36-tertaya-kubikom-preferita-1-kg-zam/"
+    },
+    {
+     "title": "Сыры для пиццы - купить оптом для ресторанов, кафе, баров",
+     "url": "https://marr.ru/catalog/assortiment-dlya-pitstsy/syry-dlya-pitstsy/"
+    },
+    {
+     "title": "Сыр Моцарелла для пиццы кубик \"Свежа\" купить оптом, Horeca",
+     "url": "https://interfoodgroup.ru/catalog-cheese/tproduct/597150930-961122728831-sir-motsarella-dlya-pitstsi-kubik-svezha"
+    },
+    {
+     "title": "Сыр Моцарелла оптом для пиццерий, ресторанов, кафе и баров - поставщик ТД Гурман",
+     "url": "https://gurman-llc.ru/catalog/syry/filter/cheese_type-is-mocarella/apply/"
+    },
+    {
+     "title": "Сыр моцарелла купить оптом - от производителя по низкой цене ММЗ",
+     "url": "https://oaommz.ru/products/mozzarella/"
+    }
+   ]
+  },
+  {
+   "query": "поставщик моцареллы для пиццерий Екатеринбург",
+   "category": "dairy",
+   "subcategory": "mozzarella",
+   "results": [
+    {
+     "title": "Сыр \"Моцарелла для пиццы\" мягкий, 250 г купить с доставкой на дом из ВкусВилла",
+     "url": "https://vkusvill.ru/goods/syr-motsarella-dlya-pitstsy-myagkiy-250-g-16509.html"
+    },
+    {
+     "title": "Сыр моцарелла: купить оптом по самым низким ценам",
+     "url": "https://napolke.ru/collection/syr_mocarella"
+    },
+    {
+     "title": "Купить сыр моцарелла - лучшая цена за кг оптом и розницу",
+     "url": "https://www.abri-kos.ru/store/molochnie/siri/motsarella/"
+    },
+    {
+     "title": "Моцарелла для пиццы",
+     "url": "https://agroserver.ru/b/motsarella-dlya-pitstsy-865693.htm"
+    },
+    {
+     "title": "Сыры для пиццы - купить оптом для ресторанов, кафе, баров",
+     "url": "https://marr.ru/catalog/assortiment-dlya-pitstsy/syry-dlya-pitstsy/"
+    },
+    {
+     "title": "Сыр Моцарелла для пиццы кубик \"Свежа\" купить оптом, Horeca",
+     "url": "https://interfoodgroup.ru/catalog-cheese/tproduct/597150930-961122728831-sir-motsarella-dlya-pitstsi-kubik-svezha"
+    },
+    {
+     "title": "Моцарелла для пиццы оптом от производителя Ясногорские Сыры",
+     "url": "https://yaprod.ru/product/moczarella-dlya-piczczy/"
+    },
+    {
+     "title": "Сыр Моцарелла оптом для пиццерий, ресторанов, кафе и баров - поставщик ТД Гурман",
+     "url": "https://gurman-llc.ru/catalog/syry/filter/cheese_type-is-mocarella/apply/"
+    },
+    {
+     "title": "Моцарелла и основы для пиццы оптом — сыр, основы и топпинги с доставкой",
+     "url": "https://korzina-pro.ru/horeca"
+    }
+   ]
+  },
+  {
+   "query": "сливочный сыр для роллов оптом Екатеринбург",
+   "category": "dairy",
+   "subcategory": "cream-cheese",
+   "results": [
+    {
+     "title": "Купить сыр творожный в Екатеринбурге — «Урал-Италика»",
+     "url": "https://italika-ural.ru/catalog/367"
+    },
+    {
+     "title": "Сыр для роллов купить оптом",
+     "url": "https://market.yandex.ru/search?text=%D1%81%D1%8B%D1%80+%D0%B4%D0%BB%D1%8F+%D1%80%D0%BE%D0%BB%D0%BB%D0%BE%D0%B2+%D0%BA%D1%83%D0%BF%D0%B8%D1%82%D1%8C+%D0%BE%D0%BF%D1%82%D0%BE%D0%BC"
+    },
+    {
+     "title": "Творожный сыр купить оптом от поставщика HoReCa Свит Лайф Фудсервис с доставкой в кафе и рестораны",
+     "url": "https://swlife.ru/molochnaya-gastronomiya/syry/syry-tvorojnye"
+    },
+    {
+     "title": "Сыры творожные купить оптом по низкой цене с доставкой от поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/moloko-syr-yaytsa/syr/criterii-syry-tvorozhnye"
+    },
+    {
+     "title": "Сыры оптом, твердые, полутвердые, рассольные, и другие",
+     "url": "https://petrosir.ru/cheese/"
+    },
+    {
+     "title": "Сыры - Сыры сливочные для суши - Торговая компания Редфиш все для суши о роллов с доставкой по Москве и МО",
+     "url": "https://www.redfish24.ru/produkty/syry-slivki-moloko-tvorog/syry/syry-slivochnye-dlya-sushi"
+    },
+    {
+     "title": "Творожный сыр оптом — купить сливочный и мягкий творожный сыр",
+     "url": "https://biomilk.ru/catalog/syry/tvorozhnyij-syir/"
+    },
+    {
+     "title": "Творожный сыр Cooking кукинг Чудское озеро купить Екатеринбург Крым",
+     "url": "https://prodservice.shop/catalog/konditerskie_ingredienty/syr_tvorozhnyy/"
+    },
+    {
+     "title": "Купить сыр с доставкой в Екатеринбурге в интернет-магазине Соболев Сыр",
+     "url": "https://sobolevcheese.ru/catalog/"
+    }
+   ]
+  },
+  {
+   "query": "поставщик молочной продукции и сыров для ресторанов HoReCa Екатеринбург склад",
+   "category": "dairy",
+   "subcategory": null,
+   "results": [
+    {
+     "title": "Еда, продукты питания, напитки в Екатеринбурге купить от поставщиков",
+     "url": "https://optlist.ru/suppliers/produkty-optom/ekaterinburg--1486209"
+    },
+    {
+     "title": "Оптом молочная продукция в Екатеринбурге купить от поставщиков и производителей",
+     "url": "https://optlist.ru/wholesales/molochnaia-produktsiia/ekaterinburg--1486209"
+    },
+    {
+     "title": "Снабжение ресторанов продуктами оптом в Екатеринбурге",
+     "url": "https://optlist.ru/wholesales/snabzhenie-restoranov-produktami/ekaterinburg--1486209"
+    },
+    {
+     "title": "Молочная продукция для ресторанов и кафе в каталоге компаний Milknet",
+     "url": "https://milknet.biz/litecat/horeca"
+    },
+    {
+     "title": "Молочные заводы Екатеринбург",
+     "url": "https://milco.group/molochnye-zavody-ekaterinburg"
+    },
+    {
+     "title": "Продукты для Horeca в Екатеринбурге, поставщик Хорека - ООО \"Наш Союз\"",
+     "url": "https://nash-souz.ru/about/"
+    },
+    {
+     "title": "Продукты питания оптом в Екатеринбурге от поставщика - ООО \"Наш Союз\"",
+     "url": "https://nash-souz.ru/"
+    },
+    {
+     "title": "Молоко оптом в Екатеринбурге — поставщики и производители",
+     "url": "https://foodsuppliers.ru/companies/moloko-ekaterinburg"
+    },
+    {
+     "title": "Артис-Детское питание. Продукты для ХоРеКа",
+     "url": "https://artishoreca.ru"
+    }
+   ]
+  },
+  {
+   "query": "рис для суши оптом Екатеринбург",
+   "category": "grocery",
+   "subcategory": "rice",
+   "results": [
+    {
+     "title": "Рис для японской кухни купить на OZON по низкой цене",
+     "url": "https://www.ozon.ru/category/ris-dlya-yaponskoy-kuhni/"
+    },
+    {
+     "title": "Рис для суши в Екатеринбурге: 271-товар: бесплатная доставка, скидка-63% [перейти]",
+     "url": "https://ekaterinburg.regmarkets.ru/ris-dlya-sushi-47330/"
+    },
+    {
+     "title": "Рис для суши купить оптом по низкой цене с доставкой от поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/produktsiya-dlya-panaziatskoy-kukhni/ris-dlya-sushi"
+    },
+    {
+     "title": "Рис для суши 09 купить оптом с доставкой - Tamaki",
+     "url": "https://tamaki.ru/catalog/rice/ris-dlya-sushi-tu/"
+    },
+    {
+     "title": "Рис для суши в Екатеринбурге - сравнить цены, купить по низкой цене",
+     "url": "https://ekaterinburg.yamart.ru/ris-dlya-sushi-47330/"
+    },
+    {
+     "title": "Японский рис для суши в Екатеринбурге. Купить Недорого у Проверенных Продавцов на Торговой Площадке Tiu.ru",
+     "url": "https://ekb.tiu.ru/Yaponskij-ris-dlya-sushi.html"
+    },
+    {
+     "title": "Рис для суши - 58 предложений в России, сравнить цены и купить",
+     "url": "https://www.regtorg.ru/goods/ris_dlya_sushi.html"
+    },
+    {
+     "title": "Оптом японские продукты для суши прайс-лист и цены",
+     "url": "https://sushimag.ru/price/"
+    },
+    {
+     "title": "Все для суши оптом",
+     "url": "https://www.resfood.ru/blog/produkty_dlya_sushi_optom/"
+    }
+   ]
+  },
+  {
+   "query": "нори для суши оптом Екатеринбург",
+   "category": "grocery",
+   "subcategory": "nori",
+   "results": [
+    {
+     "title": "Водоросли Нори - ROZETKA: Продажа и доставка начинки для суши",
+     "url": "https://rozetka.com.ua/produkty-dlya-sushi/c4628033/vid-97612=nori/"
+    },
+    {
+     "title": "Листы нори купить екатеринбург",
+     "url": "https://market.yandex.ru/search?text=%D0%BB%D0%B8%D1%81%D1%82%D1%8B+%D0%BD%D0%BE%D1%80%D0%B8+%D0%BA%D1%83%D0%BF%D0%B8%D1%82%D1%8C+%D0%B5%D0%BA%D0%B0%D1%82%D0%B5%D1%80%D0%B8%D0%BD%D0%B1%D1%83%D1%80%D0%B3"
+    },
+    {
+     "title": "Листы нори для суши купить на OZON по низкой цене",
+     "url": "https://www.ozon.ru/category/listy-nori-dlya-sushi/"
+    },
+    {
+     "title": "Водоросли Нори 1 лист с доставкой на дом в городе Екатеринбург",
+     "url": "https://sushiwok.ru/ekb/menu/dopolnitelno/vodorosli-nori-1-list/"
+    },
+    {
+     "title": "Водоросли Нори купить оптом для кафе и ресторанов с доставкой от поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/produktsiya-dlya-panaziatskoy-kukhni/vodorosli/criterii-vodorosli-nori"
+    },
+    {
+     "title": "Купить нори оптом",
+     "url": "https://frozenrussia.ru/raznoe/nori"
+    },
+    {
+     "title": "Нори Gold - купить водоросли для роллов оптом",
+     "url": "https://sushi-lover.ru/shop/wholesale/norigold-50-50/"
+    },
+    {
+     "title": "Купите морскую капусту нори (чипсы нори) оптом от производителя.",
+     "url": "https://sakkuram.ru/kapusta-nori"
+    },
+    {
+     "title": "Все для суши оптом",
+     "url": "https://www.resfood.ru/blog/produkty_dlya_sushi_optom/"
+    }
+   ]
+  },
+  {
+   "query": "соусы и васаби для суши оптом Екатеринбург",
+   "category": "grocery",
+   "subcategory": "sauces",
+   "results": [
+    {
+     "title": "Васаби для суши и роллов купить оптом для кафе и ресторанов с доставкой поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/produktsiya-dlya-panaziatskoy-kukhni/imbir-vassabi-soevyj-sous/criterii-vasabi"
+    },
+    {
+     "title": "Все для суши",
+     "url": "https://fishhouse.uz/proposals/vse-dlya-sushi-24376/"
+    },
+    {
+     "title": "Соусы / Уксусы HORECA купить оптом для ресторанов, кафе и баров - Tamaki",
+     "url": "https://www.tamaki.ru/catalog/sauce/"
+    },
+    {
+     "title": "Васаби купить оптом для ресторанов, кафе и баров - Tamaki",
+     "url": "https://tamaki.ru/catalog/wasabi/"
+    },
+    {
+     "title": "Соусы для суши и роллов оптом — Купить соевый соус, васаби и имбирь от производителя",
+     "url": "https://ppsous.ru/dlya-sushi"
+    },
+    {
+     "title": "Соусы, соевый, чили, ореховый с доставкой на дом в Екатеринбурге",
+     "url": "https://sushitochka.ru/sousyi"
+    },
+    {
+     "title": "Соусы и приправы оптом и в розницу в Екатеринбурге - Дикое Качество",
+     "url": "https://dikoekachestvo.ru/catalog/sousy_i_pripravy/"
+    },
+    {
+     "title": "Оптом японские продукты для суши прайс-лист и цены",
+     "url": "https://sushimag.ru/price/"
+    },
+    {
+     "title": "Соусы",
+     "url": "https://ohotka66.ru/catalog/sousy_spetsii_garniry/sauces/"
+    },
+    {
+     "title": "Все для суши оптом",
+     "url": "https://www.resfood.ru/blog/produkty_dlya_sushi_optom/"
+    }
+   ]
+  },
+  {
+   "query": "продукты для суши и паназиатской кухни оптом Екатеринбург для ресторанов склад",
+   "category": "grocery",
+   "subcategory": null,
+   "results": [
+    {
+     "title": "Купить ингредиенты для суши и роллов с доставкой на дом",
+     "url": "https://www.delikateska.ru/catalog/produkti-dlya-sushi-i-rollov"
+    },
+    {
+     "title": "Продукция для японской кухни",
+     "url": "https://swlife.ru/produkciya-dlya-yaponskoy-kuhni"
+    },
+    {
+     "title": "Продукты для Азиатской кухни купить оптом с доставкой от поставщика Horeca",
+     "url": "https://gfc-russia.ru/catalog/produktsiya-dlya-panaziatskoy-kukhni"
+    },
+    {
+     "title": "Соусы для азиатской кухни купить оптом — паназиатские соусы по низкой цене от поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/produktsiya-dlya-panaziatskoy-kukhni/sousa-pasty-pripravy/criterii-panaziatskie-sousy"
+    },
+    {
+     "title": "Соевый соус купить оптом для кафе и ресторанов с доставкой поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/produktsiya-dlya-panaziatskoy-kukhni/imbir-vassabi-soevyj-sous/criterii-soevyj-sous"
+    },
+    {
+     "title": "Продукты для паназиатской кухни оптом - Tamaki",
+     "url": "https://tamaki.ru/"
+    },
+    {
+     "title": "Продукты для паназиатской и японской кухни оптом от компании Izumifood",
+     "url": "https://izumifood.ru/"
+    },
+    {
+     "title": "Продукты для японской кухни оптом - поставщик ТД Гурман",
+     "url": "https://gurman-llc.ru/catalog/produkty_dlya_yaponskoy_kukhni/"
+    },
+    {
+     "title": "Все для суши оптом",
+     "url": "https://www.resfood.ru/blog/produkty_dlya_sushi_optom/"
+    }
+   ]
+  },
+  {
+   "query": "оптовая база азиатских продуктов Екатеринбург соевый соус нори рис",
+   "category": "grocery",
+   "subcategory": null,
+   "results": [
+    {
+     "title": "Продукты для Азиатской кухни купить оптом с доставкой от поставщика Horeca",
+     "url": "https://gfc-russia.ru/catalog/produktsiya-dlya-panaziatskoy-kukhni"
+    },
+    {
+     "title": "Каталог продукции",
+     "url": "https://www.sostra.ru/catalog/"
+    },
+    {
+     "title": "Продукты для паназиатской кухни оптом - Tamaki",
+     "url": "https://tamaki.ru/"
+    },
+    {
+     "title": "Соусы / Уксусы HORECA купить оптом для ресторанов, кафе и баров - Tamaki",
+     "url": "https://www.tamaki.ru/catalog/sauce/"
+    },
+    {
+     "title": "Соусы для паназиатской кухни",
+     "url": "https://nevafood.ru/catalog/panaziia"
+    },
+    {
+     "title": "Купить продукты и ингредиенты для азиатской кухни оптом в \"Шеф Арсенал\"",
+     "url": "https://shefarsenal.ru/aziatskaya-kuhnya"
+    },
+    {
+     "title": "Соусы и приправы оптом из Азии от поставщика ETC Trade",
+     "url": "https://www.etctrade.ru/collection/sousy-i-pripravy"
+    },
+    {
+     "title": "Продукты для японской кухни оптом - поставщик ТД Гурман",
+     "url": "https://gurman-llc.ru/catalog/produkty_dlya_yaponskoy_kukhni/"
+    },
+    {
+     "title": "Продукты Азии \"김\" — Делаем Азию ближе",
+     "url": "https://kimpro-asia.ru/"
+    }
+   ]
+  },
+  {
+   "query": "поставщик продуктов для суши-баров Екатеринбург оптом доставка по городу",
+   "category": "grocery",
+   "subcategory": null,
+   "results": [
+    {
+     "title": "Продукты для ресторанов и кафе - поставщик продуктов питания HoReCa \"Свит Лайф\"",
+     "url": "https://swlife.ru/"
+    },
+    {
+     "title": "Продукты для японской кухни оптом от компании «Абрикос» — соусы, рис, нори",
+     "url": "https://www.abri-kos.ru/services/produkty-dlya-yaponskoy-kukhni/"
+    },
+    {
+     "title": "Продукты для ресторанов и кафе - поставщик продуктов питания Глобал фудс",
+     "url": "https://www.globalfoods.ru/"
+    },
+    {
+     "title": "Поставщики для суши баров в России",
+     "url": "https://yopt.org/postavshiki/region/rossiya/sphera/dlya-sushi-barov"
+    },
+    {
+     "title": "Посуда оптом для кафе, ресторанов, общепита и дома в Екатеринбург в Комплекс-Бар",
+     "url": "https://ekb.complexbar.ru/"
+    },
+    {
+     "title": "Закуп! Оптом продукты для ресторана, суши бара, пиццерии и фаст фуда.",
+     "url": "https://sushiproduct.com/"
+    },
+    {
+     "title": "Продукты для суши и роллов купить от поставщика японских продуктов",
+     "url": "https://yakimal.com/produkty-dlya-sushi/"
+    },
+    {
+     "title": "Продукты для суши (роллов) оптом. Доставка по всей России",
+     "url": "https://sushi-lover.ru/shop/wholesale/"
+    },
+    {
+     "title": "Каталог продуктов - Sushi lover",
+     "url": "https://sushi-biz.ru/opt/katalog-produktov/"
+    }
+   ]
+  },
+  {
+   "query": "сыр оптом Екатеринбург склад для ресторанов и кафе",
+   "category": "dairy",
+   "subcategory": null,
+   "results": [
+    {
+     "title": "Сыр оптом в Екатеринбурге на карте: ☎ телефоны, ★ отзывы — 2ГИС",
+     "url": "https://2gis.ru/ekaterinburg/search/%D0%A1%D1%8B%D1%80%20%D0%BE%D0%BF%D1%82%D0%BE%D0%BC"
+    },
+    {
+     "title": "Сыры оптом в Екатеринбурге на карте: ☎ телефоны, ★ отзывы — 2ГИС",
+     "url": "https://2gis.ru/ekaterinburg/search/%D0%A1%D1%8B%D1%80%D1%8B%20%D0%BE%D0%BF%D1%82%D0%BE%D0%BC"
+    },
+    {
+     "title": "Снабжение ресторанов продуктами оптом в Екатеринбурге",
+     "url": "https://optlist.ru/wholesales/snabzhenie-restoranov-produktami/ekaterinburg--1486209"
+    },
+    {
+     "title": "Сыры купить оптом для кафе и ресторанов по низкой цене с доставкой от поставщика",
+     "url": "https://gfc-russia.ru/catalog/moloko-syr-yaytsa/syr"
+    },
+    {
+     "title": "Сыры оптом купить в Екатеринбурге",
+     "url": "https://milco.group/syr-optom-ekaterinburg"
+    },
+    {
+     "title": "Сыр оптом в Екатеринбурге - любые поставки - ООО \"Наш Союз\"",
+     "url": "https://nash-souz.ru/catalog/syry/"
+    },
+    {
+     "title": "Сыр оптом — купить в Экор",
+     "url": "https://ekorfish.com/catalog/maslo-i-molochnaya-produktsiya/syr/"
+    },
+    {
+     "title": "Сыр оптом Екатеринбург",
+     "url": "http://www.xn----8sbnemkkekhm.xn--p1ai/%D0%BF%D0%BE%D1%81%D1%82%D0%B0%D0%B2%D0%BA%D0%B0-%D1%81%D1%8B%D1%80%D0%B0-%D0%BE%D1%82-%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D0%B8%D1%82%D0%B5%D0%BB%D1%8F/%D1%81%D1%8B%D1%80-%D0%BE%D0%BF%D1%82%D0%BE%D0%BC-%D0%B5%D0%BA%D0%B0%D1%82%D0%B5%D1%80%D0%B8%D0%BD%D0%B1%D1%83%D1%80%D0%B3/"
+    },
+    {
+     "title": "Сыры в Екатеринбурге - сравнить цены и купить",
+     "url": "https://ekaterinburg.regtorg.ru/goods/syry/"
+    }
+   ]
+  },
+  {
+   "query": "молочная продукция оптом для HoReCa Екатеринбург доставка сливки сыр моцарелла",
+   "category": "dairy",
+   "subcategory": "mozzarella",
+   "results": [
+    {
+     "title": "Молокосодержащий продукт «Моцарелла» от производителя Производитель сыра ТМ «Моцарулли» для HoReCa",
+     "url": "https://productcenter.ru/products/108584/motsariella-molokosodierzhashchii-produkt"
+    },
+    {
+     "title": "Оптом молочная продукция в Екатеринбурге купить от поставщиков и производителей",
+     "url": "https://optlist.ru/wholesales/molochnaia-produktsiia/ekaterinburg--1486209"
+    },
+    {
+     "title": "Молочная продукция в Екатеринбурге купить от поставщиков",
+     "url": "https://optlist.ru/suppliers/molochnaia-produktsiia/ekaterinburg--1486209"
+    },
+    {
+     "title": "Молочная гастрономия",
+     "url": "https://swlife.ru/molochnaya-gastronomiya"
+    },
+    {
+     "title": "Молоко, сыр, яйца купить оптом по низкой цене с доставкой от поставщика HoReCa",
+     "url": "https://gfc-russia.ru/catalog/moloko-syr-yaytsa"
+    },
+    {
+     "title": "Молочные продукты оптом по цене от производителя в Екатеринбурге и Свердловской области",
+     "url": "https://milknet.biz/ekaterinburg/trade/milk"
+    },
+    {
+     "title": "Молочные продукты оптом купить в Екатеринбурге",
+     "url": "https://milco.group/molochnye-produkty-optom-ekaterinburg"
+    },
+    {
+     "title": "Молоко оптом в Екатеринбурге — поставщики и производители",
+     "url": "https://foodsuppliers.ru/companies/moloko-ekaterinburg"
+    },
+    {
+     "title": "Молочная продукция (молоко, сливки, сыр) для сегмента HoReCa оптом - официальный поставщик «Мос-Милк»",
+     "url": "https://mos-milk.ru/catalog/horeca"
+    }
+   ]
+  },
+  {
+   "query": "сыроварня моцарелла оптом Свердловская область производитель для пиццерий",
+   "category": "dairy",
+   "subcategory": "mozzarella",
+   "results": [
+    {
+     "title": "Сыр моцарелла: купить оптом по самым низким ценам",
+     "url": "https://napolke.ru/collection/syr_mocarella"
+    },
+    {
+     "title": "Купить сыр моцарелла - лучшая цена за кг оптом и розницу",
+     "url": "https://www.abri-kos.ru/store/molochnie/siri/motsarella/"
+    },
+    {
+     "title": "Сыры :: Моцарелла :: Сыр Моцарелла Савушкин \"Для пиццы\" ЗМЖ жир. 40% брус от 2.5 кг",
+     "url": "https://xn--80aiadwg4b8e.xn--p1ai/kupit-moloko-syr-optom/mocarella/syr-mocarella-savushkin-dlya-piccy-zmzh-zhir-40-brus-ot-2-5-kg/"
+    },
+    {
+     "title": "Сыры для пиццы - купить оптом для ресторанов, кафе, баров",
+     "url": "https://marr.ru/catalog/assortiment-dlya-pitstsy/syry-dlya-pitstsy/"
+    },
+    {
+     "title": "Моцарелла для пиццы оптом от производителя Ясногорские Сыры",
+     "url": "https://yaprod.ru/product/moczarella-dlya-piczczy/"
+    },
+    {
+     "title": "Сыр Моцарелла оптом для пиццерий, ресторанов, кафе и баров - поставщик ТД Гурман",
+     "url": "https://gurman-llc.ru/catalog/syry/filter/cheese_type-is-mocarella/apply/"
+    },
+    {
+     "title": "Сыр Моцарелла - купить оптом в Москве по ценам производителя",
+     "url": "https://mos-milk.ru/catalog/motsarella"
+    },
+    {
+     "title": "Сыр моцарелла купить оптом - от производителя по низкой цене ММЗ",
+     "url": "https://oaommz.ru/products/mozzarella/"
+    },
+    {
+     "title": "Сыр Моцарелла для пиццы 40% «Сыры Кубани» 2 кг — идеальный выбор для вашего бизнеса!",
+     "url": "https://opttorg-horeca.ru/katalog/bakaleya/syry/syr-mocarella-dlya-piccy-40-tmsyry-kubani-12kg3sht.html"
+    }
+   ]
+  }
+ ],
+ "probe": {
+  "note": "17 поставщиков из пробы полноты T-510, 10.10.2026: тот же веб-поиск, 20 запросов в режиме extended; сайты открыты и разобраны вручную.",
+  "date": "2026-10-10",
+  "results": [
+   {
+    "title": "U2B «Упаковка для бизнеса»",
+    "url": "https://ekburg.u2b.ru/",
+    "category": "packaging"
+   },
+   {
+    "title": "FoodFace",
+    "url": "https://foodface.ru/",
+    "category": "packaging"
+   },
+   {
+    "title": "«Расходные материалы»",
+    "url": "https://rm-pack.ru/",
+    "category": "packaging"
+   },
+   {
+    "title": "ПО «Картон»",
+    "url": "https://po-karton.com/",
+    "category": "packaging"
+   },
+   {
+    "title": "Триал Маркет, Екатеринбург",
+    "url": "https://ekaterinburg.trial-market.ru/",
+    "category": "packaging"
+   },
+   {
+    "title": "Атлант Фиш",
+    "url": "https://atlant-group.info/",
+    "category": "fish"
+   },
+   {
+    "title": "Prod66",
+    "url": "https://prod66.ru/",
+    "category": "fish"
+   },
+   {
+    "title": "Гросс Фуд, Екатеринбург",
+    "url": "https://ekat.grossfood.ru/",
+    "category": "fish"
+   },
+   {
+    "title": "Лавка «Живая рыба»",
+    "url": "https://xn--96-6kcaee1aq8eufub.xn--p1ai/",
+    "category": "fish"
+   },
+   {
+    "title": "«Дикое Качество»",
+    "url": "https://dikoekachestvo.ru/",
+    "category": "fish"
+   },
+   {
+    "title": "«Наш Союз»",
+    "url": "https://nash-souz.ru/",
+    "category": "dairy"
+   },
+   {
+    "title": "МАРР Руссия",
+    "url": "https://marr.ru/",
+    "category": "dairy"
+   },
+   {
+    "title": "ТД «ПродСервис»",
+    "url": "https://prodservice.shop/",
+    "category": "dairy"
+   },
+   {
+    "title": "Урал-Италика",
+    "url": "https://italika-ural.ru/",
+    "category": "dairy"
+   },
+   {
+    "title": "Милко (Milco Group)",
+    "url": "https://milco.group/syr-optom-ekaterinburg",
+    "category": "dairy"
+   },
+   {
+    "title": "ТК «ДИП»",
+    "url": "https://tkdip.ru/",
+    "category": "grocery"
+   },
+   {
+    "title": "ResFood",
+    "url": "https://www.resfood.ru/",
+    "category": "grocery"
+   }
+  ]
+ }
+}

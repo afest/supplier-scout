@@ -1,0 +1,371 @@
+{
+ "id": "aydigo",
+ "name": "Айдиго",
+ "demo": false,
+ "category": "grocery",
+ "subcategories": [
+  "rice",
+  "nori",
+  "sauces"
+ ],
+ "city": "Екатеринбург",
+ "legal_name": {
+  "value": "ООО \"ПРЯНОСТИ ОНЛАЙН\"",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "inn": {
+  "value": "6678050810",
+  "status": "claimed",
+  "sources": [
+   "site-p9"
+  ],
+  "quote": "email: shop@aidigo.ru Директор Малышева Ольга Александровна ИНН 6678050810 КПП",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "products": {
+  "value": [
+   "Соус Песто",
+   "Соусы для макарон и пиццы",
+   "Соусы для мяса и барбекю"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "address": {
+  "value": "623704, СВЕРДЛОВСКАЯ ОБЛАСТЬ, Г БЕРЕЗОВСКИЙ, УЛ РЕЖЕВСКОЙ ТРАКТ 15 КМ, СТР. 4 (юридический адрес)",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "presence": {
+  "value": "unknown",
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 9 стр. — главная, dostavka, catalog/pryanosti_dlya_profi, catalog/produkty_i_syre_dlya_h, help/5848/185087, catalog/podarochnye_sertifikat"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "regions_served": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 9 стр. — главная, dostavka, catalog/pryanosti_dlya_profi, catalog/produkty_i_syre_dlya_h, help/5848/185087, catalog/podarochnye_sertifikat"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "phones": {
+  "value": [
+   "+7(343)247-85-32"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "emails": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 9 стр. — главная, dostavka, catalog/pryanosti_dlya_profi, catalog/produkty_i_syre_dlya_h, help/5848/185087, catalog/podarochnye_sertifikat"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "messengers": {
+  "value": [
+   "WhatsApp"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "website": {
+  "value": "https://opt.aidigo-shop.ru",
+  "status": "claimed",
+  "sources": [
+   "user"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "map_link": "https://2gis.ru/ekaterinburg/search/%D0%90%D0%B9%D0%B4%D0%B8%D0%B3%D0%BE",
+ "works_with_horeca": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 9 стр. — главная, dostavka, catalog/pryanosti_dlya_profi, catalog/produkty_i_syre_dlya_h, help/5848/185087, catalog/podarochnye_sertifikat"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "min_order": {
+  "value": {
+   "amount": 12000.0,
+   "unit": "RUB",
+   "text": "~12 000 ₽"
+  },
+  "status": "estimated",
+  "sources": [
+   "market"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": "медиана минимального заказа у 4 поставщиков категории, которые его публикуют: 2 500 ₽, 4 000 ₽, 20 000 ₽, 20 000 ₽; собрано 2026-10-13",
+  "collected_at": "2026-10-13"
+ },
+ "prices": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 9 стр. — главная, dostavka, catalog/pryanosti_dlya_profi, catalog/produkty_i_syre_dlya_h, help/5848/185087, catalog/podarochnye_sertifikat"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "delivery": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 9 стр. — главная, dostavka, catalog/pryanosti_dlya_profi, catalog/produkty_i_syre_dlya_h, help/5848/185087, catalog/podarochnye_sertifikat"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "payment_terms": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 9 стр. — главная, dostavka, catalog/pryanosti_dlya_profi, catalog/produkty_i_syre_dlya_h, help/5848/185087, catalog/podarochnye_sertifikat"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "documents": {
+  "declarations": {
+   "value": null,
+   "status": "not_found",
+   "sources": [],
+   "quote": null,
+   "searched_in": [
+    "реестр деклараций Росаккредитации по ИНН 6678050810"
+   ],
+   "basis": null,
+   "collected_at": "2026-10-13"
+  },
+  "marking": null,
+  "site_mentions": {
+   "value": null,
+   "status": "not_found",
+   "sources": [],
+   "quote": null,
+   "searched_in": [
+    "сайт: 9 стр. — главная, dostavka, catalog/pryanosti_dlya_profi, catalog/produkty_i_syre_dlya_h, help/5848/185087, catalog/podarochnye_sertifikat"
+   ],
+   "basis": null,
+   "collected_at": "2026-10-13"
+  }
+ },
+ "company": {
+  "value": {
+   "form": "ООО",
+   "status": "active",
+   "registered_at": "2014-11-21",
+   "okved_main": "46.37",
+   "okved_title": "Торговля оптовая кофе, чаем, какао и пряностями",
+   "okved_match": true,
+   "revenue": [
+    {
+     "year": 2023,
+     "mln": 14
+    },
+    {
+     "year": 2024,
+     "mln": 15
+    },
+    {
+     "year": 2025,
+     "mln": 15
+    }
+   ],
+   "staff": 2,
+   "flags": [
+    "массовый адрес"
+   ]
+  },
+  "status": "found",
+  "sources": [
+   "pb",
+   "fedresurs"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "tax_regime": {
+  "value": "usn",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "not_supplier": null,
+ "meta": {
+  "collected_at": "2026-10-13",
+  "pipeline_version": "pipeline-0.1",
+  "sources": [
+   {
+    "id": "site-p1",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/",
+    "title": "Сайт: Магазин специй и приправ в Екатеринбурге. Купить специи с доставкой по…",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p2",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/dostavka/",
+    "title": "Сайт: Заказать товары с доставкой в интернет-магазине Айдиго",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p3",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/catalog/pryanosti_dlya_profi/",
+    "title": "Сайт: Пряности и специи купить в больших банках в интернет-магазине Айдиго",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p4",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/catalog/produkty_i_syre_dlya_horeca/",
+    "title": "Сайт: Продукты и сырье для Хорека (HoReCa) купить в интернет-магазине \"Айдиг…",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p5",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/help/5848/185087/",
+    "title": "Сайт: Как я могу оплатить свой заказ?",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p6",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/catalog/podarochnye_sertifikaty_v_internet_magazin/",
+    "title": "Сайт: Купить подарочный сертификат в магазин специй и приправ",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p7",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/pyblichnaya-oferta/",
+    "title": "Сайт: Публичная оферта",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p8",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/obrabotka-personalnykh-dannykh/",
+    "title": "Сайт: Обработка персональных данных",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p9",
+    "kind": "site",
+    "url": "https://opt.aidigo-shop.ru/about/",
+    "title": "Сайт: О магазине",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "pb",
+    "kind": "registry",
+    "url": "https://pb.nalog.ru/search.html#mode=search-all&queryAll=6678050810",
+    "title": "ФНС «Прозрачный бизнес»: карточка по ИНН",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "fsa",
+    "kind": "registry",
+    "url": "https://pub.fsa.gov.ru/rds/declaration",
+    "title": "Росаккредитация: реестр деклараций по ИНН заявителя",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "fedresurs",
+    "kind": "registry",
+    "url": "https://fedresurs.ru/search/entity?code=6678050810",
+    "title": "Федресурс: сведения о банкротстве",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "user",
+    "kind": "user",
+    "url": "#/add",
+    "title": "Адрес сайта задан при запуске",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "market",
+    "kind": "market",
+    "url": "#/about",
+    "title": "Ориентир по рынку: открытые данные других поставщиков категории",
+    "fetched_at": "2026-10-13"
+   }
+  ],
+  "not_collected_reason": null,
+  "pages": 9
+ },
+ "live_only": "site"
+}

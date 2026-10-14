@@ -1,0 +1,413 @@
+{
+ "id": "fopos",
+ "name": "ФОПОС",
+ "demo": false,
+ "category": "packaging",
+ "subcategories": [
+  "containers"
+ ],
+ "city": "Екатеринбург",
+ "legal_name": {
+  "value": "ООО \" ФОПОС \"",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "inn": {
+  "value": "5407260940",
+  "status": "claimed",
+  "sources": [
+   "site-p5"
+  ],
+  "quote": "(ИНН 5407260940, адрес: 630124, Новосибирская обл., г. Новосибирск",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "products": {
+  "value": [
+   "Контейнеры серии f-PKC",
+   "Одноразовые лотки",
+   "Одноразовые стаканы",
+   "Одноразовые тарелки"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "address": {
+  "value": "630124, НОВОСИБИРСКАЯ ОБЛАСТЬ, Г. НОВОСИБИРСК, УЛ. ЛИПЕЦКАЯ, Д. 25/3 (юридический адрес)",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "presence": {
+  "value": "delivery_only",
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": "в более чем 215 городах России и СНГ",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "regions_served": {
+  "value": [
+   "вся Россия",
+   "страны СНГ"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": "в более чем 215 городах России и СНГ",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "phones": {
+  "value": [
+   "+7 (383) 2-616-616",
+   "+7 (383) 261-66-22",
+   "+7 913 473 0210"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p3"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "emails": {
+  "value": [
+   "fopos@mail.ru"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p3"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "messengers": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 5 стр. — главная, o-kompanii, kontakty, sertifikaty, docs/%D0%9F%D0%9A_fopos_su.pdf"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "website": {
+  "value": "https://fopos.su",
+  "status": "claimed",
+  "sources": [
+   "user"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "map_link": "https://2gis.ru/ekaterinburg/search/%D0%A4%D0%9E%D0%9F%D0%9E%D0%A1",
+ "works_with_horeca": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 5 стр. — главная, o-kompanii, kontakty, sertifikaty, docs/%D0%9F%D0%9A_fopos_su.pdf"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "min_order": {
+  "value": {
+   "amount": 6800.0,
+   "unit": "RUB",
+   "text": "~6 750 ₽"
+  },
+  "status": "estimated",
+  "sources": [
+   "market"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": "медиана минимального заказа у 4 поставщиков категории, которые его публикуют: 1 000 ₽, 3 500 ₽, 10 000 ₽, 70 000 ₽; собрано 2026-10-13",
+  "collected_at": "2026-10-13"
+ },
+ "prices": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 5 стр. — главная, o-kompanii, kontakty, sertifikaty, docs/%D0%9F%D0%9A_fopos_su.pdf"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "delivery": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 5 стр. — главная, o-kompanii, kontakty, sertifikaty, docs/%D0%9F%D0%9A_fopos_su.pdf"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "payment_terms": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 5 стр. — главная, o-kompanii, kontakty, sertifikaty, docs/%D0%9F%D0%9A_fopos_su.pdf"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "documents": {
+  "declarations": {
+   "value": [
+    {
+     "number": "ЕАЭС N RU Д-RU.РА09.В.04166/25",
+     "status": "действует",
+     "product": "Упаковка полимерная одноразового применения для пищевой продукции: банки, контейнеры с крышками различной вместимости, круглые, квадратные, прямоугольные, овальные, в том числе типа “универсал”, “креманки”, “соусницы”, “Суши”, лотки, окрашенные и неокрашенные, ",
+     "valid_to": "2028-10-09",
+     "url": "https://pub.fsa.gov.ru/rds/declaration/view/20697102/common"
+    },
+    {
+     "number": "РОСС RU Д-RU.РА01.В.34358/25",
+     "status": "действует",
+     "product": "Посуда и столовые приборы одноразового применения из пластмасс, в наборах или отдельными предметами: чашки кофейные, стопки, стаканы и тарелки различной вместимости, окрашенные и неокрашенные, соломка (трубочки) для коктейля, размешиватели, вилки, ложки, ножи, ",
+     "valid_to": "2028-10-09",
+     "url": "https://pub.fsa.gov.ru/rds/declaration/view/20697107/common"
+    },
+    {
+     "number": "РОСС RU Д-RU.РА01.В.26301/25",
+     "status": "действует",
+     "product": "Столовые приборы из пластмасс биоразлагаемые:",
+     "valid_to": "2028-08-17",
+     "url": "https://pub.fsa.gov.ru/rds/declaration/view/20469887/common"
+    },
+    {
+     "number": "РОСС RU Д-RU.РА01.В.26298/25",
+     "status": "действует",
+     "product": "Посуда из пластмасс одноразового применения биоразлагаемая с товарным знаком «FOPOS»: ",
+     "valid_to": "2028-08-17",
+     "url": "https://pub.fsa.gov.ru/rds/declaration/view/20469868/common"
+    },
+    {
+     "number": "РОСС RU Д-RU.РА01.В.40567/24",
+     "status": "действует",
+     "product": "Посуда и столовые приборы одноразового применения из пластмасс для взрослых, в наборах и отдельными предметами, окрашенные и неокрашенные, ",
+     "valid_to": "2027-10-06",
+     "url": "https://pub.fsa.gov.ru/rds/declaration/view/19454726/common"
+    },
+    {
+     "number": "ЕАЭС N RU Д-RU.РА08.В.09295/22",
+     "status": "прекращена",
+     "product": "Упаковка полимерная одноразового применения для пищевой продукции : банки, контейнеры с крышками различной вместимости, круглые, квадратные, прямоугольные, овальные, в том числе типа “универсал”, “креманки”, “соусницы”, “Суши”, лотки, окрашенные и неокрашенные, торговая марка “FOPOS”, выпускаемая по",
+     "valid_to": "2025-11-09",
+     "url": "https://pub.fsa.gov.ru/rds/declaration/view/17190487/common"
+    },
+    {
+     "number": "РОСС RU Д-RU.РА01.В.37988/22",
+     "status": "прекращена",
+     "product": "Посуда и столовые приборы одноразового применения из пластмасс, в наборах или отдельными предметами: чашки кофейные, стопки, стаканы и тарелки различной вместимости, окрашенные и неокрашенные, соломка (трубочки) для коктейля, размешиватели, вилки, ложки, ножи, торговая марка “FOPOS\". Продукция изгот",
+     "valid_to": "2025-10-20",
+     "url": "https://pub.fsa.gov.ru/rds/declaration/view/17135518/common"
+    },
+    {
+     "number": "РОСС RU Д-RU.РА01.В.37987/22",
+     "status": "прекращена",
+     "product": "Посуда и столовые приборы одноразового применения из пластмасс, в наборах или отдельными предметами: чашки кофейные, стопки, стаканы и тарелки различной вместимости, окрашенные и неокрашенные, соломка (трубочки) для коктейля, размешиватели, вилки, ложки, ножи, торговая марка “FOPOS\". Продукция изгот",
+     "valid_to": "2025-10-20",
+     "url": "https://pub.fsa.gov.ru/rds/declaration/view/17135515/common"
+    }
+   ],
+   "status": "found",
+   "sources": [
+    "fsa"
+   ],
+   "quote": null,
+   "searched_in": null,
+   "basis": null,
+   "collected_at": "2026-10-13"
+  },
+  "marking": null,
+  "site_mentions": {
+   "value": "Сертификаты соответствия и гигиенические сертификаты на все производимые изделия",
+   "status": "claimed",
+   "sources": [
+    "site-p2"
+   ],
+   "quote": "Все производимые изделия имеют сертификаты соответствия, гигиенические сертификаты.",
+   "searched_in": null,
+   "basis": null,
+   "collected_at": "2026-10-13"
+  }
+ },
+ "company": {
+  "value": {
+   "form": "ООО",
+   "status": "active",
+   "registered_at": "2003-12-30",
+   "okved_main": "22.29.2",
+   "okved_title": "Производство прочих изделий из пластмасс, не включенных в другие группировки, кроме устройств пломбировочных из пластика",
+   "okved_match": true,
+   "revenue": [
+    {
+     "year": 2023,
+     "mln": 408
+    },
+    {
+     "year": 2024,
+     "mln": 474
+    },
+    {
+     "year": 2025,
+     "mln": 480
+    }
+   ],
+   "staff": 75,
+   "flags": []
+  },
+  "status": "found",
+  "sources": [
+   "pb",
+   "fedresurs"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "tax_regime": {
+  "value": "general",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "not_supplier": null,
+ "meta": {
+  "collected_at": "2026-10-13",
+  "pipeline_version": "pipeline-0.1",
+  "sources": [
+   {
+    "id": "site-p1",
+    "kind": "site",
+    "url": "https://fopos.su/",
+    "title": "Сайт: https://fopos.su/",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p2",
+    "kind": "site",
+    "url": "https://fopos.su/o-kompanii",
+    "title": "Сайт: https://fopos.su/o-kompanii",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p3",
+    "kind": "site",
+    "url": "https://fopos.su/kontakty",
+    "title": "Сайт: https://fopos.su/kontakty",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p4",
+    "kind": "site",
+    "url": "https://fopos.su/sertifikaty",
+    "title": "Сайт: https://fopos.su/sertifikaty",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p5",
+    "kind": "site",
+    "url": "https://fopos.su/docs/%D0%9F%D0%9A_fopos_su.pdf",
+    "title": "Сайт: https://fopos.su/docs/%D0%9F%D0%9A_fopos_su.pdf",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "pb",
+    "kind": "registry",
+    "url": "https://pb.nalog.ru/search.html#mode=search-all&queryAll=5407260940",
+    "title": "ФНС «Прозрачный бизнес»: карточка по ИНН",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "fsa",
+    "kind": "registry",
+    "url": "https://pub.fsa.gov.ru/rds/declaration",
+    "title": "Росаккредитация: реестр деклараций по ИНН заявителя",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "fedresurs",
+    "kind": "registry",
+    "url": "https://fedresurs.ru/search/entity?code=5407260940",
+    "title": "Федресурс: сведения о банкротстве",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "user",
+    "kind": "user",
+    "url": "#/add",
+    "title": "Адрес сайта задан при запуске",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "market",
+    "kind": "market",
+    "url": "#/about",
+    "title": "Ориентир по рынку: открытые данные других поставщиков категории",
+    "fetched_at": "2026-10-13"
+   }
+  ],
+  "not_collected_reason": null,
+  "pages": 5
+ },
+ "price_estimate": {
+  "value": "коробка для пиццы — ~19–26,1 ₽/шт",
+  "status": "estimated",
+  "sources": [
+   "market"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": "открытые цены поставщиков категории на их сайтах: коробка для пиццы: 5 цен у 4 поставщиков (Pack24, МИСТЕРИЯ, Тара для товара, Юни-Пак); собрано 2026-10-13",
+  "collected_at": "2026-10-13"
+ },
+ "live_only": "site"
+}

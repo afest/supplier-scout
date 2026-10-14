@@ -1,0 +1,298 @@
+{
+ "id": "ooo-pryanosti-onlayn",
+ "name": "ООО \"ПРЯНОСТИ ОНЛАЙН\"",
+ "demo": false,
+ "category": "grocery",
+ "subcategories": [
+  "rice"
+ ],
+ "city": "Екатеринбург",
+ "legal_name": {
+  "value": "ООО \"ПРЯНОСТИ ОНЛАЙН\"",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "inn": {
+  "value": "6678050810",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "products": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "address": {
+  "value": "623704, СВЕРДЛОВСКАЯ ОБЛАСТЬ, Г БЕРЕЗОВСКИЙ, УЛ РЕЖЕВСКОЙ ТРАКТ 15 КМ, СТР. 4 (юридический адрес)",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "presence": {
+  "value": "unknown",
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "regions_served": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "phones": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "emails": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "messengers": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "website": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "map_link": "https://2gis.ru/ekaterinburg/search/%D0%9E%D0%9E%D0%9E%20%22%D0%9F%D0%A0%D0%AF%D0%9D%D0%9E%D0%A1%D0%A2%D0%98%20%D0%9E%D0%9D%D0%9B%D0%90%D0%99%D0%9D%22",
+ "works_with_horeca": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "min_order": {
+  "value": {
+   "amount": 12000.0,
+   "unit": "RUB",
+   "text": "~12 000 ₽"
+  },
+  "status": "estimated",
+  "sources": [
+   "market"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": "медиана минимального заказа у 4 поставщиков категории, которые его публикуют: 2 500 ₽, 4 000 ₽, 20 000 ₽, 20 000 ₽; собрано 2026-10-13",
+  "collected_at": "2026-10-13"
+ },
+ "prices": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "delivery": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "payment_terms": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "documents": {
+  "declarations": {
+   "value": null,
+   "status": "not_found",
+   "sources": [],
+   "quote": null,
+   "searched_in": [
+    "реестр деклараций Росаккредитации по ИНН 6678050810"
+   ],
+   "basis": null,
+   "collected_at": "2026-10-13"
+  },
+  "marking": null,
+  "site_mentions": {
+   "value": null,
+   "status": "not_found",
+   "sources": [],
+   "quote": null,
+   "searched_in": [
+    "сайт по ИНН не найден: автоматический поиск сайта по названию недоступен"
+   ],
+   "basis": null,
+   "collected_at": "2026-10-13"
+  }
+ },
+ "company": {
+  "value": {
+   "form": "ООО",
+   "status": "active",
+   "registered_at": "2014-11-21",
+   "okved_main": "46.37",
+   "okved_title": "Торговля оптовая кофе, чаем, какао и пряностями",
+   "okved_match": true,
+   "revenue": [
+    {
+     "year": 2023,
+     "mln": 14
+    },
+    {
+     "year": 2024,
+     "mln": 15
+    },
+    {
+     "year": 2025,
+     "mln": 15
+    }
+   ],
+   "staff": 2,
+   "flags": [
+    "массовый адрес"
+   ]
+  },
+  "status": "found",
+  "sources": [
+   "pb",
+   "fedresurs"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "tax_regime": {
+  "value": "usn",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "not_supplier": null,
+ "meta": {
+  "collected_at": "2026-10-13",
+  "pipeline_version": "pipeline-0.1",
+  "sources": [
+   {
+    "id": "pb",
+    "kind": "registry",
+    "url": "https://pb.nalog.ru/search.html#mode=search-all&queryAll=6678050810",
+    "title": "ФНС «Прозрачный бизнес»: карточка по ИНН",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "fsa",
+    "kind": "registry",
+    "url": "https://pub.fsa.gov.ru/rds/declaration",
+    "title": "Росаккредитация: реестр деклараций по ИНН заявителя",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "fedresurs",
+    "kind": "registry",
+    "url": "https://fedresurs.ru/search/entity?code=6678050810",
+    "title": "Федресурс: сведения о банкротстве",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "user",
+    "kind": "user",
+    "url": "#/add",
+    "title": "ИНН задан при запуске",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "market",
+    "kind": "market",
+    "url": "#/about",
+    "title": "Ориентир по рынку: открытые данные других поставщиков категории",
+    "fetched_at": "2026-10-13"
+   }
+  ],
+  "not_collected_reason": null,
+  "pages": 0
+ },
+ "live_only": "inn"
+}

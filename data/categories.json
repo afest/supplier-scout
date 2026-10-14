@@ -1,0 +1,168 @@
+{
+  "city": {
+    "id": "ekb",
+    "name": "Екатеринбург",
+    "region": "Свердловская область"
+  },
+  "categories": [
+    {
+      "id": "packaging",
+      "name": "Упаковка для доставки",
+      "short": "Упаковка",
+      "illustration": "categories/packaging.webp",
+      "glyph": "box",
+      "docs_critical": false,
+      "marking_group": null,
+      "subcategories": [
+        {
+          "id": "containers",
+          "name": "Контейнеры для роллов и суши",
+          "keywords": [
+            "контейнер",
+            "ролл",
+            "суши-бокс",
+            "ланчбокс",
+            "поке",
+            "бокс",
+            "крышк"
+          ]
+        },
+        {
+          "id": "pizza-boxes",
+          "name": "Коробки для пиццы",
+          "keywords": [
+            "коробк",
+            "пицц",
+            "гофро"
+          ]
+        },
+        {
+          "id": "bags",
+          "name": "Пакеты и крафт",
+          "keywords": [
+            "пакет",
+            "крафт",
+            "сумк",
+            "бумажн"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fish",
+      "name": "Рыба и морепродукты",
+      "short": "Рыба",
+      "illustration": "categories/fish.webp",
+      "glyph": "fish",
+      "docs_critical": true,
+      "marking_group": "Морепродукты",
+      "subcategories": [
+        {
+          "id": "fish-sushi",
+          "name": "Охлаждённая и замороженная рыба для суши",
+          "keywords": [
+            "лосос",
+            "сёмг",
+            "семг",
+            "форел",
+            "тунец",
+            "тунц",
+            "угор",
+            "рыб",
+            "охлажд",
+            "филе"
+          ]
+        },
+        {
+          "id": "seafood",
+          "name": "Креветки и морепродукты",
+          "keywords": [
+            "кревет",
+            "мид",
+            "кальмар",
+            "осьминог",
+            "морепродукт",
+            "краб",
+            "гребешок",
+            "икр"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dairy",
+      "name": "Сыр и молочное для ресторанов",
+      "short": "Сыр",
+      "illustration": "categories/dairy.webp",
+      "glyph": "cheese",
+      "docs_critical": true,
+      "marking_group": "Молочная продукция",
+      "subcategories": [
+        {
+          "id": "mozzarella",
+          "name": "Моцарелла для пиццы",
+          "keywords": [
+            "моцарел",
+            "пицц",
+            "сыр для пиццы",
+            "тёрт",
+            "терт"
+          ]
+        },
+        {
+          "id": "cream-cheese",
+          "name": "Сливочный и творожный сыр для роллов",
+          "keywords": [
+            "сливочн",
+            "творожн",
+            "крем-чиз",
+            "кремчиз",
+            "филадельф",
+            "сыр",
+            "сливк",
+            "молок",
+            "молоч"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grocery",
+      "name": "Рис и азиатская бакалея",
+      "short": "Бакалея",
+      "illustration": "categories/grocery.webp",
+      "glyph": "rice",
+      "docs_critical": false,
+      "marking_group": null,
+      "subcategories": [
+        {
+          "id": "rice",
+          "name": "Рис для суши",
+          "keywords": [
+            "рис"
+          ]
+        },
+        {
+          "id": "nori",
+          "name": "Нори",
+          "keywords": [
+            "нори",
+            "водоросл"
+          ]
+        },
+        {
+          "id": "sauces",
+          "name": "Соусы и васаби",
+          "keywords": [
+            "соус",
+            "васаби",
+            "имбир",
+            "унаги",
+            "соев",
+            "кунжут"
+          ]
+        }
+      ]
+    }
+  ]
+}

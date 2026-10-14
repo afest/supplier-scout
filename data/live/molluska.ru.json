@@ -1,0 +1,376 @@
+{
+ "id": "mollyuska",
+ "name": "Моллюска",
+ "demo": false,
+ "category": "fish",
+ "subcategories": [
+  "fish-sushi",
+  "seafood"
+ ],
+ "city": "Екатеринбург",
+ "legal_name": {
+  "value": "ООО \"НА ВОЛНЕ\"",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "inn": {
+  "value": "6679179246",
+  "status": "claimed",
+  "sources": [
+   "site-p2"
+  ],
+  "quote": "ООО \"На Волне\" ИНН: 6679179246 ОГРН: 1246600050806",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "products": {
+  "value": [
+   "Устрицы живые",
+   "Камчатский краб",
+   "Королевские креветки",
+   "Мидии",
+   "Гребешок"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "address": {
+  "value": "Екатеринбург, Красноармейская ул., 92А — магазин",
+  "status": "claimed",
+  "sources": [
+   "site-p2"
+  ],
+  "quote": "Адрес: г. Екатеринбург, ул.Красноармейская, 92А",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "presence": {
+  "value": "warehouse",
+  "status": "claimed",
+  "sources": [
+   "site-p2"
+  ],
+  "quote": "Адрес: г. Екатеринбург, ул.Красноармейская, 92А",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "regions_served": {
+  "value": [
+   "Екатеринбург",
+   "Пермь",
+   "Челябинск",
+   "Тюмень",
+   "Урал"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": "Пермь, Челябинск, Тюмень — 1–2 раза в неделю",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "phones": {
+  "value": [
+   "+7 (912) 215-70-15",
+   "8 (912) 047-75-57"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p2"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "emails": {
+  "value": [
+   "navolne096@gmail.com"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p2"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "messengers": {
+  "value": [
+   "Telegram",
+   "MAX"
+  ],
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "website": {
+  "value": "https://molluska.ru",
+  "status": "claimed",
+  "sources": [
+   "user"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "map_link": "https://2gis.ru/ekaterinburg/search/%D0%9C%D0%BE%D0%BB%D0%BB%D1%8E%D1%81%D0%BA%D0%B0",
+ "works_with_horeca": {
+  "value": true,
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": "Работаем с частными покупателями, ресторанами, кафе, магазинами и другими предприятиями HoReCa",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "min_order": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 4 стр. — главная, kontakty, o-kompanii, policy"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "prices": {
+  "value": {
+   "mode": "on_request",
+   "pricelist_url": null,
+   "examples": []
+  },
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": "Условия и цены обсуждаются индивидуально в зависимости от объёма и ассортимента",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "delivery": {
+  "value": {
+   "to_door": true,
+   "free_from": null,
+   "cost": 350,
+   "lead_time": "в день заказа при оформлении до 17:30",
+   "pickup": false,
+   "zones": "Екатеринбург и область; за город по тарифам Яндекс Доставки",
+   "transport_company": false
+  },
+  "status": "claimed",
+  "sources": [
+   "site-p1"
+  ],
+  "quote": "Тариф по городу — от 350 ₽ (точная стоимость рассчитывается индивидуально по тарифам Яндекс Доставки)",
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "payment_terms": {
+  "value": null,
+  "status": "not_found",
+  "sources": [],
+  "quote": null,
+  "searched_in": [
+   "сайт: 4 стр. — главная, kontakty, o-kompanii, policy"
+  ],
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "documents": {
+  "declarations": {
+   "value": null,
+   "status": "not_found",
+   "sources": [],
+   "quote": null,
+   "searched_in": [
+    "реестр деклараций Росаккредитации по ИНН 6679179246"
+   ],
+   "basis": null,
+   "collected_at": "2026-10-13"
+  },
+  "marking": {
+   "value": [
+    "Морепродукты"
+   ],
+   "status": "found",
+   "sources": [
+    "crpt"
+   ],
+   "quote": null,
+   "searched_in": null,
+   "basis": null,
+   "collected_at": "2026-10-13"
+  },
+  "site_mentions": {
+   "value": "Каждая партия сопровождается необходимыми документами, включая ФГИС «Меркурий»",
+   "status": "claimed",
+   "sources": [
+    "site-p1"
+   ],
+   "quote": "сопровождается необходимыми документами, включая систему ФГИС «Меркурий»",
+   "searched_in": null,
+   "basis": null,
+   "collected_at": "2026-10-13"
+  }
+ },
+ "company": {
+  "value": {
+   "form": "ООО",
+   "status": "active",
+   "registered_at": "2024-10-28",
+   "okved_main": "46.38.1",
+   "okved_title": "Торговля оптовая рыбой, ракообразными и моллюсками, консервами и пресервами из рыбы и морепродуктов",
+   "okved_match": true,
+   "revenue": [
+    {
+     "year": 2025,
+     "mln": 41
+    }
+   ],
+   "staff": 2,
+   "flags": []
+  },
+  "status": "found",
+  "sources": [
+   "pb",
+   "fedresurs"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "tax_regime": {
+  "value": "usn",
+  "status": "found",
+  "sources": [
+   "pb"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": null,
+  "collected_at": "2026-10-13"
+ },
+ "not_supplier": null,
+ "meta": {
+  "collected_at": "2026-10-13",
+  "pipeline_version": "pipeline-0.1",
+  "sources": [
+   {
+    "id": "site-p1",
+    "kind": "site",
+    "url": "https://molluska.ru/",
+    "title": "Сайт: Морепродукты в Екатеринбурге — купить с доставкой | Моллюска",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p2",
+    "kind": "site",
+    "url": "https://molluska.ru/kontakty",
+    "title": "Сайт: Контакты магазина морепродуктов в Екатеринбурге | Моллюска",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p3",
+    "kind": "site",
+    "url": "https://molluska.ru/o-kompanii",
+    "title": "Сайт: О компании Моллюска — магазин морепродуктов в Екатеринбурге",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "site-p4",
+    "kind": "site",
+    "url": "https://molluska.ru/policy",
+    "title": "Сайт: Политика конфиденциальности",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "pb",
+    "kind": "registry",
+    "url": "https://pb.nalog.ru/search.html#mode=search-all&queryAll=6679179246",
+    "title": "ФНС «Прозрачный бизнес»: карточка по ИНН",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "fsa",
+    "kind": "registry",
+    "url": "https://pub.fsa.gov.ru/rds/declaration",
+    "title": "Росаккредитация: реестр деклараций по ИНН заявителя",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "crpt",
+    "kind": "registry",
+    "url": "https://markirovka.crpt.ru/",
+    "title": "«Честный знак»: участник оборота по ИНН",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "fedresurs",
+    "kind": "registry",
+    "url": "https://fedresurs.ru/search/entity?code=6679179246",
+    "title": "Федресурс: сведения о банкротстве",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "user",
+    "kind": "user",
+    "url": "#/add",
+    "title": "Адрес сайта задан при запуске",
+    "fetched_at": "2026-10-13"
+   },
+   {
+    "id": "market",
+    "kind": "market",
+    "url": "#/about",
+    "title": "Ориентир по рынку: открытые данные других поставщиков категории",
+    "fetched_at": "2026-10-13"
+   }
+  ],
+  "not_collected_reason": null,
+  "pages": 4,
+  "inn_conflict": "ИНН на сайте 6679179246 не совпадает с заданным 7707083893; карточка собрана по ИНН с сайта"
+ },
+ "price_estimate": {
+  "value": "лосось, сёмга, форель — ~1 275–1 950 ₽/кг",
+  "status": "estimated",
+  "sources": [
+   "market"
+  ],
+  "quote": null,
+  "searched_in": null,
+  "basis": "открытые цены поставщиков категории на их сайтах: лосось, сёмга, форель: 3 цен у 3 поставщиков (ANFISH, Дикое Качество, Прод66); собрано 2026-10-13",
+  "collected_at": "2026-10-13"
+ },
+ "live_only": "site"
+}

@@ -1,0 +1,722 @@
+{
+ "date": "2026-10-13",
+ "pipeline_version": "pipeline-0.1",
+ "city": "Екатеринбург",
+ "search": {
+  "provider": "seed",
+  "seed": "websearch-2026-10-13.json",
+  "queries": 23,
+  "links": 208,
+  "sites": 120,
+  "blocked_by_domain": [
+   {
+    "host": "optlist.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "2gis.ru",
+    "why": "карты"
+   },
+   {
+    "host": "academy.chibbis.ru",
+    "why": "статьи агрегатора доставки"
+   },
+   {
+    "host": "ekaterinburg.tradedir.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "fishnet.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "foodsuppliers.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "market.yandex.ru",
+    "why": "маркетплейс"
+   },
+   {
+    "host": "milknet.biz",
+    "why": "каталог"
+   },
+   {
+    "host": "ozon.ru",
+    "why": "маркетплейс"
+   },
+   {
+    "host": "agroserver.ru",
+    "why": "доска объявлений"
+   },
+   {
+    "host": "ekaterinburg.regmarkets.ru",
+    "why": "сравнение цен"
+   },
+   {
+    "host": "ekaterinburg.regtorg.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "ekaterinburg.spravker.ru",
+    "why": "справочник"
+   },
+   {
+    "host": "ekaterinburg.yamart.ru",
+    "why": "сравнение цен"
+   },
+   {
+    "host": "ekb.pulscen.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "ekb.tiu.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "fishhouse.uz",
+    "why": "домен вне РФ"
+   },
+   {
+    "host": "infoyar.ru",
+    "why": "справочник"
+   },
+   {
+    "host": "productcenter.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "regtorg.ru",
+    "why": "каталог"
+   },
+   {
+    "host": "rozetka.com.ua",
+    "why": "домен вне РФ"
+   },
+   {
+    "host": "vkusvill.ru",
+    "why": "розница"
+   },
+   {
+    "host": "yopt.org",
+    "why": "каталог"
+   }
+  ]
+ },
+ "filter": {
+  "checked": 97,
+  "kinds": {
+   "supplier": 79,
+   "retail": 7,
+   "aggregator": 2,
+   "other": 8,
+   "restaurant": 1
+  },
+  "not_suppliers": [
+   {
+    "host": "xn--96-6kcaee1aq8eufub.xn--p1ai",
+    "kind": "retail",
+    "why": "Розничная продажа свежей рыбы в Екатеринбурге, цены за кг, доставка"
+   },
+   {
+    "host": "napolke.ru",
+    "kind": "aggregator",
+    "why": "Оптовый маркетплейс продуктов с прайсами поставщиков, сыр в выдаче"
+   },
+   {
+    "host": "prodservice.shop",
+    "kind": "retail",
+    "why": "Кондитерский интернет-магазин; оптом и юрлица не упомянуты"
+   },
+   {
+    "host": "2rybnyy.ru",
+    "kind": "other",
+    "why": "Сайт не открылся (500); по выдаче — продажа лосося"
+   },
+   {
+    "host": "artishoreca.ru",
+    "kind": "other",
+    "why": "Сайт не открылся: ошибка SSL"
+   },
+   {
+    "host": "chefport.ru",
+    "kind": "retail",
+    "why": "Сеть магазинов рыбы и морепродуктов с адресами точек"
+   },
+   {
+    "host": "eco-plate.ru",
+    "kind": "other",
+    "why": "Сайт не открылся: домен не резолвится"
+   },
+   {
+    "host": "ekb.complexbar.ru",
+    "kind": "supplier",
+    "why": "Посуда оптом для кафе и ресторанов, закрытый доступ для физлиц"
+   },
+   {
+    "host": "ekb.protekgroup.com",
+    "kind": "other",
+    "why": "Сайт не открылся, заголовок и главная недоступны"
+   },
+   {
+    "host": "frozenrussia.ru",
+    "kind": "supplier",
+    "why": "Дистрибьютор замороженных ягод, овощей и фруктов, опт от 640 кг"
+   },
+   {
+    "host": "gastronomija.ru",
+    "kind": "retail",
+    "why": "Розничный супермаркет премиум-класса с доставкой частным лицам"
+   },
+   {
+    "host": "globalfoods.ru",
+    "kind": "supplier",
+    "why": "Поставщик продуктов для ресторанов и кафе; категории по стартовой не видны"
+   },
+   {
+    "host": "molluska.ru",
+    "kind": "retail",
+    "why": "Доставка морепродуктов частным лицам по Екатеринбургу, подарочные наборы"
+   },
+   {
+    "host": "ohotka66.ru",
+    "kind": "retail",
+    "why": "Магазин икры и деликатесов для частных покупателей, вход и регистрация"
+   },
+   {
+    "host": "paketykraft.ru",
+    "kind": "other",
+    "why": "Сайт заблокирован Cloudflare; по сниппету выдачи — крафт-пакеты"
+   },
+   {
+    "host": "sushi-biz.ru",
+    "kind": "other",
+    "why": "Консалтинг и франшиза для суши-бизнеса, не поставщик продуктов"
+   },
+   {
+    "host": "sushitochka.ru",
+    "kind": "restaurant",
+    "why": "Доставка японской и китайской кухни, меню готовых блюд"
+   },
+   {
+    "host": "sushiwok.ru",
+    "kind": "other",
+    "why": "Сайт показывает капчу, содержимое недоступно для классификации"
+   },
+   {
+    "host": "xn---96-6cde8dorg7hsb.xn--p1ai",
+    "kind": "aggregator",
+    "why": "Ценовая площадка, не интернет-магазин; сайт не открылся, проверка защиты"
+   },
+   {
+    "host": "xn--80abcmafq6de1dwc.xn--p1ai",
+    "kind": "other",
+    "why": "Сайт не открылся (ошибка DNS); рыба из выдачи"
+   },
+   {
+    "host": "xn--80aiadwg4b8e.xn--p1ai",
+    "kind": "retail",
+    "why": "Интернет-магазин, рыба, сыры, бакалея; также доставка для ресторанов"
+   }
+  ]
+ },
+ "extract": {
+  "sites": 76,
+  "values_rejected": {
+   "prices": 9,
+   "min_order": 3,
+   "home_city": 3,
+   "prices.examples": 8,
+   "regions_served": 1,
+   "messengers": 1,
+   "delivery.free_from": 1,
+   "legal_name": 1,
+   "phones": 1,
+   "delivery.cost": 1
+  },
+  "rejected_examples": [
+   {
+    "host": "gurman-llc.ru",
+    "field": "prices",
+    "value": "{'mode': 'pricelist', 'examples': [{'item': 'Сыр Моцарелла для пиццы \"La Paulina\"42%', 'ref': 'mozzarella', 'quote': 'Сы",
+    "why": "неожиданный формат ответа"
+   },
+   {
+    "host": "swlife.ru",
+    "field": "min_order",
+    "value": {
+     "amount": 10000,
+     "unit": "RUB",
+     "text": "10 000 ₽ (в день визита торгового представителя)"
+    },
+    "why": "числа нет в цитате"
+   },
+   {
+    "host": "abri-kos.ru",
+    "field": "home_city",
+    "value": "Москва",
+    "why": "цитаты нет в тексте страниц"
+   },
+   {
+    "host": "oaommz.ru",
+    "field": "min_order",
+    "value": {
+     "amount": 1,
+     "unit": "box",
+     "text": "от одной коробки"
+    },
+    "why": "в цитате нет слов про минимальный заказ"
+   },
+   {
+    "host": "redfish24.ru",
+    "field": "prices",
+    "value": "{'mode': 'pricelist', 'examples': [{'item': 'Лосось атлантический с/м 6-7кг/шт', 'quote': 'Лосось атлантический с/м 6-7к",
+    "why": "неожиданный формат ответа"
+   },
+   {
+    "host": "anfish.ru",
+    "field": "min_order",
+    "value": {
+     "amount": 10000,
+     "unit": "RUB",
+     "text": "от 10 000 ₽ для Москвы"
+    },
+    "why": "условие для другого города"
+   },
+   {
+    "host": "anfish.ru",
+    "field": "prices.examples",
+    "value": "Лосось филе, ОХЛ, трим А, 1.6 – 2.5 кг",
+    "why": "цены нет ни в цитате, ни рядом с товаром на странице"
+   },
+   {
+    "host": "anfish.ru",
+    "field": "prices.examples",
+    "value": "Тунец, филе, «Еллоуфин», СМ, 300-500 гр.",
+    "why": "цены нет ни в цитате, ни рядом с товаром на странице"
+   },
+   {
+    "host": "defagroup.com",
+    "field": "prices.examples",
+    "value": "Нори разовая суш., резаная, 0,27 кг 100 лист.",
+    "why": "цены нет ни в цитате, ни рядом с товаром на странице"
+   },
+   {
+    "host": "edaprof.ru",
+    "field": "prices.examples",
+    "value": "Одноразовые контейнеры для роллов",
+    "why": "в цене нет числа"
+   },
+   {
+    "host": "ekaterinburg.upakoff.biz",
+    "field": "prices",
+    "value": "{'mode': 'partial', 'examples': [{'item': 'Упаковка для роллов (шаурмы) ECO PILLOW Крафт 210*80*60мм (уп50/кор600)', 'qu",
+    "why": "неожиданный формат ответа"
+   },
+   {
+    "host": "etctrade.ru",
+    "field": "prices",
+    "value": "{'mode': 'on_request', 'examples': []}",
+    "why": "неожиданный формат ответа"
+   },
+   {
+    "host": "food-face.ru",
+    "field": "prices",
+    "value": "{'mode': 'pricelist', 'examples': [{'item': 'Коробка для роллов без окна с металлизированной ламинацией и индивидуальным",
+    "why": "неожиданный формат ответа"
+   },
+   {
+    "host": "gofra66.ru",
+    "field": "prices.examples",
+    "value": "Коробка (200х200х40) бур, с 1-цв. печатью, от 50 шт",
+    "why": "цены нет ни в цитате, ни рядом с товаром на странице"
+   },
+   {
+    "host": "gofra66.ru",
+    "field": "prices.examples",
+    "value": "Коробка (300х300х40) бел, с 1-цв. печатью, от 50 шт",
+    "why": "цены нет ни в цитате, ни рядом с товаром на странице"
+   },
+   {
+    "host": "gofra66.ru",
+    "field": "prices.examples",
+    "value": "Коробка (390х250х60) пироги на 1,0 кг бур, с 1-цв. печатью, от 50 шт",
+    "why": "цены нет ни в цитате, ни рядом с товаром на странице"
+   },
+   {
+    "host": "good-izdat.ru",
+    "field": "regions_served",
+    "value": [
+     "Екатеринбург"
+    ],
+    "why": "цитаты нет в тексте страниц"
+   },
+   {
+    "host": "kimpro-asia.ru",
+    "field": "messengers",
+    "value": "Telegram",
+    "why": "мессенджера нет на страницах"
+   },
+   {
+    "host": "morskoe96.ru",
+    "field": "delivery.free_from",
+    "value": 10000,
+    "why": "числа нет в цитате"
+   },
+   {
+    "host": "opttorg-horeca.ru",
+    "field": "prices.examples",
+    "value": "Сыр Моцарелла для пиццы 40% «Сыры Кубани» 2 кг",
+    "why": "в цене нет числа"
+   },
+   {
+    "host": "paket74.ru",
+    "field": "legal_name",
+    "value": "ООО УралЭкоПак",
+    "why": "цитаты нет в тексте страниц"
+   },
+   {
+    "host": "paket74.ru",
+    "field": "home_city",
+    "value": "Челябинск",
+    "why": "цитаты нет в тексте страниц"
+   },
+   {
+    "host": "petrosir.ru",
+    "field": "phones",
+    "value": "8 (8l2) 677-63-l5",
+    "why": "номера нет на страницах"
+   },
+   {
+    "host": "pr-ekb.ru",
+    "field": "prices",
+    "value": "{'mode': 'partial', 'examples': [{'item': 'Пакет КРАФТ 80гр. 45*35*15см, плоские/крученые ручки', 'quote': 'Пакет КРАФТ ",
+    "why": "неожиданный формат ответа"
+   },
+   {
+    "host": "shefarsenal.ru",
+    "field": "prices",
+    "value": "{'mode': 'on_request', 'examples': []}",
+    "why": "неожиданный формат ответа"
+   },
+   {
+    "host": "tkdip.ru",
+    "field": "home_city",
+    "value": "Екатеринбург",
+    "why": "цитаты нет в тексте страниц"
+   },
+   {
+    "host": "tkdip.ru",
+    "field": "prices",
+    "value": {
+     "mode": "partial",
+     "examples": []
+    },
+    "why": "цитаты нет в тексте страниц"
+   },
+   {
+    "host": "ubplastik.ru",
+    "field": "delivery.cost",
+    "value": 0,
+    "why": "числа нет в цитате"
+   },
+   {
+    "host": "yarus-market.ru",
+    "field": "prices",
+    "value": "{'mode': 'partial', 'examples': [{'item': 'Контейнер дно с рельефом сетка', 'quote': 'Черный контейнер дно.. 21.56 руб.'",
+    "why": "неожиданный формат ответа"
+   }
+  ],
+  "not_collected": []
+ },
+ "set": {
+  "suppliers": 60,
+  "live_only": 2,
+  "by_category": {
+   "grocery": 14,
+   "fish": 10,
+   "dairy": 6,
+   "packaging": 30
+  },
+  "dropped": [
+   {
+    "host": "swlife.ru",
+    "why": "не работает в городе Екатеринбург: только Татарстан, Чувашия, Марий Эл, Мордовия"
+   },
+   {
+    "host": "abri-kos.ru",
+    "why": "не работает в городе Екатеринбург: только Москва в пределах МКАД"
+   },
+   {
+    "host": "ekorfish.com",
+    "why": "не работает в городе Екатеринбург: только Москва и область, Санкт-Петербург и область, Краснодар и край"
+   },
+   {
+    "host": "mos-milk.ru",
+    "why": "не работает в городе Екатеринбург: только Москва, Московская область, Россия (доставка транспортными компаниями клиента)"
+   },
+   {
+    "host": "oaommz.ru",
+    "why": "не работает в городе Екатеринбург: только Москва и Московская область, другие регионы (оценивается индивидуально)"
+   },
+   {
+    "host": "sushimag.ru",
+    "why": "не работает в городе Екатеринбург: только Москва, Московская область"
+   },
+   {
+    "host": "yaprod.ru",
+    "why": "не работает в городе Екатеринбург: только Москва"
+   },
+   {
+    "host": "biomilk.ru",
+    "why": "не работает в городе Екатеринбург: только Москва, Московская область"
+   },
+   {
+    "host": "delikateska.ru",
+    "why": "не работает в городе Екатеринбург: только Москва, Санкт-Петербург, Нижний Новгород"
+   },
+   {
+    "host": "korzina-pro.ru",
+    "why": "не работает в городе Екатеринбург: только Москва, Московская область"
+   },
+   {
+    "host": "kzgk.ru",
+    "why": "не работает в городе Екатеринбург: только Калужская область, Московская область, Тульская область, вся центральная Россия"
+   },
+   {
+    "host": "paket74.ru",
+    "why": "нет признаков работы в городе Екатеринбург: ни адреса, ни доставки, ни региона ИНН"
+   },
+   {
+    "host": "petrosir.ru",
+    "why": "не работает в городе Екатеринбург: только Санкт-Петербург, Ленинградская область"
+   },
+   {
+    "host": "sushiproduct.com",
+    "why": "не работает в городе Екатеринбург: только Воронеж, Краснодар, Волгоград, Москва"
+   }
+  ]
+ },
+ "fill_rate": [
+  {
+   "field": "legal_name",
+   "label": "Юрлицо",
+   "known": 47,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "found": 34,
+    "not_found": 13,
+    "claimed": 13
+   }
+  },
+  {
+   "field": "inn",
+   "label": "ИНН",
+   "known": 38,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 38,
+    "not_found": 22
+   }
+  },
+  {
+   "field": "products",
+   "label": "Товары",
+   "known": 58,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 58,
+    "not_found": 2
+   }
+  },
+  {
+   "field": "address",
+   "label": "Адрес или склад",
+   "known": 59,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "found": 18,
+    "claimed": 41,
+    "not_found": 1
+   }
+  },
+  {
+   "field": "presence",
+   "label": "Склад в городе",
+   "known": 60,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 60
+   }
+  },
+  {
+   "field": "regions_served",
+   "label": "Регион работы",
+   "known": 57,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 57,
+    "not_found": 3
+   }
+  },
+  {
+   "field": "phones",
+   "label": "Телефон",
+   "known": 60,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 60
+   }
+  },
+  {
+   "field": "emails",
+   "label": "Email",
+   "known": 60,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 60
+   }
+  },
+  {
+   "field": "messengers",
+   "label": "Мессенджер",
+   "known": 39,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "not_found": 21,
+    "claimed": 39
+   }
+  },
+  {
+   "field": "website",
+   "label": "Сайт",
+   "known": 60,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 60
+   }
+  },
+  {
+   "field": "works_with_horeca",
+   "label": "Работа с ресторанами",
+   "known": 57,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 57,
+    "not_found": 3
+   }
+  },
+  {
+   "field": "min_order",
+   "label": "Минимальный заказ",
+   "known": 26,
+   "of": 60,
+   "estimated": 25,
+   "by_status": {
+    "estimated": 25,
+    "claimed": 26,
+    "not_found": 9
+   }
+  },
+  {
+   "field": "prices",
+   "label": "Цены",
+   "known": 42,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 42,
+    "not_found": 18
+   }
+  },
+  {
+   "field": "delivery",
+   "label": "Доставка",
+   "known": 36,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "not_found": 24,
+    "claimed": 36
+   }
+  },
+  {
+   "field": "payment_terms",
+   "label": "Оплата и отсрочка",
+   "known": 37,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "not_found": 23,
+    "claimed": 37
+   }
+  },
+  {
+   "field": "declarations",
+   "label": "Декларации",
+   "known": 23,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "found": 23,
+    "not_found": 37
+   }
+  },
+  {
+   "field": "site_mentions",
+   "label": "Документы на сайте",
+   "known": 37,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "claimed": 37,
+    "not_found": 23
+   }
+  },
+  {
+   "field": "company",
+   "label": "Компания в ФНС",
+   "known": 34,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "found": 34,
+    "not_found": 26
+   }
+  },
+  {
+   "field": "tax_regime",
+   "label": "Налоговый режим",
+   "known": 8,
+   "of": 60,
+   "estimated": 0,
+   "by_status": {
+    "not_found": 52,
+    "found": 8
+   }
+  }
+ ],
+ "cost": {
+  "run_rub": 0.0,
+  "total_rub": 34.55,
+  "by_step_rub": {
+   "claude:probe": 0.51,
+   "claude:probe2": 0.64,
+   "claude:classify": 2.75,
+   "claude:extract": 30.66
+  },
+  "llm_calls": 104,
+  "rub_per_credit": 0.5
+ }
+}

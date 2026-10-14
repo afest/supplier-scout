@@ -6,3 +6,5 @@ dist/
 .vite/
 e2e-out/
 *.tsbuildinfo
+pipeline/.cache/
+__pycache__/
