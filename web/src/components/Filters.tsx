@@ -3,6 +3,10 @@ import type { Category } from "../types.ts";
 import { FILTER_GROUPS, MAX_RANGE, type FilterId, type FilterState } from "../lib/filters.ts";
 import { num, rub } from "../lib/format.ts";
 import { Check, Hint } from "./ui.tsx";
+import { DATA } from "../data.ts";
+
+/** Фильтр «вечером или ночью» появляется, когда в наборе есть часы работы (T-535). */
+const HAS_HOURS = DATA.suppliers.some((s) => s.hours?.status === "claimed");
 
 /** Колонка фильтров: условия, надёжность, минимальный заказ. Сверху — свой блок экрана (подкатегории или категории). */
 export function FiltersPanel({ state, onChange, top, marking, count, onClose, onReset }: {
@@ -48,7 +52,7 @@ export function FiltersPanel({ state, onChange, top, marking, count, onClose, on
       {FILTER_GROUPS.map((g) => (
         <div key={g.title} className="fgroup">
           <div className="label">{g.title}</div>
-          {g.items.filter((it) => !it.markingOnly || marking).map((it) => (
+          {g.items.filter((it) => (!it.markingOnly || marking) && (!it.hoursOnly || HAS_HOURS)).map((it) => (
             <Check key={it.id} checked={state.flags.has(it.id)} onChange={(v) => toggle(it.id, v)}>{it.label}</Check>
           ))}
         </div>

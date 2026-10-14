@@ -1,17 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { href, navigate, useRoute } from "../router.ts";
 import { actions, CONTACT_STATUSES, useStore, type ContactStatus } from "../store.ts";
-import { byId, categoryOf, rankCategory, readQuery, subById, type Query } from "../data.ts";
+import { byId, categoryOf, orphanShortIds, rankCategory, readQuery, shortlistIds, subById, volParam, type Query } from "../data.ts";
 import { draftRequest } from "../lib/explain.ts";
 import { score, type Scored } from "../lib/score.ts";
 import type { Supplier } from "../types.ts";
-import { isKnown } from "../lib/format.ts";
+import { isKnown, plural } from "../lib/format.ts";
 import { CatGlyph, Hint, Mono, Score, StatusIcon } from "../components/ui.tsx";
+
+/** Записи о поставщиках, которых нет в нынешнем наборе: не считаются и не показываются, но и не удаляются молча —
+ *  после пересборки набора ID могут смениться, и с записью ушла бы заметка закупщика. Убрать — его решение. */
+function Orphans({ ids, notes }: { ids: string[]; notes: number }) {
+  if (!ids.length) return null;
+  const n = ids.length;
+  return (
+    <p className="orphans">
+      Ещё {n} {plural(n, "запись", "записи", "записей")} — о поставщиках, которых нет в нынешнем наборе{notes ? `, в ${notes} есть заметка` : ""}. В счётчик не входят.{" "}
+      <button type="button" className="link-btn" onClick={() => actions.dropShort(ids)}>Убрать</button>
+    </p>
+  );
+}
 
 export function Shortlist() {
   const st = useStore();
   const route = useRoute();
-  const ids = Object.keys(st.shortlist).filter((id) => byId.has(id));
+  const ids = shortlistIds(st);
+  const orphans = orphanShortIds(st);
+  const orphanNotes = orphans.filter((id) => st.shortlist[id].note).length;
   const draftId = route.params.get("draft");
   const [sel, setSel] = useState<string | null>(draftId && ids.includes(draftId) ? draftId : ids[0] ?? null);
   useEffect(() => {
@@ -51,7 +66,8 @@ export function Shortlist() {
         </div>
         <h1 className="h1">Шорт-лист пуст</h1>
         <p>Отметьте звёздочкой поставщиков в результатах или в карточке — здесь появятся статусы контакта, заметки и черновик запроса.</p>
-        <a className="btn pr" href="#/">К поиску</a>
+        <a className="btn pr" href="#/">Найти поставщика</a>
+        <Orphans ids={orphans} notes={orphanNotes} />
       </div>
     );
   }
@@ -63,7 +79,7 @@ export function Shortlist() {
         <div className="page-tools">
           <button type="button" className="btn sec" onClick={csv}>Скачать CSV</button>
           <a className={`btn sec${sameCat.length < 2 ? " disabled" : ""}`} aria-disabled={sameCat.length < 2}
-            href={sameCat.length < 2 ? undefined : href("/compare", { ids: sameCat.slice(0, 4).join(","), cat: current.s.category, vol: current.q.volume, prio: current.q.prio === "balanced" ? null : current.q.prio })}
+            href={sameCat.length < 2 ? undefined : href("/compare", { ids: sameCat.slice(0, 4).join(","), cat: current.s.category, vol: volParam(current.q.volume), prio: current.q.prio === "balanced" ? null : current.q.prio })}
             title="Сравнение — внутри одной категории">
             Сравнить · {current ? categoryOf(current.s).short.toLowerCase() : ""}
           </a>
@@ -95,6 +111,7 @@ export function Shortlist() {
               </div>
             );
           })}
+          <Orphans ids={orphans} notes={orphanNotes} />
         </div>
 
         {current && <Draft key={current.s.id} row={current} />}

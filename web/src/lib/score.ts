@@ -1,7 +1,7 @@
 // Рекомендация «с кем связаться» — раздел 4 логики сервиса.
 // Порядок считает формула, а не модель: одинаковые данные дают одинаковый порядок,
 // и каждый балл раскладывается на строки. Неизвестное — треть балла критерия.
-import type { Category, FieldStatus, Supplier } from "../types.ts";
+import type { Category, FieldStatus, MinOrder, Supplier } from "../types.ts";
 import { ageYears, daysSince, isKnown, plural, rub, years } from "./format.ts";
 
 export type Priority = "balanced" | "reliability" | "terms" | "fast";
@@ -49,7 +49,7 @@ export const TRACKED: { key: string; label: string; get: (s: Supplier) => { stat
   { key: "inn", label: "ИНН", get: (s) => s.inn },
   { key: "products", label: "Товары", get: (s) => s.products },
   { key: "address", label: "Адрес или склад", get: (s) => s.address },
-  { key: "presence", label: "Склад в городе", get: (s) => s.presence },
+  { key: "presence", label: "Склад или доставка в город", get: (s) => s.presence },
   { key: "regions_served", label: "Регион работы", get: (s) => s.regions_served },
   { key: "phones", label: "Телефон", get: (s) => s.phones },
   { key: "emails", label: "Email", get: (s) => s.emails },
@@ -93,6 +93,54 @@ export function activeDeclarations(s: Supplier, now = new Date()) {
   return f.value!.filter((d) => d.status === "действует" && new Date(d.valid_to) > now);
 }
 
+/** Профиль категории для деклараций: у оптовика бывают декларации на станки, перчатки и круассаны — они не про нашу закупку. */
+const PROFILE: Record<string, RegExp> = {
+  packaging: /упаков|контейн|лот(о|к)|короб|пакет|стакан|крышк|посуд|тара|ланч|бумаг\S* для выпеч|пл[её]нк/i,
+  fish: /рыб|морепрод|кревет|кальмар|лосос|с[её]мг|форел|тун(е|ц)|угор|краб|миди|икр|осьминог|гребеш/i,
+  dairy: /сыр|молок|молоч|сливк|творог|сливочн|моцарел|рикотт/i,
+  grocery: /рис|нори|водоросл|соус|васаби|имбир|кунжут|лапш|уксус|паст|приправ|панир|соев|мисо|тофу/i,
+};
+const NOT_FOOD = /не для пищев/i;
+
+export function profileDeclarations(s: Supplier, cat: Category, now = new Date()) {
+  const re = PROFILE[cat.id];
+  const active = activeDeclarations(s, now);
+  if (!re) return active;
+  return active.filter((d) => re.test(d.product) && !NOT_FOOD.test(d.product));
+}
+
+/** Флаги ФНС отдельно от «не проверены»: капча на сайте ФНС — пробел в проверке, а не нарушение. */
+export function fnsFlags(flags: string[]) {
+  const real = flags.filter((f) => !/^не проверен/i.test(f));
+  return { real, unchecked: real.length < flags.length };
+}
+
+export function flagsText(flags: string[]) {
+  const f = fnsFlags(flags);
+  return f.real.length ? `флаги ФНС: ${f.real.join(", ")}` : f.unchecked ? "флаги ФНС не проверены" : "красных флагов нет";
+}
+
+/** Ориентир цены за единицу в категории (медиана середин «~A–B ₽/кг») — чтобы сравнить минимум в кг или шт с закупкой в рублях. */
+export function unitPrice(peers: Supplier[], unit: "kg" | "pcs") {
+  const label = unit === "kg" ? "кг" : "шт";
+  const mids: number[] = [];
+  for (const p of peers) {
+    const v = p.price_estimate?.value;
+    if (!v) continue;
+    const re = /~\s*([\d\s ,]+)\s*–\s*([\d\s ,]+)\s*₽\s*\/\s*(кг|шт)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(v))) {
+      if (m[3] !== label) continue;
+      const a = Number(m[1].replace(/[\s ]/g, "").replace(",", "."));
+      const b = Number(m[2].replace(/[\s ]/g, "").replace(",", "."));
+      if (a > 0 && b > 0) mids.push((a + b) / 2);
+    }
+  }
+  if (!mids.length) return null;
+  mids.sort((x, y) => x - y);
+  return mids[Math.floor(mids.length / 2)];
+}
+
 export function markingOk(s: Supplier, cat: Category) {
   const m = s.documents.marking;
   return !!(cat.marking_group && m && isKnown(m) && m.value!.includes(cat.marking_group));
@@ -106,23 +154,30 @@ function reliability(s: Supplier, now: Date): CritResult {
   }
   const c = f.value!;
   const age = ageYears(c.registered_at, now);
-  const score = Math.min(age / 5, 1) * 0.5 + (c.okved_match ? 0.2 : 0) + (c.flags.length === 0 ? 0.3 : 0);
+  const { real, unchecked } = fnsFlags(c.flags);
+  // не проверены — как любое неизвестное: треть от веса части
+  const flagsPart = real.length ? 0 : unchecked ? 0.3 * UNKNOWN : 0.3;
+  const score = Math.min(age / 5, 1) * 0.5 + (c.okved_match ? 0.2 : 0) + flagsPart;
   const parts = [
     age < 1 ? "действует меньше года" : `действует ${years(age)}`,
     c.okved_match ? "ОКВЭД совпадает" : "ОКВЭД не по профилю",
-    c.flags.length ? `флаги ФНС: ${c.flags.join(", ")}` : "красных флагов нет",
+    real.length ? `флаги ФНС: ${real.join(", ")}` : unchecked ? "флаги ФНС не проверены" : "красных флагов нет",
   ];
   return { id: "reliability", score, known: true, mark: "found", text: parts.join(", ") };
 }
 
 function documents(s: Supplier, cat: Category, now: Date): CritResult {
-  const active = activeDeclarations(s, now);
+  const active = profileDeclarations(s, cat, now);
+  const offProfile = activeDeclarations(s, now).length - active.length;
   const mk = markingOk(s, cat);
   if (active.length || mk) {
     const parts: string[] = [];
     if (active.length) parts.push(`${active.length} ${plural(active.length, "действующая декларация", "действующие декларации", "действующих деклараций")} в реестре`);
     if (mk) parts.push(`в «Честном знаке» — «${cat.marking_group}»`);
     return { id: "documents", score: 1, known: true, mark: "found", text: parts.join(", ") };
+  }
+  if (offProfile > 0) {
+    return { id: "documents", score: 0.5, known: true, mark: "found", text: `${offProfile} ${plural(offProfile, "декларация", "декларации", "деклараций")} в реестре, но не на продукцию этой категории` };
   }
   if (isKnown(s.documents.site_mentions)) {
     return { id: "documents", score: 0.5, known: true, mark: "claimed", text: `только упоминание на сайте: ${s.documents.site_mentions.value}` };
@@ -138,22 +193,49 @@ function minOrder(s: Supplier, ctx: Ctx): CritResult {
       text: f.status === "estimated" ? `не указан; ◇ по рынку ${f.value!.text}` : "не указан на сайте" };
   }
   const m = f.value!;
-  if (m.unit !== "RUB") return { id: "min_order", score: 0.5, known: true, mark: f.status, text: `${m.text} — с бюджетом в рублях не сравнить` };
-  const amt = m.amount ?? 0;
-  if (amt === 0) return { id: "min_order", score: 1, known: true, mark: f.status, text: "минимума нет" };
+  const r = (res: Omit<CritResult, "id" | "known" | "mark">): CritResult => ({ id: "min_order", known: true, mark: f.status, ...res });
+  const conv = minOrderRub(m, ctx.peers);
+  if (conv.kind === "none") return r({ score: 0.5, text: `${m.text} — с бюджетом в рублях не сравнить` });
+  if (conv.kind === "threshold") return r({ score: conv.score, text: conv.text });
+  const amt = conv.rub;
+  if (amt === 0) return r({ score: 1, text: "минимума нет" });
+  const lbl = conv.kind === "approx" ? `${m.text} ≈ ${rub(amt)} по ориентиру цены` : rub(amt);
   if (ctx.volume) {
-    if (amt <= ctx.volume) return { id: "min_order", score: 1, known: true, mark: f.status, text: `${rub(amt)} — не больше вашей закупки` };
-    if (amt <= ctx.volume * 2) return { id: "min_order", score: 0.5, known: true, mark: f.status, text: `${rub(amt)} — больше вашей закупки, но меньше двух` };
-    return { id: "min_order", score: 0.1, known: true, mark: f.status, text: `${rub(amt)} — больше вашей закупки в ${(amt / ctx.volume).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза` };
+    if (amt <= ctx.volume) return r({ score: 1, text: `${lbl} — не больше вашей закупки` });
+    if (amt <= ctx.volume * 2) return r({ score: 0.5, text: `${lbl} — больше вашей закупки, но меньше двух` });
+    return r({ score: 0.1, text: `${lbl} — больше вашей закупки в ${(amt / ctx.volume).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза` });
   }
   const known = ctx.peers
-    .filter((p) => isKnown(p.min_order) && p.min_order.value!.unit === "RUB")
-    .map((p) => p.min_order.value!.amount ?? 0)
+    .map((p) => (isKnown(p.min_order) ? minOrderRub(p.min_order.value!, ctx.peers) : null))
+    .filter((x): x is { kind: "rub" | "approx"; rub: number } => !!x && (x.kind === "rub" || x.kind === "approx"))
+    .map((x) => x.rub)
     .sort((a, b) => a - b);
-  const i = known.indexOf(amt);
+  const i = Math.max(0, known.indexOf(amt));
   const n = known.length;
   const score = n <= 1 ? 1 : 1 - (0.9 * i) / (n - 1);
-  return { id: "min_order", score, known: true, mark: f.status, text: `${rub(amt)} — ${i + 1}-й по размеру из ${n} в категории` };
+  return r({ score, text: `${lbl} — ${i + 1}-й по размеру из ${n} в категории` });
+}
+
+/**
+ * Минимальный заказ в рублях. Килограммы и штуки — через ориентир цены категории;
+ * без ориентира — порогами: единицы и десятки — мелкий опт, сотни килограммов — крупный для одной точки.
+ */
+export function minOrderRub(m: MinOrder, peers: Supplier[]):
+  | { kind: "rub" | "approx"; rub: number }
+  | { kind: "threshold"; score: number; text: string }
+  | { kind: "none" } {
+  if (m.unit === "RUB") return { kind: "rub", rub: m.amount ?? 0 };
+  if (m.amount == null || m.unit === "box") return { kind: "none" };
+  const price = unitPrice(peers, m.unit === "kg" ? "kg" : "pcs");
+  if (price) {
+    const v = m.amount * price;
+    return { kind: "approx", rub: v >= 10000 ? Math.round(v / 1000) * 1000 : Math.round(v / 100) * 100 };
+  }
+  const small = m.unit === "kg" ? m.amount <= 10 : m.amount <= 50;
+  const big = m.unit === "kg" ? m.amount > 100 : m.amount > 500;
+  if (small) return { kind: "threshold", score: 1, text: `${m.text} — мелкий минимум` };
+  if (big) return { kind: "threshold", score: 0.1, text: `${m.text} — крупный опт для одной точки` };
+  return { kind: "threshold", score: 0.5, text: `${m.text} — средний опт, уточнить в рублях` };
 }
 
 function delivery(s: Supplier, ctx: Ctx): CritResult {
@@ -162,7 +244,7 @@ function delivery(s: Supplier, ctx: Ctx): CritResult {
   const d = f.value!;
   const lead = d.lead_time ? `, ${d.lead_time}` : "";
   const conflict = f.alternatives?.length ? " · страницы сайта расходятся" : "";
-  if (d.transport_company) return { id: "delivery", score: 0.2, known: true, mark: f.status, text: `склад в другом городе, транспортной компанией${lead}` };
+  // до точки — главное: «ещё и ТК по России» у такого поставщика не минус
   if (d.to_door) {
     if (d.free_from === 0) return { id: "delivery", score: 1, known: true, mark: f.status, text: `до точки бесплатно${lead}${conflict}` };
     if (d.free_from != null && (ctx.volume == null || d.free_from <= ctx.volume)) {
@@ -171,6 +253,7 @@ function delivery(s: Supplier, ctx: Ctx): CritResult {
     const paid = d.free_from != null ? `платно, бесплатно только от ${rub(d.free_from)}` : d.cost ? `до точки за ${rub(d.cost)}` : "до точки, платно";
     return { id: "delivery", score: 0.7, known: true, mark: f.status, text: `${paid}${lead}${conflict}` };
   }
+  if (d.transport_company) return { id: "delivery", score: 0.2, known: true, mark: f.status, text: `склад в другом городе, транспортной компанией${lead}` };
   if (d.pickup) return { id: "delivery", score: 0.5, known: true, mark: f.status, text: `только самовывоз${lead}` };
   return { id: "delivery", score: UNKNOWN, known: false, mark: "not_found", text: "условия доставки не нашли" };
 }

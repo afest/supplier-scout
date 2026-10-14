@@ -1,5 +1,5 @@
 // «Все поставщики» — витрина для закупщика, который ещё не знает, что ему нужно: смотреть всех, как в магазине.
-// По алфавиту с указателем букв, поиск по названию и товарам, те же фильтры, что в результатах поиска.
+// По алфавиту, поиск по названию и товарам, те же фильтры, что в категории.
 import { useMemo, useState } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
@@ -7,6 +7,7 @@ import { CATEGORIES, catById, rankCategory, readQuery, visibleSuppliers } from "
 import { completeness, stopReason } from "../lib/score.ts";
 import { activeCount, minRub, passes, readFilters } from "../lib/filters.ts";
 import { isKnown, plural } from "../lib/format.ts";
+import { matchesSupplier } from "../lib/search.ts";
 import type { Supplier } from "../types.ts";
 import { CatGlyph, Check, Comb, Hint, Mono, Score, StarButton, StatusIcon } from "../components/ui.tsx";
 import { FiltersPanel, SubcatChecks } from "../components/Filters.tsx";
@@ -19,8 +20,6 @@ const SORTS = [
   { id: "min", label: "По минимальному заказу" },
   { id: "full", label: "По полноте данных" },
 ];
-
-const firstLetter = (s: Supplier) => s.name.replace(/^[«"]/, "")[0].toUpperCase();
 
 export function Catalog({ route }: { route: Route }) {
   const st = useStore();
@@ -52,12 +51,11 @@ export function Catalog({ route }: { route: Route }) {
 
   const returned = new Set(st.returned);
   const all = visibleSuppliers(st);
-  const needle = text.trim().toLowerCase().replace(/ё/g, "е");
   const pool = all.filter((s) => {
     const cat = catById(s.category)!;
     if (cats.length && !cats.some((c) => c.id === s.category)) return false;
     if (subs.length && !s.subcategories.some((x) => subs.includes(x))) return false;
-    if (needle && !`${s.name} ${(s.products.value ?? []).join(" ")}`.toLowerCase().replace(/ё/g, "е").includes(needle)) return false;
+    if (!matchesSupplier(s, text)) return false;
     return passes(s, cat, fs);
   });
   const stopped = pool.filter((s) => stopReason(s, returned));
@@ -71,25 +69,14 @@ export function Catalog({ route }: { route: Route }) {
   if (sort === "min") sorted.sort((a, b) => (minRub(a) ?? Infinity) - (minRub(b) ?? Infinity));
   if (sort === "full") sorted.sort((a, b) => completeness(b).found - completeness(a).found);
 
-  const alpha = sort === "az" || sort === "za";
-  const groups: { letter: string; items: Supplier[] }[] = [];
-  if (alpha) for (const s of sorted) {
-    const l = firstLetter(s);
-    if (groups[groups.length - 1]?.letter !== l) groups.push({ letter: l, items: [] });
-    groups[groups.length - 1].items.push(s);
-  }
-  const letters = groups.map((g) => g.letter);
   const markingAny = (cats.length ? cats : CATEGORIES).some((c) => c.marking_group);
 
-  const firstOfLetter = new Set(groups.map((g) => g.items[0].id));
   const card = (s: Supplier) => {
     const cat = catById(s.category)!;
     const c = completeness(s);
     const stop = stopReason(s, returned);
-    const starts = alpha && firstOfLetter.has(s.id);
     return (
-      <article key={s.id} className={`shop-card${stop ? " stopped" : ""}`} id={starts ? `L-${firstLetter(s)}` : undefined}>
-        {starts && <span className="sc-letter" aria-hidden="true">{firstLetter(s)}</span>}
+      <article key={s.id} className={`shop-card${stop ? " stopped" : ""}`}>
         <div className="sc-top">
           <Mono s={s} size={52} />
           <div className="sc-score">
@@ -149,13 +136,6 @@ export function Catalog({ route }: { route: Route }) {
             </div>
             <button type="button" className="btn sec sm sm-only" onClick={() => setSheet(true)}>Фильтры{activeCount(fs) ? ` · ${activeCount(fs)}` : ""}</button>
           </div>
-          {alpha && letters.length > 1 && (
-            <nav className="az" aria-label="Буквы">
-              {letters.map((l) => (
-                <button key={l} type="button" onClick={() => document.getElementById(`L-${l}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{l}</button>
-              ))}
-            </nav>
-          )}
 
           <div className="shop-grid">{sorted.map(card)}</div>
           {sorted.length === 0 && (
