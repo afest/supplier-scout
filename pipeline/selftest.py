@@ -157,9 +157,109 @@ def main() -> int:
         case("robots: своя группа бота важнее «*»", not rb.allowed("SupplierScoutBot", "https://x.ru/private/a")
              and rb.allowed("SupplierScoutBot", "https://x.ru/search")),
     ]
-    res += network_cases() + hours_cases() + assortment_cases() + build_cases() + subcat_cases()
+    res += network_cases() + hours_cases() + assortment_cases() + build_cases() + subcat_cases() + t539_cases()
     print(f"\n{sum(res)} из {len(res)}")
     return 0 if all(res) else 1
+
+
+def t539_cases() -> list[bool]:
+    """Правки перед публикацией (T-539): порог бесплатной доставки, страницы под robots.txt, ответ ФНС без id."""
+    import json
+    import tempfile
+    from pathlib import Path
+
+    import httpx
+
+    from . import build, registries
+    from .config import load_categories
+    from .extract import free_threshold
+
+    def delivery(value, quote, text):
+        return check_answer({"delivery": {"value": value, "quote": quote, "page": "P1"}},
+                            [{"final_url": "https://x.ru/dostavka", "links": [], "text": text}]).facts.get("delivery")
+
+    # «Морское счастье»: порог модель взяла двумя строками ниже цитаты про тариф
+    sea_text = ("Стоимость доставки по г. Екатеринбург\nСтоимость доставки при заказе до 3 000 руб. составляет 450 рублей.\n"
+                "Стоимость доставки при заказе свыше 3 000 руб. составляет 350 рублей.\nПри заказе от 10 000руб. доставка бесплатно.\n"
+                "В пригороды Екатеринбурга стоимость доставки оплачивается по тарифу Яндекс доставки.")
+    sea = delivery({"to_door": True, "free_from": 10000, "cost": 450, "lead_time": None, "pickup": False, "zones": None,
+                    "transport_company": False}, "Стоимость доставки при заказе до 3 000 руб. составляет 450 рублей.", sea_text)
+    far = delivery({"to_door": True, "free_from": 10000, "cost": 450, "lead_time": None, "pickup": False, "zones": None,
+                    "transport_company": False}, "Стоимость доставки при заказе до 3 000 руб. составляет 450 рублей.",
+                   sea_text.replace("При заказе от 10 000руб. доставка бесплатно.", "Пункт 1.\nПункт 2.\nПункт 3.\nПункт 4.\n"
+                                    "При заказе от 10 000руб. доставка бесплатно."))
+    # Уралпаксистем: порог в штуках рублёвое поле не держит
+    ural_q = "Бесплатно доставим заказ от 1000 шт по г. Екатеринбургу."
+    ural = delivery({"to_door": True, "pickup": False, "zones": "г. Екатеринбург", "transport_company": False}, ural_q, ural_q)
+    res = [
+        case("«Морское счастье»: порог 10 000 ₽ с соседней строки принят, цитата продлена до неё дословно",
+             sea["value"]["free_from"] == 10000 and sea["value"]["cost"] == 450 and "10 000руб" in sea["quote"]
+             and quote_in(sea["quote"], norm(sea_text))),
+        case("порог дальше трёх строк от цитаты не подтягивается — отброшен, как раньше", far["value"]["free_from"] is None),
+        case("«от 10 000руб. доставка бесплатно»: точка после «руб.», слитного с числом, фразу не рвёт",
+             free_threshold("При заказе от 10 000руб. доставка бесплатно.") == {"amount": 10000, "unit": "RUB", "text": "10 000 ₽"}),
+        case("Уралпаксистем: «бесплатно от 1000 шт» — free_from пуст, порог в штуках сохранён отдельно",
+             ural["value"].get("free_from") is None
+             and ural["value"].get("free_from_qty") == {"amount": 1000, "unit": "pcs", "text": "от 1 000 шт"}),
+        case("«от МКАД — покупки от 12000р бесплатная доставка» — порог другого города не берётся",
+             free_threshold("в пределах 5 км от МКАД - Покупки от 12000р бесплатная доставка") is None),
+    ]
+
+    # RedFish: прайс закрыт robots.txt — «не собрано», а не «нет на сайте»; закрытая политика конфиденциальности цен не касается
+    cat = {c["id"]: c for c in load_categories()["categories"]}
+    saved_pages = build.PAGES_DIR
+    build.PAGES_DIR = Path(tempfile.mkdtemp())
+    try:
+        for host, path in (("shop.example", "/prajs-listy"), ("other.example", "/privacy")):
+            (build.PAGES_DIR / host).mkdir()
+            (build.PAGES_DIR / host / "a.json").write_text(json.dumps({"url": f"https://www.{host}{path}", "error": "robots.txt запрещает",
+                                                                       "text": ""}), encoding="utf-8")
+
+        def card(host):
+            rec = {"facts": {}, "pages": [{"url": f"https://www.{host}/", "title": "", "fetched_at": "2026-10-14"}], "answer": {"subcategories": []}}
+            return build.build_supplier({"host": host, "root": f"https://www.{host}", "urls": [], "queries": []}, rec, {}, cat["grocery"])
+        shop, other = card("shop.example"), card("other.example")
+    finally:
+        build.PAGES_DIR = saved_pages
+    res += [
+        case("RedFish: прайс закрыт robots.txt — у цен пометка «сайт запрещает сбор» и адрес страницы в «где искали»",
+             shop["prices"]["status"] == "not_found" and "robots.txt закрывает /prajs-listy" in (shop["prices"].get("blocked") or "")
+             and any("prajs-listy" in w for w in shop["prices"]["searched_in"])),
+        case("закрытая страница другого вида (/privacy) цены «не собранными» не делает",
+             "blocked" not in other["prices"] and "blocked" not in other["delivery"]),
+    ]
+
+    # Food-Face: ФНС ответила без id — один повтор, потом понятная причина вместо KeyError 'id'
+    answers = []
+
+    def fns(request):
+        return httpx.Response(200, json=answers.pop(0) if answers else {})
+    saved_dir, saved_sleep = registries.REG_DIR, registries.time.sleep
+    registries.REG_DIR, registries.time.sleep = Path(tempfile.mkdtemp()), (lambda s: None)
+    try:
+        r = registries.Registries(pause=0)
+        r.http = httpx.Client(transport=httpx.MockTransport(fns))
+        answers[:] = [{}, {"id": "task-1"}]
+        retried = r._pb_task("https://pb.nalog.ru/search-proc.json", {}, "поиск") == {"id": "task-1"}
+        answers[:] = []
+        rec = r.pb("6679154435")
+    finally:
+        registries.REG_DIR, registries.time.sleep = saved_dir, saved_sleep
+    res += [
+        case("ФНС ответила без id — запрос повторён, второй ответ принят", retried),
+        case("Food-Face: ФНС дважды без id — причина «не приняла запрос», а не KeyError 'id'",
+             "ФНС не приняла запрос" in (rec.get("error") or "") and "KeyError" not in (rec.get("error") or "")),
+    ]
+
+    # ИП из реестра: ФНС отдаёт ФИО без «ИП» — в карточку идёт «ИП Фамилия И. О.», полного ФИО нигде нет (ФИО вымышленное)
+    F = build.F
+    person = {"name": "Пример", "legal_name": F("Петров Пётр Сергеевич", "found", ["pb"]), "inn": F("770708389312", "found", ["pb"]),
+              "phones": F(["+7 (343) 226-09-36"], "claimed"), "meta": {"sources": []},
+              "company": F({"form": "ИП", "note": "владелец — Петров Пётр Сергеевич"}, "found", ["pb"])}
+    build.redact_person(person, "770708389312")
+    res.append(case("ИП из реестра без приставки «ИП»: имя сокращено до «ИП Петров П. С.», полного ФИО в карточке нет",
+                    person["legal_name"]["value"] == "ИП Петров П. С." and "Пётр Сергеевич" not in json.dumps(person, ensure_ascii=False)))
+    return res
 
 
 def network_cases() -> list[bool]:

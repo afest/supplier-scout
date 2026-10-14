@@ -1,14 +1,16 @@
 """Шаги 6–7. Оценки ◇ по рынку и сборка карточек в контракт web/src/types.ts."""
 from __future__ import annotations
 
+import json
 import re
 import statistics
 from datetime import date
-from urllib.parse import quote as urlquote
+from urllib.parse import quote as urlquote, urlparse
 
 from . import VERSION, subcats
 from .config import CITY
 from .extract import digits, norm
+from .fetch import PAGES_DIR, host_of
 from .registries import company_from_bo, company_from_pb, declarations_from_fsa, marking_from_crpt
 
 TODAY = date.today().isoformat()
@@ -129,6 +131,32 @@ def site_sources(rec: dict) -> list[dict]:
     return out
 
 
+# Страница, закрытая robots.txt, в раскладку не попадает, и без пометки поле читалось бы как «на сайте этого нет»: у RedFish
+# прайс закрыт, а карточка писала «о ценах ничего нет». Поле, которое не нашлось при закрытой странице своего вида, — «не собрано»
+BLOCKED_KIND = {"prices": re.compile(r"pri[cs]e|praj?s|prais|прайс", re.I),
+                "delivery": re.compile(r"dostav|deliver|shipping|доставк", re.I)}
+
+
+def blocked_pages(root: str) -> list[str]:
+    """Адреса сайта, которые конвейер пробовал загрузить, а robots.txt запретил, — по кэшу загрузок."""
+    if not root:                # живой сбор по одному ИНН — сайта нет
+        return []
+    folder = PAGES_DIR / host_of(root)
+    out = []
+    for f in sorted(folder.glob("*.json")) if folder.exists() else []:
+        p = json.loads(f.read_text(encoding="utf-8"))
+        if "robots.txt" in (p.get("error") or ""):
+            out.append(p["url"])
+    return out
+
+
+def mark_blocked(field: dict, kind: str, urls: list[str]):
+    hit = [u for u in urls if BLOCKED_KIND[kind].search(urlparse(u).path)]
+    if field["status"] == "not_found" and hit:
+        field["blocked"] = f"сайт запрещает сбор: robots.txt закрывает {urlparse(hit[0]).path or '/'}"
+        field["searched_in"] = (field["searched_in"] or []) + [f"{hit[0]} — закрыта для сбора в robots.txt"]
+
+
 def searched_site(rec: dict) -> list[str]:
     if rec.get("no_site"):
         return [rec["no_site"]]
@@ -237,12 +265,15 @@ def build_supplier(c: dict, rec: dict, reg: dict, cat: dict) -> dict:
                                            "examples": [{"item": e["item"], "price": e["price"]} for e in v.get("examples", [])][:3]})
     if facts.get("delivery"):
         dv = facts["delivery"]["value"]
-        delivery = F({"to_door": bool(dv.get("to_door")), "free_from": dv.get("free_from"), "cost": dv.get("cost"),
-                      "lead_time": dv.get("lead_time"), "pickup": bool(dv.get("pickup")), "zones": dv.get("zones"),
+        delivery = F({"to_door": bool(dv.get("to_door")), "free_from": dv.get("free_from"), "free_from_qty": dv.get("free_from_qty"),
+                      "cost": dv.get("cost"), "lead_time": dv.get("lead_time"), "pickup": bool(dv.get("pickup")), "zones": dv.get("zones"),
                       "transport_company": bool(dv.get("transport_company"))},
                      "claimed", sid(facts["delivery"]), facts["delivery"]["quote"])
     else:
         delivery = F(searched_in=where)
+    blocked = blocked_pages(c["root"])
+    mark_blocked(prices, "prices", blocked)
+    mark_blocked(delivery, "delivery", blocked)
 
     # документы
     decl_list = declarations_from_fsa(reg.get("fsa")) if inn and not inn_unverified else None
@@ -364,6 +395,7 @@ def hours_field(rec: dict, where: list[str]) -> dict:
 # ---------- персональные данные ИП: в публичный набор — «ИП Фамилия И. О.», без ИНН и личных мобильных ----------
 
 PERSON_RX = re.compile(r"(ИП|Индивидуальный предприниматель)\s+([А-ЯЁ][а-яё-]+)\s+([А-ЯЁ])[а-яё]+(?:\s+([А-ЯЁ])[а-яё]+)?")
+BARE_FIO = re.compile(r"[А-ЯЁ][а-яё-]+\s+[А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?")
 
 
 def is_person(sup: dict, inn: str | None) -> bool:
@@ -379,9 +411,14 @@ def _short(m: re.Match) -> str:
 def redact_person(sup: dict, inn: str | None):
     """ИНН физлица, полное ФИО и мобильные — персональные данные: в карточку не идут. Цитата с полным ФИО снимается,
     источник-страница остаётся — по ссылке видно, откуда значение."""
-    legal = sup["legal_name"]["value"] or ""
+    legal = (sup["legal_name"]["value"] or "").strip()
+    # ФНС отдаёт ИП без приставки: «Фамилия Имя Отчество» (так пришло у одного ИП, T-539). Шаблон ФИО ищет «ИП Фамилия Имя», и имя
+    # из реестра уходило в карточку целиком; реестровое имя ИП — всегда ФИО, поэтому приставка дописывается
+    if sup["legal_name"]["status"] == "found" and BARE_FIO.fullmatch(legal):
+        legal = "ИП " + legal
     m = PERSON_RX.match(legal)
     names = [x for x in (m.group(0).split()[2:] if m else [])]          # имя и отчество — по ним ищем ФИО в цитатах
+    bare = m.group(0).split(" ", 1)[1] if m else None                    # то же ФИО без «ИП» — в других полях
     if m:
         sup["legal_name"]["value"] = _short(m)
     if sup["name"] and PERSON_RX.search(sup["name"]):
@@ -402,6 +439,12 @@ def redact_person(sup: dict, inn: str | None):
         if inn and inn in s["url"]:
             s["url"] = re.sub(r"[?#].*$", "", s["url"]).replace(inn, "")
 
+    def scrub(v: str) -> str:
+        v = PERSON_RX.sub(_short, v)
+        if bare:
+            v = v.replace(bare, _short(m)[3:])
+        return v.replace(inn, "(ИНН скрыт)") if inn else v
+
     def walk(x):
         if isinstance(x, dict):
             if isinstance(x.get("quote"), str) and (PERSON_RX.search(x["quote"]) or any(n in x["quote"] for n in names)
@@ -409,13 +452,13 @@ def redact_person(sup: dict, inn: str | None):
                 x["quote"] = None
             for k, v in x.items():
                 if isinstance(v, str):
-                    x[k] = PERSON_RX.sub(_short, v).replace(inn, "(ИНН скрыт)") if inn else PERSON_RX.sub(_short, v)
+                    x[k] = scrub(v)
                 else:
                     walk(v)
         elif isinstance(x, list):
             for i, v in enumerate(x):
                 if isinstance(v, str):
-                    x[i] = PERSON_RX.sub(_short, v).replace(inn, "(ИНН скрыт)") if inn else PERSON_RX.sub(_short, v)
+                    x[i] = scrub(v)
                 else:
                     walk(v)
     walk(sup)

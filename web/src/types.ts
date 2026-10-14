@@ -17,6 +17,8 @@ export interface Field<T> {
   collected_at: string;
   /** источники расходятся: второе значение со своей цитатой и ссылкой */
   alternatives?: Field<T>[];
+  /** для not_found: страница этого вида закрыта robots.txt — не «нет на сайте», а «не собрано» (T-539) */
+  blocked?: string;
 }
 
 export type SourceKind = "site" | "registry" | "search" | "market" | "user";
@@ -48,6 +50,8 @@ export interface Prices {
 export interface Delivery {
   to_door: boolean;
   free_from: number | null;
+  /** порог бесплатной доставки не в рублях: «от 1000 шт» — с закупкой в рублях не сравнить (T-539) */
+  free_from_qty?: MinOrder | null;
   cost: number | null;
   lead_time: string | null;
   pickup: boolean;

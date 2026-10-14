@@ -2,7 +2,7 @@ import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
 import { byId, queryParams, rankCategory, readQuery } from "../data.ts";
 import { asks, leaderText } from "../lib/explain.ts";
-import { CRITS, PRIORITIES, UNKNOWN, weightsFor, type Priority } from "../lib/score.ts";
+import { bigWholesale, CRITS, firstToWrite, PRIORITIES, UNKNOWN, weightsFor, type Priority } from "../lib/score.ts";
 import { Gauge, Hint, Mono, Rule, Score, Seg, StatusIcon } from "../components/ui.tsx";
 
 const fmt1 = (n: number) => n.toLocaleString("ru-RU", { maximumFractionDigits: 1 });
@@ -20,7 +20,8 @@ export function Why({ route }: { route: Route }) {
   if (!ranked.length) {
     return <div className="empty"><h1 className="h1">Некого ранжировать</h1><p><a href="#/categories">К поиску по категории →</a></p></div>;
   }
-  const leader = ranked[0];
+  // первый — тот же, что в «Кому написать первым»: крупный опт туда не ставим (T-539); в сравнении — просто лучший балл
+  const leader = (ids ? null : firstToWrite(ranked)[0]) ?? ranked[0];
   const focusId = p.get("id");
   const focus = ranked.find((x) => x.supplier.id === focusId) ?? leader;
   const isLeader = focus === leader;
@@ -74,7 +75,7 @@ export function Why({ route }: { route: Route }) {
                 <button type="button" onClick={() => setParam({ id: sc.supplier.id })} aria-pressed={sc === focus}>
                   <span className="n num">{i + 1}</span>
                   <Mono s={sc.supplier} size={32} />
-                  <span className="nm">{sc.supplier.name}</span>
+                  <span className="nm">{sc.supplier.name}{!ids && bigWholesale(sc) && <span className="opt-pill">крупный опт</span>}</span>
                   <span className="stack" aria-hidden="true">
                     {CRITS.map((c) => <i key={c.id} style={{ width: `${sc.contrib[c.id]}%` }} title={c.short} />)}
                   </span>

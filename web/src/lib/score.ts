@@ -85,7 +85,17 @@ export interface CritResult {
   known: boolean;
   mark: FieldStatus | null;
   text: string;
+  /** min_order: во сколько раз минимум больше закупки — только когда больше вдвое и закупка задана */
+  ratio?: number;
 }
+
+/** Минимум больше закупки в столько раз и больше — «крупный опт»: в «Кому написать первым» не ставим, в списке — с пометкой
+ *  (решение Павла 14.10, T-539: Атлант в «Креветках» стоял третьим с минимумом в 80,7 раза больше закупки). */
+export const BIG_WHOLESALE = 5;
+export const bigWholesale = (sc: Scored) => (sc.crits.min_order.ratio ?? 0) >= BIG_WHOLESALE;
+
+/** «Кому написать первым»: тройка по баллу без крупного опта. Отсеяли всех — показываем меньше, а не добиваем отсеянными. */
+export const firstToWrite = (ranked: Scored[]) => ranked.filter((sc) => !bigWholesale(sc)).slice(0, 3);
 
 export function activeDeclarations(s: Supplier, now = new Date()) {
   const f = s.documents.declarations;
@@ -203,7 +213,8 @@ function minOrder(s: Supplier, ctx: Ctx): CritResult {
   if (ctx.volume) {
     if (amt <= ctx.volume) return r({ score: 1, text: `${lbl} — не больше вашей закупки` });
     if (amt <= ctx.volume * 2) return r({ score: 0.5, text: `${lbl} — больше вашей закупки, но меньше двух` });
-    return r({ score: 0.1, text: `${lbl} — больше вашей закупки в ${(amt / ctx.volume).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза` });
+    return r({ score: 0.1, ratio: amt / ctx.volume,
+      text: `${lbl} — больше вашей закупки в ${(amt / ctx.volume).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза` });
   }
   const known = ctx.peers
     .map((p) => (isKnown(p.min_order) ? minOrderRub(p.min_order.value!, ctx.peers) : null))
@@ -251,7 +262,12 @@ function delivery(s: Supplier, ctx: Ctx): CritResult {
     if (d.free_from != null && (ctx.volume == null || d.free_from <= ctx.volume)) {
       return { id: "delivery", score: 1, known: true, mark: f.status, text: `до точки бесплатно от ${rub(d.free_from)}${lead}${conflict}` };
     }
-    const paid = d.free_from != null ? `платно, бесплатно только от ${rub(d.free_from)}` : d.cost ? `до точки за ${rub(d.cost)}` : "до точки, платно";
+    // порог в штуках или килограммах с закупкой в рублях не сравнить — между «бесплатно» и «платно» (Уралпаксистем, T-539)
+    if (d.free_from == null && d.free_from_qty) {
+      return { id: "delivery", score: 0.85, known: true, mark: f.status, text: `до точки бесплатно ${d.free_from_qty.text}${lead}${conflict}` };
+    }
+    // стоимость не указана — не значит «платно» (Атлант: «уточняйте у менеджеров»); балл тот же, что у платной
+    const paid = d.free_from != null ? `платно, бесплатно только от ${rub(d.free_from)}` : d.cost ? `до точки за ${rub(d.cost)}` : "до точки, стоимость не указана";
     return { id: "delivery", score: 0.7, known: true, mark: f.status, text: `${paid}${lead}${conflict}` };
   }
   if (d.transport_company) return { id: "delivery", score: 0.2, known: true, mark: f.status, text: `склад в другом городе, транспортной компанией${lead}` };
@@ -264,7 +280,8 @@ const PRICE_SCORE = { pricelist: 1, partial: 0.6, on_request: 0.2, after_login: 
 
 function prices(s: Supplier): CritResult {
   const f = s.prices;
-  if (!isKnown(f)) return { id: "prices", score: UNKNOWN, known: false, mark: "not_found", text: "о ценах на сайте ничего нет" };
+  if (!isKnown(f)) return { id: "prices", score: UNKNOWN, known: false, mark: "not_found",
+    text: f.blocked ? "не собрано: сайт закрыл прайс для сбора" : "о ценах на сайте ничего нет" };
   const mode = f.value!.mode;
   return { id: "prices", score: PRICE_SCORE[mode], known: true, mark: f.status, text: PRICE_TEXT[mode] };
 }

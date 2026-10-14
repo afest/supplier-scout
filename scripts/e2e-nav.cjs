@@ -209,6 +209,37 @@ const rowNames = (page) => page.locator(".rows .row .nm").allInnerTexts();
     check(await page.locator(".notice").count() === 0 && await page.locator(".find-related").count() === 0 && await page.locator(".sub-jump").count() === 0,
       "без подбора похожего: ни «исправленного запроса», ни «похожей категории»");
 
+    step("Правки перед публикацией (T-539): доставка, robots.txt, ФНС, крупный опт");
+    const row = (label) => page.locator(".field", { has: page.locator(".k", { hasText: label }) }).first();
+    const field = async (label) => (await row(label).innerText()).replace(/\s+/g, " ");
+    const value = async (label) => (await row(label).locator(".v").first().innerText()).replace(/\s+/g, " ");
+    const paid = (t) => /(?<!бес)платн/i.test(t);
+    await page.goto(base + "#/s/morskoe-schaste", { waitUntil: "networkidle" });
+    const sea = await value("Доставка");
+    const seaQuote = await field("Доставка");
+    check(sea.includes("бесплатно от 10 000 ₽") && !paid(sea) && seaQuote.includes("10 000руб. доставка бесплатно"),
+      "«Морское счастье»: доставка бесплатно от 10 000 ₽, в цитате — строка с порогом", sea);
+    await page.goto(base + "#/s/uralpaksistem", { waitUntil: "networkidle" });
+    const ural = await value("Доставка");
+    check(ural.includes("бесплатно от 1 000 шт") && !paid(ural), "Уралпаксистем: «бесплатно от 1 000 шт», а не «платно»", ural);
+    await page.goto(base + "#/s/atlant-grupp", { waitUntil: "networkidle" });
+    const atl = await value("Доставка");
+    check(atl.includes("стоимость не указана") && !paid(atl), "Атлант: стоимость доставки не указана — не «платно»", atl);
+    await page.goto(base + "#/s/redfish", { waitUntil: "networkidle" });
+    const red = await field("Цены");
+    check(red.includes("не собрано: сайт запрещает сбор"), "RedFish: цены «не собрано: сайт запрещает сбор», а не «не найдено»", red.slice(0, 120));
+    await page.goto(base + "#/s/food-face-ru", { waitUntil: "networkidle" });
+    const ff = (await page.locator(".card-page").innerText()).replace(/\s+/g, " ");
+    check(ff.includes("массовый адрес") && !ff.includes("не ответил"), "Food-Face: флаги ФНС проверены — «массовый адрес», без «не ответил»");
+    await page.goto(base + "#/results?cat=fish&sub=shrimp", { waitUntil: "networkidle" });
+    const first = await page.locator(".first .gcard .nm").allInnerTexts();
+    check(first.length > 0 && !first.some((n) => n.includes("Атлант")), "«Креветки»: Атланта нет в «Кому написать первым»", first.join(" · "));
+    const atlRow = page.locator(".rows .row", { has: page.locator(".nm", { hasText: "Атлант" }) });
+    check(await atlRow.count() === 1 && await atlRow.locator(".opt-pill").count() === 1, "«Креветки»: Атлант в списке с пометкой «крупный опт»");
+    await page.goto(base + "#/why?cat=fish&sub=shrimp", { waitUntil: "networkidle" });
+    const verdict = await page.locator(".verdict").innerText();
+    check(!verdict.includes("Атлант") && verdict.includes(first[0]), "«Почему такой порядок»: первым — тот же, что в тройке", verdict.slice(0, 80));
+
     step("«Знаю поставщика» → живой сбор → «Сравнить с остальными»");
     await page.goto(base + "#/add", { waitUntil: "networkidle" });
     await page.locator(".examples .pill-out").filter({ hasText: "посоветовал коллега" }).first().click();

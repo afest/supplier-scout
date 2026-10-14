@@ -81,19 +81,32 @@ class Registries:
         raise TimeoutError("ФНС не вернула ответ")
 
     # ---- ФНС «Прозрачный бизнес» ----
+    def _pb_task(self, url: str, data: dict, what: str) -> dict:
+        """Запрос, ответ на который — id задачи ФНС. Без id ФНС отвечает и без капчи, при частых запросах подряд: в пересборке
+        14.10 у Food-Face это падало как KeyError 'id'. Один повтор после паузы, потом понятная причина вместо KeyError."""
+        j: object = None
+        for attempt in range(2):
+            try:
+                j = self.http.post(url, headers={"X-Requested-With": "XMLHttpRequest"}, data=data).json()
+            except ValueError:
+                j = None
+            if isinstance(j, dict) and (j.get("captchaRequired") or "captcha" in str(j.get("ERRORS", "")).lower()):
+                raise Captcha("ФНС «Прозрачный бизнес» попросила капчу — проверка отложена до следующего прогона")
+            if isinstance(j, dict) and j.get("id"):
+                return j
+            if attempt == 0:
+                time.sleep(self.PAUSE["pb"])
+        raise RuntimeError(f"ФНС не приняла запрос ({what}), ответ без id: {str(j)[:120]}")
+
     def _pb(self, inn: str) -> dict | None:
-        r = self.http.post("https://pb.nalog.ru/search-proc.json", headers={"X-Requested-With": "XMLHttpRequest"},
-                           data={"mode": "search-all", "queryAll": inn, "page": "1", "pageSize": "10", "pbCaptchaToken": "", "token": ""})
-        j = r.json()
-        if j.get("captchaRequired") or "captcha" in str(j.get("ERRORS", "")).lower():
-            raise Captcha("ФНС «Прозрачный бизнес» попросила капчу — проверка отложена до следующего прогона")
+        j = self._pb_task("https://pb.nalog.ru/search-proc.json",
+                          {"mode": "search-all", "queryAll": inn, "page": "1", "pageSize": "10", "pbCaptchaToken": "", "token": ""}, "поиск")
         res = self._poll("https://pb.nalog.ru/search-proc.json", {"id": j["id"], "method": "get-response"})
         rows = [x for x in ((res.get("ul") or {}).get("data") or []) + ((res.get("ip") or {}).get("data") or []) if x.get("inn") == inn]
         if not rows:
             return None
         row = rows[0]
-        r2 = self.http.post("https://pb.nalog.ru/company-proc.json", headers={"X-Requested-With": "XMLHttpRequest"},
-                            data={"token": row["token"], "method": "get-request"}).json()
+        r2 = self._pb_task("https://pb.nalog.ru/company-proc.json", {"token": row["token"], "method": "get-request"}, "карточка")
         card = self._poll("https://pb.nalog.ru/company-proc.json", {"token": r2.get("token", row["token"]), "id": r2["id"], "method": "get-response"})
         return {"row": {k: row.get(k) for k in ("namec", "namep", "okved2main", "okved2mainname", "sulst_name_ex", "pr_liq", "dtogrn", "dtreg", "okopf12", "regionname", "invalid")},
                 "card": card}

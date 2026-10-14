@@ -78,7 +78,14 @@ function pageTitle(s: Supplier, f: Field<unknown>) {
 export function FieldRow({ s, label, f, value, extra }: { s: Supplier; label: string; f: Field<unknown> | null; value?: ReactNode; extra?: ReactNode }) {
   if (!f) return null;
   let body: ReactNode;
-  if (f.status === "not_found") {
+  if (f.status === "not_found" && f.blocked) {
+    body = (
+      <div className="v miss">
+        не собрано: сайт запрещает сбор
+        <Hint label="Почему не собрано">Страница закрыта для роботов в robots.txt сайта, и сервис её не открывает: {f.blocked.replace(/^сайт запрещает сбор: /, "")}. Это не значит, что на сайте этого нет, — посмотрите сами или спросите поставщика.</Hint>
+      </div>
+    );
+  } else if (f.status === "not_found") {
     body = (
       <div className="v miss">
         не найдено
@@ -129,7 +136,9 @@ export function deliveryText(d: Delivery) {
   if (d.to_door) {
     if (d.free_from === 0) parts.push("до точки бесплатно");
     else if (d.free_from != null) parts.push(`до точки бесплатно от ${rub(d.free_from)}${d.cost ? `, иначе ${rub(d.cost)}` : ""}`);
-    else parts.push(d.cost ? `до точки — ${rub(d.cost)}` : "до точки, платно");
+    else if (d.free_from_qty) parts.push(`до точки бесплатно ${d.free_from_qty.text}${d.cost ? `, иначе ${rub(d.cost)}` : ""}`);
+    // стоимость не указана — не значит «платно»: «уточняйте у менеджеров» (Атлант)
+    else parts.push(d.cost ? `до точки — ${rub(d.cost)}` : "до точки, стоимость не указана");
     if (d.transport_company) parts.push("в другие города — транспортной компанией");
   } else if (d.transport_company) parts.push("транспортной компанией со склада в другом городе");
   if (d.lead_time) parts.push(d.lead_time);
@@ -139,7 +148,8 @@ export function deliveryText(d: Delivery) {
 
 export function deliveryShort(d: Delivery) {
   if (d.to_door && d.free_from != null) return `бесплатно от ${rub(d.free_from)}`;
-  if (d.to_door) return `до точки${d.cost ? ` ${rub(d.cost)}` : ", платно"}`;
+  if (d.to_door && d.free_from_qty) return `бесплатно ${d.free_from_qty.text}`;
+  if (d.to_door) return `до точки${d.cost ? ` ${rub(d.cost)}` : ", цена не указана"}`;
   if (d.transport_company) return `ТК, ${d.lead_time ?? "срок не указан"}`;
   if (d.pickup) return `самовывоз${d.lead_time ? ` ${d.lead_time}` : ""}`;
   return "—";

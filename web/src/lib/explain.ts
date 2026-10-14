@@ -69,10 +69,12 @@ export function weakness(id: CritId, sc: Scored, volume: number | null): string 
       const d = s.delivery.value!;
       if (!d.to_door && d.transport_company) return "везут транспортной компанией из другого города";
       if (!d.to_door) return "только самовывоз";
-      return d.free_from != null ? `доставка бесплатна только от ${rub(d.free_from)}` : "доставка платная";
+      if (d.free_from != null) return `доставка бесплатна только от ${rub(d.free_from)}`;
+      if (d.free_from_qty) return `доставка бесплатна только ${d.free_from_qty.text}`;
+      return d.cost ? `доставка ${rub(d.cost)}` : "стоимость доставки не указана";
     }
     case "prices": {
-      if (!r.known) return "цен на сайте нет";
+      if (!r.known) return s.prices.blocked ? "прайс закрыт для сбора" : "цен на сайте нет";
       return { pricelist: "", partial: "цены — только на часть позиций", on_request: "цены только по запросу", after_login: "цены только после регистрации" }[s.prices.value!.mode];
     }
     default:

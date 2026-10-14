@@ -3,7 +3,7 @@ import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, MAX_COMPARE, useStore } from "../store.ts";
 import { byId, categoryOf, countIn, inCategory, queryParams, rankCategory, readQuery, volParam, type Query } from "../data.ts";
 import { leaderText, followerText } from "../lib/explain.ts";
-import { completeness, PRIORITIES, type Priority, type Scored } from "../lib/score.ts";
+import { bigWholesale, BIG_WHOLESALE, completeness, firstToWrite, PRIORITIES, type Priority, type Scored } from "../lib/score.ts";
 import { activeCount, minRub, passes, readFilters } from "../lib/filters.ts";
 import { isKnown, num, plural } from "../lib/format.ts";
 import { matchesSupplier } from "../lib/search.ts";
@@ -41,7 +41,7 @@ export function Results({ route }: { route: Route }) {
   if (sort === "min") sorted.sort((a, b) => (minRub(a.supplier) ?? Infinity) - (minRub(b.supplier) ?? Infinity));
   if (sort === "full") sorted.sort((a, b) => completeness(b.supplier).found - completeness(a.supplier).found);
   const hidden = ranked.length - visible.length;
-  const top = visible.slice(0, 3);
+  const top = firstToWrite(visible);
   const nFilters = activeCount(fs);
 
   // сравнивать можно всех, кто есть в этой категории, — и поставщиков из чужих по подкатегории
@@ -258,6 +258,11 @@ function Row({ sc, rank, q, hrefCard, inCompare, onCompare, starred, collected }
         <div className="row-title">
           <a className="nm" href={hrefCard}>{s.name}</a>
           {collected && <span className="fresh-pill">собрано сейчас</span>}
+          {bigWholesale(sc) && (
+            <span className="opt-pill">крупный опт
+              <Hint label="Крупный опт">Минимальный заказ больше вашей закупки в {Math.round(sc.crits.min_order.ratio!).toLocaleString("ru-RU")} раз. Когда минимум больше закупки в {BIG_WHOLESALE} раз и сильнее, поставщика нет в «Кому написать первым»; место в списке — по баллу, как у всех.</Hint>
+            </span>
+          )}
           <GuestTag s={s} cat={q.cat} own={categoryOf(s)} />
         </div>
         <div className="row-meta">{!isKnown(s.company) && <StatusIcon status="not_found" size={10} />} {supplierMeta(s)}</div>

@@ -91,18 +91,44 @@ def other_city(quote: str, value_text: str | None = None, page_url: str | None =
     return None
 
 
+def _clauses(quote: str) -> list[str]:
+    """Части цитаты между знаками препинания, разряды числа склеены. Точка после сокращения («руб.», «шт.») фразу не делит,
+    и слитно с числом тоже: «от 10 000руб. доставка бесплатно» — одна часть («Морское счастье»)."""
+    q = re.sub(r"(?<=\d)[ ,.](?=\d{3}(?!\d))", "", norm(quote))
+    q = re.sub(r"(?<![а-яa-z])(руб|р|шт|кг|гр|г|ул|тыс|т\.р|д|стр|мин|макс|коп|уп|кор|ед)\.", r"\1", q)
+    return [p.strip() for p in re.split(r"[;!?\n]|,(?!\d)|\.(?!\d)", q)]
+
+
 def amount_clause(quote: str, amount) -> str | None:
-    """Часть цитаты между знаками препинания, где стоит число: в «Бесплатная доставка от 5000, минимальный заказ 3000»
-    у 3000 это «минимальный заказ 3000». Точка после сокращения («руб.», «шт.») предложение не делит."""
+    """Часть цитаты, где стоит число: в «Бесплатная доставка от 5000, минимальный заказ 3000» у 3000 это «минимальный заказ 3000»."""
     if amount is None:
         return None
-    q = re.sub(r"(?<=\d)[ ,.](?=\d{3}(?!\d))", "", norm(quote))
-    q = re.sub(r"\b(руб|р|шт|кг|гр|г|ул|тыс|т\.р|д|стр|мин|макс|коп|уп|кор|ед)\.", r"\1", q)
     target = float(amount)
-    for part in re.split(r"[;!?\n]|,(?!\d)|\.(?!\d)", q):
+    for part in _clauses(quote):
         nums = _numbers(part)
         if target in nums or ("тыс" in part and target / 1000 in nums):
-            return part.strip()
+            return part
+    return None
+
+
+FREE_FROM_RX = re.compile(r"(?:от|свыше|более|больше)\s*(\d+(?:[.,]\d+)?)\s*(тыс\w*\s*)?(₽|руб|р\b|шт|кг)")
+FREE_UNIT = {"₽": "RUB", "руб": "RUB", "р": "RUB", "шт": "pcs", "кг": "kg"}
+
+
+def free_threshold(quote: str) -> dict | None:
+    """Порог бесплатной доставки из фразы, где «бесплатно» и «от N» стоят в одной части: «При заказе от 10 000 руб. доставка
+    бесплатно» → 10 000 ₽, «Бесплатно доставим заказ от 1000 шт» → 1000 шт. Порог в штуках и килограммах — отдельно
+    от рублёвого: с закупкой в рублях его не сравнить (Уралпаксистем)."""
+    for part in _clauses(quote):
+        m = FREE_FROM_RX.search(part)
+        # «в пределах 5 км от МКАД — покупки от 12000р бесплатная доставка» (RedFish): город назван не после «для / по / в»
+        foreign = CITY_NAMED.search(part) and not OUR_CITY.search(part)
+        if m and FREE_WORDS.search(part) and not foreign and not other_city(part):
+            amount = float(m.group(1).replace(",", ".")) * (1000 if m.group(2) else 1)
+            amount = int(amount) if amount == int(amount) else amount
+            unit = FREE_UNIT[m.group(3)]
+            text = f"{amount:,} ₽".replace(",", " ") if unit == "RUB" else f"от {amount:,} {m.group(3)}".replace(",", " ")
+            return {"amount": amount, "unit": unit, "text": text}
     return None
 
 
@@ -342,6 +368,23 @@ class Checked:
     def reject(self, field: str, value, why: str):
         self.rejected.append({"field": field, "value": value, "why": why})
 
+    def widen(self, i: int, quote: str, want, reach: int = 3) -> str | None:
+        """Цитата, продлённая до ближайшей строки той же страницы, где стоит нужное значение: строки подряд, не дальше reach
+        от цитаты. Дословность сохраняется — это кусок страницы целиком, а не склейка."""
+        lines = [l.strip() for l in self.pages[i]["text"].split("\n")]
+        nq = norm(quote)
+        span = next(((j, j + w - 1) for w in range(1, 7) for j in range(len(lines) - w + 1)
+                     if nq in norm(" ".join(lines[j:j + w]))), None)
+        if not span:
+            return None
+        j, k = span
+        near = sorted((f for f in range(max(j - reach, 0), min(k + reach, len(lines) - 1) + 1) if want(lines[f])),
+                      key=lambda f: 0 if j <= f <= k else min(abs(f - j), abs(f - k)))
+        if not near:
+            return None
+        wide = " ".join(l for l in lines[min(j, near[0]):max(k, near[0]) + 1] if l)
+        return wide if len(wide) <= 600 and quote_in(wide, self.norm[i]) else None
+
     def fact(self, field: str, f: dict | None, check=None):
         if not f:
             return None
@@ -536,6 +579,14 @@ def check_answer(ans: dict, pages: list[dict]) -> Checked:
     got = c.fact("delivery", ans.get("delivery"), lambda v, q: other_city(q, v.get("zones"), c.page_url))
     if got:                     # число, которого нет в цитате, обнуляется само, остальные условия доставки остаются
         v = dict(got["value"])
+        # порог модель взяла с соседней строки, а цитату дала про тариф: «Морское счастье» — «до 3 000 руб. — 450 рублей»,
+        # двумя строками ниже «от 10 000руб. доставка бесплатно». Цитата продлевается до этой строки, порог не теряется
+        if v.get("free_from") and not number_in(v["free_from"], got["quote"]):
+            want = v["free_from"]
+            wide = c.widen(got["page"], got["quote"], lambda line: (free_threshold(line) or {}).get("amount") == want
+                           and free_threshold(line)["unit"] == "RUB")
+            if wide:
+                got["quote"] = wide
         for k in ("free_from", "cost"):
             if v.get(k) is not None and not number_in(v[k], got["quote"]):
                 c.reject(f"delivery.{k}", v[k], "числа нет в цитате")
@@ -566,6 +617,14 @@ def check_answer(ans: dict, pages: list[dict]) -> Checked:
                 if words and hits / len(words) < 0.6:
                     c.reject(f"delivery.{k}", txt, "слов из пересказа нет на страницах")
                     v[k] = None
+        # порог, которого модель не записала, а в цитате он есть: рубли — в free_from, штуки и килограммы — в free_from_qty
+        # (Уралпаксистем: «Бесплатно доставим заказ от 1000 шт» — рублёвое поле такой порог не держит, а терять его нельзя)
+        # (неверное число модели не подменяем числом из цитаты — оно обнуляется, как раньше; добор — только когда порога в ответе нет)
+        thr = free_threshold(got["quote"]) if v.get("to_door") and got["value"].get("free_from") is None else None
+        if thr and thr["unit"] == "RUB":
+            v["free_from"] = thr["amount"]
+        elif thr:
+            v["free_from_qty"] = thr
         # «доставка бесплатно» без суммы — порог 0, иначе интерфейс прочитает пустой порог как «платно»
         q = norm(got["quote"])
         if v.get("to_door") and v.get("free_from") is None and v.get("cost") is None and "бесплатн" in q and not re.search(r"\d", q):

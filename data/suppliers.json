@@ -1372,6 +1372,7 @@
     "value": {
      "to_door": false,
      "free_from": 5000,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -2595,6 +2596,7 @@
     "value": {
      "to_door": false,
      "free_from": 3000,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -4278,6 +4280,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": true,
@@ -8818,6 +8821,7 @@
     "value": {
      "to_door": false,
      "free_from": 3000,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": "на следующий день после оформления заказа",
      "pickup": false,
@@ -10086,6 +10090,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": "на следующий день, при заказе до 17:00",
      "pickup": false,
@@ -10959,6 +10964,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -12024,6 +12030,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -14187,6 +14194,7 @@
     "value": {
      "to_door": true,
      "free_from": 50000,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -14908,6 +14916,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": "от 4 дней",
      "pickup": true,
@@ -16260,6 +16269,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -17295,6 +17305,7 @@
     "value": {
      "to_door": true,
      "free_from": 3000,
+     "free_from_qty": null,
      "cost": 300,
      "lead_time": "заказы до 18:00 — на следующий рабочий день, после 18:00 — через один рабочий день",
      "pickup": false,
@@ -18008,15 +18019,18 @@
     "sources": [],
     "quote": null,
     "searched_in": [
-     "сайт: 5 стр. — главная, produkty/ryba/losos-1, contact, delivery, o-kompanii"
+     "сайт: 5 стр. — главная, produkty/ryba/losos-1, contact, delivery, o-kompanii",
+     "https://www.redfish24.ru/prajs-listy — закрыта для сбора в robots.txt"
     ],
     "basis": null,
-    "collected_at": "2026-10-14"
+    "collected_at": "2026-10-14",
+    "blocked": "сайт запрещает сбор: robots.txt закрывает /prajs-listy"
    },
    "delivery": {
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -18772,6 +18786,7 @@
     "value": {
      "to_door": false,
      "free_from": 5000,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": "по графику поставки",
      "pickup": false,
@@ -19694,6 +19709,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": 100,
      "lead_time": "4-5 дней",
      "pickup": false,
@@ -20836,6 +20852,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": 360,
      "lead_time": "на следующий день после получения оплаты заказа",
      "pickup": false,
@@ -23349,6 +23366,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": "по графику, уточняется у менеджера",
      "pickup": false,
@@ -26321,6 +26339,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": 500,
      "lead_time": null,
      "pickup": false,
@@ -28450,6 +28469,7 @@
     "value": {
      "to_door": true,
      "free_from": 2500,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": "1-3 дней после заказа",
      "pickup": false,
@@ -29347,6 +29367,7 @@
     "value": {
      "to_door": false,
      "free_from": 3000,
+     "free_from_qty": null,
      "cost": 650,
      "lead_time": "1–2 дня по городу, 3–5 дней по области",
      "pickup": false,
@@ -30657,6 +30678,7 @@
     "value": {
      "to_door": true,
      "free_from": 3000,
+     "free_from_qty": null,
      "cost": 500,
      "lead_time": "в этот же день при заказе до 11 часов",
      "pickup": false,
@@ -31953,7 +31975,7 @@
     "value": "ООО \"ФУДФЕЙС.РУ\"",
     "status": "found",
     "sources": [
-     "bo"
+     "pb"
     ],
     "quote": null,
     "searched_in": null,
@@ -32561,6 +32583,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -32680,25 +32703,25 @@
      "revenue": [
       {
        "year": 2023,
-       "mln": 30
+       "mln": 37
       },
       {
        "year": 2024,
-       "mln": 146
+       "mln": 153
       },
       {
        "year": 2025,
-       "mln": 249
+       "mln": 250
       }
      ],
-     "staff": null,
+     "staff": 20,
      "flags": [
-      "не проверены — «Прозрачный бизнес» не ответил"
+      "массовый адрес"
      ]
     },
     "status": "found",
     "sources": [
-     "bo",
+     "pb",
      "fedresurs"
     ],
     "quote": null,
@@ -32707,13 +32730,13 @@
     "collected_at": "2026-10-14"
    },
    "tax_regime": {
-    "value": null,
-    "status": "not_found",
-    "sources": [],
-    "quote": null,
-    "searched_in": [
-     "ФНС «Прозрачный бизнес» по ИНН 6679154435: KeyError: 'id'"
+    "value": "usn",
+    "status": "found",
+    "sources": [
+     "pb"
     ],
+    "quote": null,
+    "searched_in": null,
     "basis": null,
     "collected_at": "2026-10-14"
    },
@@ -32779,10 +32802,10 @@
       "fetched_at": "2026-10-14"
      },
      {
-      "id": "bo",
+      "id": "pb",
       "kind": "registry",
-      "url": "https://bo.nalog.gov.ru/organizations-card/11908240",
-      "title": "ФНС: бухгалтерская отчётность (ГИР БО)",
+      "url": "https://pb.nalog.ru/search.html#mode=search-all&queryAll=6679154435",
+      "title": "ФНС «Прозрачный бизнес»: карточка по ИНН",
       "fetched_at": "2026-10-14"
      },
      {
@@ -33348,6 +33371,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -33744,6 +33768,11 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": {
+      "amount": 1000,
+      "unit": "pcs",
+      "text": "от 1 000 шт"
+     },
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -33896,7 +33925,7 @@
     "value": "ООО \"ГУД-ИЗДАТ\"",
     "status": "found",
     "sources": [
-     "bo"
+     "pb"
     ],
     "quote": null,
     "searched_in": null,
@@ -34203,24 +34232,13 @@
      "okved_main": "58",
      "okved_title": "Деятельность издательская",
      "okved_match": false,
-     "revenue": [
-      {
-       "year": 2021,
-       "mln": 28
-      },
-      {
-       "year": 2022,
-       "mln": 36
-      }
-     ],
-     "staff": null,
-     "flags": [
-      "не проверены — ФНС «Прозрачный бизнес» попросила капчу"
-     ]
+     "revenue": [],
+     "staff": 1,
+     "flags": []
     },
     "status": "found",
     "sources": [
-     "bo",
+     "pb",
      "fedresurs"
     ],
     "quote": null,
@@ -34229,13 +34247,13 @@
     "collected_at": "2026-10-14"
    },
    "tax_regime": {
-    "value": null,
-    "status": "not_found",
-    "sources": [],
-    "quote": null,
-    "searched_in": [
-     "ФНС «Прозрачный бизнес» по ИНН 6672266066: ФНС «Прозрачный бизнес» попросила капчу — проверка отложена до следующего прогона"
+    "value": "usn",
+    "status": "found",
+    "sources": [
+     "pb"
     ],
+    "quote": null,
+    "searched_in": null,
     "basis": null,
     "collected_at": "2026-10-14"
    },
@@ -34294,10 +34312,10 @@
       "fetched_at": "2026-10-14"
      },
      {
-      "id": "bo",
+      "id": "pb",
       "kind": "registry",
-      "url": "https://bo.nalog.gov.ru/organizations-card/3401793",
-      "title": "ФНС: бухгалтерская отчётность (ГИР БО)",
+      "url": "https://pb.nalog.ru/search.html#mode=search-all&queryAll=6672266066",
+      "title": "ФНС «Прозрачный бизнес»: карточка по ИНН",
       "fetched_at": "2026-10-14"
      },
      {
@@ -34696,9 +34714,9 @@
    "city": "Екатеринбург",
    "legal_name": {
     "value": "ИП Ким М. С.",
-    "status": "claimed",
+    "status": "found",
     "sources": [
-     "site-p4"
+     "pb"
     ],
     "quote": null,
     "searched_in": null,
@@ -35308,6 +35326,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -35360,24 +35379,35 @@
     }
    },
    "company": {
-    "value": null,
-    "status": "not_found",
-    "sources": [],
-    "quote": null,
-    "searched_in": [
-     "ФНС не ответила: ФНС «Прозрачный бизнес» попросила капчу — проверка отложена до следующего прогона"
+    "value": {
+     "form": "ООО",
+     "status": "active",
+     "registered_at": "2012-06-08",
+     "okved_main": "47.19",
+     "okved_title": "Торговля розничная прочая в неспециализированных магазинах",
+     "okved_match": false,
+     "revenue": [],
+     "staff": null,
+     "flags": []
+    },
+    "status": "found",
+    "sources": [
+     "pb",
+     "fedresurs"
     ],
+    "quote": null,
+    "searched_in": null,
     "basis": null,
     "collected_at": "2026-10-14"
    },
    "tax_regime": {
-    "value": null,
-    "status": "not_found",
-    "sources": [],
-    "quote": null,
-    "searched_in": [
-     "ФНС «Прозрачный бизнес» по ИНН (ИНН скрыт): ФНС «Прозрачный бизнес» попросила капчу — проверка отложена до следующего прогона"
+    "value": "usn",
+    "status": "found",
+    "sources": [
+     "pb"
     ],
+    "quote": null,
+    "searched_in": null,
     "basis": null,
     "collected_at": "2026-10-14"
    },
@@ -35447,6 +35477,13 @@
       "kind": "registry",
       "url": "https://pub.fsa.gov.ru/rds/declaration",
       "title": "Росаккредитация: реестр деклараций по ИНН заявителя",
+      "fetched_at": "2026-10-14"
+     },
+     {
+      "id": "fedresurs",
+      "kind": "registry",
+      "url": "https://fedresurs.ru/search/entity",
+      "title": "Федресурс: сведения о банкротстве",
       "fetched_at": "2026-10-14"
      },
      {
@@ -35743,6 +35780,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -36423,7 +36461,8 @@
    "delivery": {
     "value": {
      "to_door": true,
-     "free_from": null,
+     "free_from": 10000,
+     "free_from_qty": null,
      "cost": 450,
      "lead_time": "день в день при заказе до 18:00 в будни",
      "pickup": false,
@@ -36434,7 +36473,7 @@
     "sources": [
      "site-p2"
     ],
-    "quote": "Стоимость доставки при заказе до 3 000 руб. составляет 450 рублей.",
+    "quote": "Стоимость доставки при заказе до 3 000 руб. составляет 450 рублей. Стоимость доставки при заказе свыше 3 000 руб. составляет 350 рублей. При заказе от 10 000руб. доставка бесплатно.",
     "searched_in": null,
     "basis": null,
     "collected_at": "2026-10-14"
@@ -37290,6 +37329,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -40934,6 +40974,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": "в течение одного-трёх дней с момента оплаты заказа (до транспортной компании)",
      "pickup": false,
@@ -41428,6 +41469,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -42657,6 +42699,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": 400,
      "lead_time": "на следующий день после готовности заказа или согласования с менеджером",
      "pickup": false,
@@ -45928,6 +45971,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": 400,
      "lead_time": "при заказе до 17:00 — на следующий день, после 17:00 — через день",
      "pickup": false,
@@ -47124,6 +47168,7 @@
     "value": {
      "to_door": false,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -48263,6 +48308,7 @@
     "value": {
      "to_door": true,
      "free_from": 0,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -49730,6 +49776,7 @@
     "value": {
      "to_door": true,
      "free_from": 0,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
@@ -50240,6 +50287,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": 1200,
      "lead_time": "1-3 рабочих дня после предоплаты и изготовления продукции",
      "pickup": false,
@@ -53795,6 +53843,7 @@
     "value": {
      "to_door": true,
      "free_from": null,
+     "free_from_qty": null,
      "cost": null,
      "lead_time": null,
      "pickup": false,
