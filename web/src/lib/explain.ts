@@ -2,7 +2,7 @@
 // Модель текст не пишет, поэтому не может приписать поставщику то, чего нет в полях.
 import type { Category, FieldStatus } from "../types.ts";
 import { ageYears, isKnown, plural, rub, years } from "./format.ts";
-import { activeDeclarations, CRITS, markingOk, type CritId, type Scored } from "./score.ts";
+import { CRITS, fnsFlags, markingOk, profileDeclarations, type CritId, type Scored } from "./score.ts";
 
 const EXPLAINED: CritId[] = CRITS.map((c) => c.id).filter((id) => id !== "completeness");
 
@@ -12,23 +12,26 @@ export function strength(id: CritId, sc: Scored, cat: Category, volume: number |
   switch (id) {
     case "reliability": {
       const c = s.company.value!;
-      return `работает ${years(ageYears(c.registered_at))}${c.flags.length ? "" : " без красных флагов ФНС"}`;
+      const f = fnsFlags(c.flags);
+      return `работает ${years(ageYears(c.registered_at))}${f.real.length || f.unchecked ? "" : " без красных флагов ФНС"}`;
     }
     case "documents": {
-      const n = activeDeclarations(s).length;
+      const n = profileDeclarations(s, cat).length;
       if (n) return `${n} ${plural(n, "декларация подтверждена", "декларации подтверждены", "деклараций подтверждены")} реестром`;
       if (markingOk(s, cat)) return `в «Честном знаке» по группе «${cat.marking_group}»`;
       return "документы упомянуты на сайте";
     }
     case "min_order": {
       const m = s.min_order.value!;
-      if (m.unit !== "RUB") return `минимальный заказ ${m.text}`;
-      return volume && (m.amount ?? 0) <= volume ? `минимальный заказ ${rub(m.amount ?? 0)} не больше вашей закупки` : `минимальный заказ ${rub(m.amount ?? 0)}`;
+      if (m.unit === "RUB" && !m.amount) return "без минимального заказа";
+      if (m.unit !== "RUB") return `минимальный заказ ${sc.crits.min_order.text}`;
+      return volume && m.amount! <= volume ? `минимальный заказ ${rub(m.amount!)} не больше вашей закупки` : `минимальный заказ ${rub(m.amount!)}`;
     }
     case "delivery": {
       const d = s.delivery.value!;
       if (d.to_door && d.free_from != null && (volume == null || d.free_from <= volume)) return `доставка бесплатно от ${rub(d.free_from)}${d.lead_time ? `, ${d.lead_time}` : ""}`;
       if (d.to_door) return `доставка до точки${d.lead_time ? ` ${d.lead_time}` : ""}`;
+      if (d.transport_company) return "доставка транспортной компанией";
       if (d.pickup) return `самовывоз со склада в городе${d.lead_time ? `, ${d.lead_time}` : ""}`;
       return "доставка транспортной компанией";
     }
@@ -47,7 +50,9 @@ export function weakness(id: CritId, sc: Scored, volume: number | null): string 
     case "reliability": {
       if (!r.known) return "компанию не проверить — ИНН не найден";
       const c = s.company.value!;
-      if (c.flags.length) return `у ФНС флаг «${c.flags[0]}»`;
+      const f = fnsFlags(c.flags);
+      if (f.real.length) return `у ФНС флаг «${f.real[0]}»`;
+      if (f.unchecked) return "флаги ФНС не проверены";
       const age = ageYears(c.registered_at);
       return age < 5 ? `компания моложе — ${age < 1 ? "меньше года" : years(age)}` : "ОКВЭД не по профилю";
     }
@@ -56,13 +61,13 @@ export function weakness(id: CritId, sc: Scored, volume: number | null): string 
     case "min_order": {
       if (!r.known) return "минимальный заказ не указан";
       const m = s.min_order.value!;
-      if (m.unit !== "RUB") return `минимальный заказ ${m.text}`;
+      if (m.unit !== "RUB") return `минимальный заказ ${r.text}`;
       return volume && (m.amount ?? 0) > volume ? `минимальный заказ ${rub(m.amount ?? 0)} больше вашей закупки` : `минимальный заказ выше — ${rub(m.amount ?? 0)}`;
     }
     case "delivery": {
       if (!r.known) return "условия доставки не нашли";
       const d = s.delivery.value!;
-      if (d.transport_company) return "везут транспортной компанией из другого города";
+      if (!d.to_door && d.transport_company) return "везут транспортной компанией из другого города";
       if (!d.to_door) return "только самовывоз";
       return d.free_from != null ? `доставка бесплатна только от ${rub(d.free_from)}` : "доставка платная";
     }
@@ -91,7 +96,7 @@ export function asks(sc: Scored, cat: Category): Ask[] {
   const out: Ask[] = [];
   const mo = s.min_order;
   if (!isKnown(mo)) out.push({ key: "min_order", label: "минимальный заказ", mark: mo.status, weight: w.min_order, question: "минимальный заказ для юрлиц" });
-  else if (mo.value!.unit === "RUB") out.push({ key: "min_order_confirm", label: `минимальный заказ для сетей — на сайте ${mo.value!.text}`, mark: "claimed", weight: 2, question: `минимальный заказ для юрлиц (на сайте указано ${mo.value!.text})` });
+  else if (mo.value!.unit === "RUB" && mo.value!.amount) out.push({ key: "min_order_confirm", label: `минимальный заказ для сетей — на сайте ${mo.value!.text}`, mark: "claimed", weight: 2, question: `минимальный заказ для юрлиц (на сайте указано ${mo.value!.text})` });
   if (!isKnown(s.prices) || s.prices.value!.mode !== "pricelist") {
     out.push({ key: "prices", label: s.prices.value?.mode === "partial" ? "полный прайс" : "цены", mark: isKnown(s.prices) ? "claimed" : "not_found", weight: w.prices, question: "можно ли получить прайс для сетей" });
   } else {
@@ -118,7 +123,7 @@ function reliabilityEdge(sc: Scored, leader: Scored) {
   const a = sc.supplier.company.value!;
   const b = leader.supplier.company.value;
   if (b && a.okved_match && !b.okved_match) return "основной ОКВЭД — по профилю категории";
-  if (b && !a.flags.length && b.flags.length) return "без красных флагов ФНС";
+  if (b && !fnsFlags(a.flags).real.length && !fnsFlags(a.flags).unchecked && fnsFlags(b.flags).real.length) return "без красных флагов ФНС";
   if (!b) return `компания проверена в ФНС: ${years(ageYears(a.registered_at))}`;
   return `работает дольше — ${years(ageYears(a.registered_at))}`;
 }

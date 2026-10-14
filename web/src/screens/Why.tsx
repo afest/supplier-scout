@@ -18,7 +18,7 @@ export function Why({ route }: { route: Route }) {
   const base = queryParams(q);
   const { ranked, excluded } = rankCategory(q, st, ids ? { ids } : { subsOnly: true });
   if (!ranked.length) {
-    return <div className="empty"><h1 className="h1">Некого ранжировать</h1><p><a href="#/">К поиску →</a></p></div>;
+    return <div className="empty"><h1 className="h1">Некого ранжировать</h1><p><a href="#/categories">К поиску по категории →</a></p></div>;
   }
   const leader = ranked[0];
   const focusId = p.get("id");

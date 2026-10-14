@@ -26,7 +26,10 @@ const SOURCES: { name: string; gives: string; status: FieldStatus | null }[] = [
 
 export function AboutData() {
   const set = DATA.suppliers.filter((s) => !s.live_only);
-  const rows = useMemo(() => TRACKED.map((t) => ({ ...t, n: set.filter((s) => isKnown(t.get(s) as never)).length })).sort((a, b) => b.n - a.n), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // «склад» считаем по значению, а не по заполненности: «только доставка» — тоже заполненное поле
+  const rows = useMemo(() => TRACKED.map((t) => (t.key === "presence"
+    ? { ...t, label: "Склад в Екатеринбурге", n: set.filter((s) => isKnown(s.presence) && s.presence.value === "warehouse").length }
+    : { ...t, n: set.filter((s) => isKnown(t.get(s) as never)).length })).sort((a, b) => b.n - a.n), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="about">
@@ -34,7 +37,7 @@ export function AboutData() {
       <h1 className="h1">Как собраны данные</h1>
       <p className="lead-sm">У каждого поля — источник и статус. Государственный реестр, слова поставщика, оценка по рынку и «не нашли» различаются формой знака, чтобы пустое поле не выглядело ошибкой, а оценка — фактом.</p>
 
-      <ol className="pipe">
+      <ol className="pipe dark">
         {PIPE.map((x) => (
           <li key={x.n}><span className="pipe-n num">{x.n}</span><b>{x.t}</b><span>{x.d}</span></li>
         ))}
@@ -68,8 +71,8 @@ export function AboutData() {
               </tbody>
             </table>
           </div>
-          <div className="status dont">
-            <div className="status-h">Чего сервис не делает</div>
+          <div className="panel dont">
+            <div className="panel-h"><b><span className="warn-mark" aria-hidden="true">!</span>Чего сервис не делает</b></div>
             <ul>
               <li>не выдаёт оценку за факт: ◇ видна, но в балле считается как неизвестное</li>
               <li>не обходит запрет сайта на сбор и защиту каталогов от ботов</li>

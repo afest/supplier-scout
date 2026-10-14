@@ -3,7 +3,7 @@ import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, MAX_COMPARE, useStore } from "../store.ts";
 import { byId, queryParams, rankCategory, readQuery, visibleSuppliers } from "../data.ts";
 import { compareConclusion } from "../lib/explain.ts";
-import { completeness, PRIORITIES, type CritId, type Priority, type Scored } from "../lib/score.ts";
+import { completeness, fnsFlags, PRIORITIES, type CritId, type Priority, type Scored } from "../lib/score.ts";
 import { ageYears, isKnown, years } from "../lib/format.ts";
 import type { FieldStatus } from "../types.ts";
 import { Check, DocGlyph, Hint, Mono, Score, Seg, StarButton, StatusIcon } from "../components/ui.tsx";
@@ -37,7 +37,7 @@ export function Compare({ route }: { route: Route }) {
     return (
       <div className="empty">
         <h1 className="h1">Сравнивать пока некого</h1>
-        <p>Отметьте 2–4 поставщиков в результатах поиска. <a href="#/">К поиску →</a></p>
+        <p>Отметьте 2–4 поставщиков в результатах по категории. <a href="#/categories">К поиску по категории →</a></p>
       </div>
     );
   }
@@ -79,7 +79,7 @@ export function Compare({ route }: { route: Route }) {
       cell: ({ supplier: s }) => {
         if (!isKnown(s.company)) return nf("не проверена: нет ИНН");
         const c = s.company.value!;
-        const t = `действует, ${years(ageYears(c.registered_at))}${c.flags.length ? ` · флаг: ${c.flags[0]}` : ""}`;
+        const t = `действует, ${years(ageYears(c.registered_at))}${fnsFlags(c.flags).real.length ? ` · флаг: ${fnsFlags(c.flags).real[0]}` : fnsFlags(c.flags).unchecked ? " · флаги не проверены" : ""}`;
         return { status: "found", text: t, plain: t };
       },
     },
