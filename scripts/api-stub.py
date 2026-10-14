@@ -18,7 +18,10 @@ os.environ["ALLOWED_ORIGINS"] = "*"
 
 import uvicorn  # noqa: E402
 
-from api import assistant, jobs  # noqa: E402
+from api import assistant, budget, jobs  # noqa: E402
+
+# заглушка не тратит, поэтому и дневной потолок не смотрит в журнал Kie этой копии: там расход пересборок конвейера
+budget.spent_today_rub = lambda: 0.0
 
 ANSWER = {
     "place": "бабл-ти в торговом центре",
