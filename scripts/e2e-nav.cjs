@@ -82,20 +82,23 @@ const rowNames = (page) => page.locator(".rows .row .nm").allInnerTexts();
     check(await page.locator(".find-group").count() > 0, "по запросу с опечаткой есть результаты", `групп: ${await page.locator(".find-group").count()}`);
     check((await activeNav(page)).join() === "Поиск по товару", "на результатах подсвечен «Поиск по товару»");
     check(await page.locator(".sugg").count() === 0, "после поиска подсказки не висят поверх результатов");
-    await page.locator(".sub-jump a", { hasText: "Моцарелла для пиццы" }).click();
+    await page.locator(".sub-jump a", { hasText: "Моцарелла" }).click();
     await page.waitForTimeout(250);
     check(hash(page) === "#/results?cat=dairy&sub=mozzarella", "«Подкатегория целиком» → результаты с подкатегорией", hash(page));
-    check((await page.locator(".sub-chip.on").allInnerTexts()).map((x) => x.replace(/\s+/g, " ")).join() === "Моцарелла для пиццы 5", "  на результатах выбрана «Моцарелла для пиццы»");
+    const mozN = DATA.suppliers.filter((s) => !s.live_only && s.subcategories.includes("mozzarella")).length;
+    check((await page.locator(".sub-chip.on").allInnerTexts()).map((x) => x.replace(/\s+/g, " ")).join() === `Моцарелла ${mozN}`, `  на результатах выбрана «Моцарелла» (${mozN} — с продавцами из других категорий)`);
     await page.goBack();
     await page.waitForTimeout(250);
-    await page.locator(".find-group-h a").first().click();
+    // группы — по числу находок: моцареллу продают и рыбные оптовики (T-538), поэтому группа сыра — по названию
+    await page.locator(".find-group", { hasText: "Сыр и молочное" }).locator(".find-group-h a").click();
     await page.waitForTimeout(250);
     check(hash(page) === "#/results?cat=dairy", "«Вся категория» из поиска → результаты категории", hash(page));
 
-    step("Пустой ответ «молоко» — переходы");
-    await page.goto(base + "#/find?q=молоко", { waitUntil: "networkidle" });
-    for (const [sel, t, h] of [[".find-related a", "Сыр и молочное", "#/results?cat=dairy"], [".empty-ways a", "Поиск по категории", "#/categories"], [".empty-ways a", "Знаю поставщика", "#/add"], [".empty-ways a", "Помощник", "#/assistant"]]) {
-      await page.goto(base + "#/find?q=молоко", { waitUntil: "networkidle" });
+    // «молоко» после ассортимента T-535 находится — пустой ответ проверяем на том, чего в наборе нет
+    step("Пустой ответ «тапиока» — переходы");
+    await page.goto(base + "#/find?q=тапиока", { waitUntil: "networkidle" });
+    for (const [sel, t, h] of [[".empty-ways a", "Поиск по категории", "#/categories"], [".empty-ways a", "Знаю поставщика", "#/add"], [".empty-ways a", "Помощник", "#/assistant"]]) {
+      await page.goto(base + "#/find?q=тапиока", { waitUntil: "networkidle" });
       await page.locator(sel, { hasText: t }).click();
       await page.waitForTimeout(200);
       check(hash(page) === h, `«${t}» → ${h}`, hash(page));
@@ -114,8 +117,10 @@ const rowNames = (page) => page.locator(".rows .row .nm").allInnerTexts();
     check(await page.locator(".cat-acc-h", { hasText: "Упаковка" }).getAttribute("aria-expanded") === "true", "  aria-expanded=true");
     const subs = (await page.locator(".cat-subs .cat-sub").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").replace(" →", "").trim());
     check(subs[0].startsWith("Вся категория"), "первый пункт — «Вся категория (N)»", subs.join(" | "));
-    const expect = ["containers", "pizza-boxes", "bags"].map((id) => DATA.suppliers.filter((s) => !s.live_only && s.category === "packaging" && s.subcategories.includes(id)).length);
-    check(subs.slice(1).map((x) => x.match(/\d+$/)[0]).join() === expect.join(), "счётчики подкатегорий совпадают с набором", expect.join(" / "));
+    // T-538: подкатегория — все, кто её продаёт, из любой категории
+    const packSubs = DATA.categories.find((c) => c.id === "packaging").subcategories;
+    const expect = packSubs.map((x) => DATA.suppliers.filter((s) => !s.live_only && s.subcategories.includes(x.id)).length);
+    check(subs.slice(1).map((x) => x.match(/\d+$/)[0]).join() === expect.join(), `счётчики ${packSubs.length} подкатегорий совпадают с набором`, expect.join(" / "));
     await page.locator(".cat-sub", { hasText: "Коробки для пиццы" }).click();
     await page.waitForTimeout(300);
     check(hash(page) === "#/results?cat=packaging&sub=pizza-boxes", "«Коробки для пиццы» → результаты с подкатегорией", hash(page));
@@ -127,9 +132,9 @@ const rowNames = (page) => page.locator(".rows .row .nm").allInnerTexts();
     check(firstZone.every((n) => byName.get(n.trim())?.subcategories.includes("pizza-boxes")), "«Кому написать первым» — тоже из подкатегории", firstZone.join(", "));
     await page.locator(".sub-chip", { hasText: "Контейнеры для роллов" }).click();
     await page.waitForTimeout(300);
-    check(hash(page).startsWith("#/results?cat=packaging&sub=containers"), "смена подкатегории на месте, без возврата в каталог", hash(page));
+    check(hash(page).startsWith("#/results?cat=packaging&sub=sushi-boxes"), "смена подкатегории на месте, без возврата в каталог", hash(page));
     const ct = await rowNames(page);
-    check(ct.length > 0 && ct.every((n) => byName.get(n.trim())?.subcategories.includes("containers")), `  теперь только «Контейнеры»: ${ct.length}`);
+    check(ct.length > 0 && ct.every((n) => byName.get(n.trim())?.subcategories.includes("sushi-boxes")), `  теперь только «Контейнеры для роллов и суши»: ${ct.length}`);
     await page.locator(".sub-chip", { hasText: "Вся категория" }).click();
     await page.waitForTimeout(300);
     check(hash(page) === "#/results?cat=packaging", "«Вся категория» на месте", hash(page));
@@ -139,6 +144,70 @@ const rowNames = (page) => page.locator(".rows .row .nm").allInnerTexts();
     await page.locator(".cat-acc-h", { hasText: "Упаковка" }).click();
     await page.waitForTimeout(150);
     check(await page.locator(".cat-subs").count() === 0, "повторный клик сворачивает категорию");
+
+    step("Подкатегории по ассортименту (T-538): все, кто продаёт, — из любой категории");
+    const members = (id) => DATA.suppliers.filter((s) => !s.live_only && s.subcategories.includes(id));
+    const catShort = Object.fromEntries(DATA.categories.map((c) => [c.id, c.short.toLowerCase()]));
+    const excludedN = async () => {
+      const t = await page.locator(".excluded-toggle").allInnerTexts();
+      return t.length ? Number(t[0].match(/·\s*(\d+)/)[1]) : 0;
+    };
+    // строки выдачи: имя, пометка «основная категория», первая позиция-основание
+    const rowsFull = () => page.locator(".rows .row").evaluateAll((rs) => rs.map((r) => ({
+      name: r.querySelector(".nm").textContent.trim(),
+      guest: r.querySelector(".guest-tag")?.textContent.trim() ?? null,
+      basis: r.querySelector(".basis .found-v")?.textContent.replace(/^ · /, "").trim() ?? null,
+    })));
+    const subCheck = async (catName, subName, id, catId) => {
+      await page.goto(base + "#/categories", { waitUntil: "networkidle" });
+      await page.locator(".cat-acc-h", { hasText: catName }).click();
+      await page.locator(".cat-sub", { hasText: subName }).first().click();
+      await page.waitForTimeout(300);
+      const rows = await rowsFull(page);
+      const want = members(id);
+      const ex = await excludedN();
+      const wrong = rows.filter((r) => !byName.get(r.name)?.subcategories.includes(id)).map((r) => r.name);
+      check(hash(page) === `#/results?cat=${catId}&sub=${id}`, `«${catName}» → «${subName}» кликами`, hash(page));
+      check(wrong.length === 0 && rows.length + ex === want.length, `в выдаче все продавцы и только они: ${rows.length} + исключённых ${ex} = ${want.length} в наборе`, wrong.join(", "));
+      const tagBad = rows.filter((r) => {
+        const s = byName.get(r.name);
+        return s.category === catId ? r.guest !== null : r.guest !== `основная категория — ${catShort[s.category]}`;
+      }).map((r) => r.name);
+      check(tagBad.length === 0, `пометка «основная категория — …» ровно у поставщиков из чужой категории: ${rows.filter((r) => r.guest).length}`, tagBad.join(", "));
+      const basisBad = rows.filter((r) => r.basis !== byName.get(r.name).subcategory_basis[id][0]).map((r) => r.name);
+      check(basisBad.length === 0, "у каждой строки — позиция-основание из набора", basisBad.join(", "));
+      return rows;
+    };
+    const cups = await subCheck("Упаковка", "Стаканы и крышки", "cups", "packaging");
+    check(cups.every((r) => !r.guest), "стаканы продают только упаковщики: все совпадения из других категорий оказались ложными (сметана в стакане, вафельный стаканчик)");
+    const shrimp = await subCheck("Рыба", "Креветки", "shrimp", "fish");
+    const guestRow = shrimp.find((r) => r.guest);
+    check(!!guestRow, `в «Креветках» есть продавцы из других категорий: ${shrimp.filter((r) => r.guest).map((r) => r.name).join(", ")}`);
+    await subCheck("Сыр и молочное", "Моцарелла", "mozzarella", "dairy");
+
+    // карточка гостя: балл и «назад» — в той категории, откуда пришли
+    await page.goto(base + "#/results?cat=fish&sub=shrimp", { waitUntil: "networkidle" });
+    await page.locator(".rows .row .nm", { hasText: guestRow.name }).first().click();
+    await page.waitForTimeout(300);
+    const label = await page.locator(".card-title .label").innerText();
+    check(/основная категория/i.test(label) && label.toLowerCase().includes("креветки"), "карточка гостя: категория просмотра и пометка «основная категория»", label.replace(/\s+/g, " "));
+    check((await page.locator(".card-page > .crumb").innerText()).includes("Рыба и морепродукты"), "«назад» ведёт в рыбу, откуда пришли");
+    check((await page.locator(".sp-place").innerText()).replace(/\s+/g, " ").includes("в подкатегории «Креветки»"), "место — в подкатегории «Креветки»", (await page.locator(".sp-place").innerText()).replace(/\s+/g, " "));
+    check(await page.locator(".in-subs-line").count() >= 2, "в ассортименте — «В подкатегориях» по категориям, со ссылками");
+
+    // поиск по товару ведёт в подкатегорию целиком; «тапиока» — честное «не нашли»
+    await page.goto(base + "#/find?q=стаканчики", { waitUntil: "networkidle" });
+    await page.locator(".sub-jump a", { hasText: "Стаканы и крышки" }).click();
+    await page.waitForTimeout(300);
+    check(hash(page) === "#/results?cat=packaging&sub=cups", "поиск «стаканчики» → подкатегория «Стаканы и крышки»", hash(page));
+    for (const [qq, sub] of [["креветки", "Креветки"], ["сливки", "Сливки"]]) {
+      await page.goto(base + `#/find?q=${encodeURIComponent(qq)}`, { waitUntil: "networkidle" });
+      check(await page.locator(".sub-jump a", { hasText: sub }).count() === 1, `поиск «${qq}» предлагает подкатегорию «${sub}» целиком`);
+    }
+    await page.goto(base + "#/find?q=тапиока", { waitUntil: "networkidle" });
+    check(await page.locator(".find-empty").count() === 1 && await page.locator(".rows .row").count() === 0, "«тапиока» — пустой ответ");
+    check(await page.locator(".notice").count() === 0 && await page.locator(".find-related").count() === 0 && await page.locator(".sub-jump").count() === 0,
+      "без подбора похожего: ни «исправленного запроса», ни «похожей категории»");
 
     step("«Знаю поставщика» → живой сбор → «Сравнить с остальными»");
     await page.goto(base + "#/add", { waitUntil: "networkidle" });
@@ -231,13 +300,13 @@ const rowNames = (page) => page.locator(".rows .row .nm").allInnerTexts();
     await page.locator(".cat-sub", { hasText: "Коробки для пиццы" }).click();
     await page.waitForTimeout(300);
     check(hash(page) === "#/results?cat=packaging&sub=pizza-boxes" && (await activeNav(page)).join() === "Поиск по категории", "главная → категория → подкатегория кликами; подсвечен «Поиск по категории»", hash(page));
-    await page.locator(".sub-chip", { hasText: "Пакеты и крафт" }).click();
+    await page.locator(".sub-chip", { hasText: "Пакеты" }).click();
     await page.waitForTimeout(300);
     const bags = await rowNames(page);
-    check(hash(page).includes("sub=bags") && bags.every((x) => byName.get(x.trim())?.subcategories.includes("bags")), `смена подкатегории на месте: «Пакеты и крафт», ${bags.length}`);
+    check(hash(page).includes("sub=bags") && bags.every((x) => byName.get(x.trim())?.subcategories.includes("bags")), `смена подкатегории на месте: «Пакеты», ${bags.length}`);
 
     step("Телефон 390: нет горизонтального скролла");
-    const screens = ["#/", "#/find", "#/find?q=моцарелла", "#/find?q=молоко", "#/find?q=кофе", "#/find?q=малоко", "#/find?q=рыба для суши", "#/categories", "#/categories?open=packaging", "#/categories?open=fish", "#/categories?open=dairy", "#/categories?open=grocery", "#/results?cat=packaging", "#/results?cat=packaging&sub=pizza-boxes", "#/results?cat=fish", "#/results?cat=fish&sub=fish-sushi", "#/results?cat=dairy", "#/results?cat=grocery&view=table", "#/results?cat=packaging&view=table", "#/catalog", "#/compare?ids=kraft-upakovka,po-karton,tara-dlya-tovara,parus-pak&cat=packaging", "#/why?cat=fish", "#/s/ubplastik?cat=packaging", "#/compare", "#/why?cat=packaging", "#/shortlist", "#/add", "#/about-data", "#/assistant"];
+    const screens = ["#/", "#/find", "#/find?q=моцарелла", "#/find?q=молоко", "#/find?q=кофе", "#/find?q=малоко", "#/find?q=рыба для суши", "#/categories", "#/categories?open=packaging", "#/categories?open=fish", "#/categories?open=dairy", "#/categories?open=grocery", "#/results?cat=packaging", "#/results?cat=packaging&sub=pizza-boxes", "#/results?cat=fish", "#/results?cat=fish&sub=shrimp", "#/results?cat=packaging&sub=cups", "#/results?cat=dairy&sub=mozzarella", "#/results?cat=fish&sub=shrimp&view=table", "#/find?q=стаканчики", "#/find?q=тапиока", "#/s/anfish?cat=dairy&sub=mozzarella", "#/s/rosspak?cat=packaging", "#/catalog?cats=packaging&sub=cups", "#/results?cat=dairy", "#/results?cat=grocery&view=table", "#/results?cat=packaging&view=table", "#/catalog", "#/compare?ids=kraft-upakovka,po-karton,tara-dlya-tovara,parus-pak&cat=packaging", "#/why?cat=fish", "#/s/ubplastik?cat=packaging", "#/compare", "#/why?cat=packaging", "#/shortlist", "#/add", "#/about-data", "#/assistant"];
     await page.evaluate(() => { const it = { status: "Не связывались", note: "заметка", note_at: null, added_at: "2026-10-14T10:00:00.000Z" }; localStorage.setItem("supplier-scout:v1", JSON.stringify({ shortlist: { ubplastik: it, pack24: it, "demo-old-1": it }, compare: [], returned: [], collected: {}, last: null })); });
     const bad = [];
     for (const r of screens) {

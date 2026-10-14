@@ -4,7 +4,7 @@ import { href, navigate, type Route } from "../router.ts";
 import { useStore } from "../store.ts";
 import { CATEGORIES, countIn } from "../data.ts";
 import { plural } from "../lib/format.ts";
-import { CatGlyph } from "../components/ui.tsx";
+import { CatGlyph, Hint } from "../components/ui.tsx";
 
 /** Подкатегории под названием — первые три и «ещё N»: список берётся из данных и может вырасти до десятка (T-538). */
 function preview(names: string[]) {
@@ -21,7 +21,10 @@ export function Categories({ route }: { route: Route }) {
     <div className="cats-page">
       <div className="label">Найти поставщика · по категории</div>
       <h1 className="h1">Поиск по категории</h1>
-      <p className="lead-sm">Откройте категорию и выберите её целиком или одну подкатегорию. Внутри — рекомендация «кому написать первым», фильтры и поиск по категории.</p>
+      <p className="lead-sm">
+        Откройте категорию и выберите её целиком или одну подкатегорию. Внутри — рекомендация «кому написать первым», фильтры и поиск по категории.
+        <Hint label="Почему в подкатегории бывает больше, чем в категории">Категория — поставщики, для которых она основная. Подкатегория — все, у кого такие позиции есть на сайте, из любой категории: моцареллу продают и рыбные оптовики. Поэтому в «Молоке» может быть больше поставщиков, чем во всём «Сыре».</Hint>
+      </p>
 
       <ul className="cat-acc">
         {CATEGORIES.map((c) => {

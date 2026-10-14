@@ -119,7 +119,7 @@ def extract_one(kie, fetcher: Fetcher, c: dict, home: dict, cats: list[dict]) ->
     elif not pages:
         rec["error"] = f"сайт не открылся: {home.get('error') or 'пустая страница'}"
     else:
-        subs = [s["id"] for cat in cats for s in cat["subcategories"]]
+        subs = [s["id"] for cat in cats for s in cat["search_subcategories"]]
         ans = kie.claude_tool(build_prompt(c["host"], pages, cats), supplier_tool(subs),
                               label=f"extract:{c['host']}", system=SYSTEM, max_tokens=4096)
         rec["answer"] = ans

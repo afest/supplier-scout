@@ -83,7 +83,7 @@ def _resolve(uri: str) -> str | None:
 def from_gemini(kie, cands: dict, queries: list, log=print):
     cats = load_categories()["categories"]
     for cat in cats:
-        for sub in cat["subcategories"]:
+        for sub in cat["search_subcategories"]:
             for tpl in QUERY_TEMPLATES:
                 q = tpl.format(term=SEARCH_TERMS[sub["id"]], city=CITY)
                 # оплаченная выдача — на диск сразу: падение на 29-м запросе из 30 не должно оплачивать первые 28 заново

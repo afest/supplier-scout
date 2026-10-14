@@ -11,6 +11,12 @@ export const byId = new Map(DATA.suppliers.map((s) => [s.id, s]));
 export const catById = (id: string | null | undefined) => CATEGORIES.find((c) => c.id === id) ?? null;
 export const subById = (cat: Category, id: string) => cat.subcategories.find((s) => s.id === id) ?? null;
 export const categoryOf = (s: Supplier) => catById(s.category)!;
+/** Подкатегория по id в любой категории: поставщик бывает и в чужих (T-538). */
+export const subAnywhere = (id: string) => CATEGORIES.flatMap((c) => c.subcategories).find((s) => s.id === id) ?? null;
+/** Подкатегории категории, в которых поставщик есть по ассортименту. */
+export const subsIn = (s: Supplier, cat: Category) => cat.subcategories.filter((x) => s.subcategories.includes(x.id));
+/** Поставщик относится к категории: она основная или в её подкатегориях он есть по ассортименту. */
+export const inCategory = (s: Supplier, cat: Category) => s.category === cat.id || subsIn(s, cat).length > 0;
 
 /** Набор, видимый в этом браузере: собранный заранее + собранные живым сбором. */
 export function visibleSuppliers(state: Pick<State, "collected">) {
@@ -23,9 +29,10 @@ export const baseCount = DATA.suppliers.filter((s) => !s.live_only).length;
 export const shortlistIds = (state: Pick<State, "shortlist">) => Object.keys(state.shortlist).filter((id) => byId.has(id));
 export const orphanShortIds = (state: Pick<State, "shortlist">) => Object.keys(state.shortlist).filter((id) => !byId.has(id));
 
-/** Сколько поставщиков в категории или подкатегории — для каталога категорий и переключателя на результатах. */
+/** Сколько поставщиков в категории или подкатегории — для каталога категорий и переключателя на результатах.
+ *  Категория — по основной категории, подкатегория — все, кто продаёт, из любой категории. */
 export function countIn(cat: Category, sub: string | null, state: Pick<State, "collected">) {
-  return visibleSuppliers(state).filter((s) => s.category === cat.id && (!sub || s.subcategories.includes(sub))).length;
+  return visibleSuppliers(state).filter((s) => (sub ? s.subcategories.includes(sub) : s.category === cat.id)).length;
 }
 
 /** Закупка в неделю по умолчанию: одна точка суши или пиццы — порядка 20 000 ₽ по категории. */
@@ -59,11 +66,16 @@ export function queryParams(q: Query) {
   return { cat: q.cat.id, sub: allSubs ? null : q.subs.join(","), vol, prio: q.prio === "balanced" ? null : q.prio, q: q.q || null };
 }
 
-/** Рейтинг категории в контексте запроса — один для списка, карточки, сравнения и разбора. */
-export function rankCategory(q: Query, state: Pick<State, "collected" | "returned">, opts: { subsOnly?: boolean; ids?: string[] } = {}) {
-  const peers = visibleSuppliers(state).filter((s) => s.category === q.cat.id);
+/** Рейтинг категории в контексте запроса — один для списка, карточки, сравнения и разбора.
+ *  Пул: вся категория — поставщики с этой основной категорией; подкатегория (subsOnly, выбраны не все) или members —
+ *  все, кто в ней по ассортименту, из любой категории. Балл — по профилю категории, которую смотрят; ориентиры
+ *  (цена за кг и шт, место по минимальному заказу) — по поставщикам этой основной категории. */
+export function rankCategory(q: Query, state: Pick<State, "collected" | "returned">, opts: { subsOnly?: boolean; members?: boolean; ids?: string[] } = {}) {
+  const vis = visibleSuppliers(state);
+  const peers = vis.filter((s) => s.category === q.cat.id);
+  const whole = q.subs.length === q.cat.subcategories.length;
   let pool = peers;
-  if (opts.ids) pool = opts.ids.map((id) => byId.get(id)!).filter((s) => s && s.category === q.cat.id);
-  else if (opts.subsOnly) pool = peers.filter((s) => s.subcategories.some((x) => q.subs.includes(x)));
-  return rank(pool, { volume: q.volume, category: q.cat, peers }, q.prio, new Set(state.returned));
+  if (opts.ids) pool = opts.ids.map((id) => byId.get(id)!).filter((s) => s && inCategory(s, q.cat));
+  else if (opts.members || (opts.subsOnly && !whole)) pool = vis.filter((s) => s.subcategories.some((x) => q.subs.includes(x)));
+  return { ...rank(pool, { volume: q.volume, category: q.cat, peers }, q.prio, new Set(state.returned)), peers };
 }

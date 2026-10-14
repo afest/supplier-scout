@@ -210,8 +210,9 @@ function minOrder(s: Supplier, ctx: Ctx): CritResult {
     .filter((x): x is { kind: "rub" | "approx"; rub: number } => !!x && (x.kind === "rub" || x.kind === "approx"))
     .map((x) => x.rub)
     .sort((a, b) => a - b);
-  const i = Math.max(0, known.indexOf(amt));
-  const n = known.length;
+  // место среди поставщиков категории; поставщик из чужой категории (T-538) в этом списке не стоит — встаёт по сумме
+  const i = known.filter((x) => x < amt).length;
+  const n = known.length + (known.includes(amt) ? 0 : 1);
   const score = n <= 1 ? 1 : 1 - (0.9 * i) / (n - 1);
   return r({ score, text: `${lbl} — ${i + 1}-й по размеру из ${n} в категории` });
 }
