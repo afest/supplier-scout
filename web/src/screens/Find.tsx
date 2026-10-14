@@ -194,7 +194,7 @@ function Empty({ q, unknown, related }: { q: string; unknown: string[]; related:
       <div className="row-btns empty-ways">
         <a className="btn sec" href="#/categories">Поиск по категории</a>
         <a className="btn sec" href="#/add">Знаю поставщика — добавить по сайту или ИНН</a>
-        <a className="btn ghost" href="#/assistant">Помощник подберёт · скоро</a>
+        <a className="btn ghost" href="#/assistant">Помощник подберёт</a>
       </div>
     </div>
   );

@@ -92,7 +92,7 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
               <StarButton on={!!short} onClick={() => actions.toggleShort(s.id)} label={short ? "В шорт-листе" : "В шорт-лист"} />
               <button type="button" className={`btn sec${inCompare ? " on" : ""}`} aria-pressed={inCompare} onClick={toggleCompare}>{inCompare ? "✓ В сравнении" : "Сравнить"}</button>
               {inCompare && st.compare.length >= 2 && <a className="btn sec" href={href("/compare", { ids: st.compare.join(","), cat: cat.id, vol: volParam(q.volume), prio: base.prio })}>Открыть сравнение · {st.compare.length}</a>}
-              <button type="button" className="btn ghost" onClick={() => setNotice("Обновление карточки — это живой сбор по одному поставщику (~30 с, ~1 ₽). Сервер сбора появится вместе с публикацией; сейчас конвейер запускается из командной строки.")}>Обновить данные</button>
+              <button type="button" className="btn ghost" onClick={() => setNotice("Обновление карточки из набора по кнопке пока не подключено: набор пересобирается конвейером целиком, дата сбора — у каждого поля. Карточку поставщика не из набора соберёт «Знаю поставщика» — 2–4 минуты, около 1 ₽.")}>Обновить данные</button>
             </div>
           </div>
         </div>
@@ -322,7 +322,7 @@ function Reviews({ s }: { s: Supplier }) {
 
   return (
     <div className="panel">
-      <div className="panel-h"><b>Отзывы клиентов<Hint label="Откуда отзывы">Отзывы закупщиков хранятся в сервисе и видны всем; оставить можно без регистрации, модерации в прототипе нет. Рейтинги с Яндекс Карт и 2ГИС хранить у себя запрещают условия карт, поэтому — переход к ним.</Hint></b></div>
+      <div className="panel-h"><b>Отзывы клиентов<Hint label="Откуда отзывы">Отзывы закупщиков хранятся в сервисе и видны всем; оставить можно без регистрации, модерации в прототипе нет. Сохраняются оценка, текст и имя, если его указали; ваш адрес не хранится — только его хеш, чтобы считать повторы. Рейтинги с Яндекс Карт и 2ГИС хранить у себя запрещают условия карт, поэтому — переход к ним.</Hint></b></div>
       <div className="rev-links">
         <a className="pill-out sm" href={`https://yandex.ru/maps/54/yekaterinburg/?text=${q}`} target="_blank" rel="noreferrer">Яндекс Карты ↗</a>
         <a className="pill-out sm" href={gis} target="_blank" rel="noreferrer">2ГИС ↗</a>
