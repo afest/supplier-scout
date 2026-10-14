@@ -78,6 +78,30 @@ export interface Company {
   flags: string[];
 }
 
+/** Позиция ассортимента — как названа на сайте; название дословно есть на странице-источнике. */
+export interface AssortmentItem {
+  name: string;
+  group: string | null;
+  price: string | null;
+}
+
+/** Полный ассортимент с каталога или прайса (T-535). Пока не собран — интерфейс берёт `products`. */
+export interface Assortment {
+  items: AssortmentItem[];
+  total_seen: number;
+  truncated: boolean;
+  from: "catalog" | "pricelist" | "site";
+}
+
+/** Режим работы и окно доставки (T-535): маленькой точке в ТЦ важно, привезут ли до открытия или вечером. */
+export interface Hours {
+  office: string | null;
+  order_cutoff: string | null;
+  delivery_days: string | null;
+  delivery_window: string | null;
+  evening_or_night: boolean | null;
+}
+
 export type Presence = "warehouse" | "delivery_only" | "unknown";
 export type TaxRegime = "general" | "usn";
 
@@ -95,6 +119,10 @@ export interface Supplier {
   legal_name: Field<string>;
   inn: Field<string>;
   products: Field<string[]>;
+  /** T-535; до сбора поля нет */
+  assortment?: Field<Assortment>;
+  /** T-535; до сбора поля нет */
+  hours?: Field<Hours>;
   address: Field<string>;
   presence: Field<Presence>;
   regions_served: Field<string[]>;

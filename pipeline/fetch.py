@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import re
 import threading
 import time
@@ -13,9 +14,10 @@ from urllib.parse import urljoin, urlparse, urldefrag
 import httpx
 from lxml import etree, html as lxml_html
 
-from .config import CACHE, JINA_MIN_TEXT, PAGE_TEXT_CAP, USER_AGENT
+from .config import CACHE, CATALOG_TEXT_CAP, JINA_MIN_TEXT, MAX_FETCHES_PER_SITE, PAGE_TEXT_CAP, USER_AGENT
 
 PAGES_DIR = CACHE / "pages"
+logging.getLogger("pypdf").setLevel(logging.ERROR)     # предупреждения о шрифтах PDF на текст не влияют, а лог забивают
 BOT_TOKEN = "SupplierScoutBot"
 BLOCK_TAGS = {"p", "div", "br", "li", "ul", "ol", "tr", "td", "th", "table", "section", "article", "header", "footer",
               "h1", "h2", "h3", "h4", "h5", "h6", "nav", "aside", "main", "form", "dl", "dt", "dd", "address", "blockquote"}
@@ -63,6 +65,7 @@ class Robots:
     def disallow_all(cls, why: str) -> "Robots":
         rb = cls("")
         rb.block_all = True
+        rb.why = why
         return rb
 
     @staticmethod
@@ -95,14 +98,21 @@ def host_of(url: str) -> str:
     return h[4:] if h.startswith("www.") else h
 
 
+# Однобайтные кодировки декодируют любые байты без ошибки. Сервер часто отдаёт ISO-8859-1 по умолчанию, а тело
+# в cp1251 — такой заголовок пробуем последним, иначе кириллица молча станет мусором.
+LATIN = {"iso-8859-1", "latin-1", "latin1", "iso8859-1", "us-ascii", "ascii", "windows-1252", "cp1252"}
+
+
 def _decode(content: bytes, content_type: str) -> str:
     m = re.search(r"charset=([\w-]+)", content_type or "", re.I)
-    candidates = [m.group(1)] if m else []
+    header = [m.group(1)] if m else []
     head = content[:4000].decode("ascii", "ignore")
     m2 = re.search(r"<meta[^>]+charset=[\"']?([\w-]+)", head, re.I)
-    if m2:
-        candidates.append(m2.group(1))
-    candidates += ["utf-8", "cp1251"]
+    meta = [m2.group(1)] if m2 else []
+    if header and header[0].lower() in LATIN:
+        candidates = [e for e in meta if e.lower() not in LATIN] + ["utf-8", "cp1251"] + header
+    else:
+        candidates = header + meta + ["utf-8", "cp1251"]
     for enc in candidates:
         try:
             return content.decode(enc)
@@ -164,19 +174,33 @@ def html_to_text_and_links(raw: str, base_url: str) -> tuple[str, str, list[dict
     return title, text, links
 
 
-def pdf_to_text(content: bytes) -> str:
+def pdf_to_text(content: bytes, max_pages: int = 6) -> str:
     from pypdf import PdfReader
     reader = PdfReader(io.BytesIO(content))
-    return _norm_ws("\n".join((p.extract_text() or "") for p in reader.pages[:6]))
+    return _norm_ws("\n".join((p.extract_text() or "") for p in reader.pages[:max_pages]))
 
 
-def xlsx_to_text(content: bytes) -> str:
+def xlsx_rows(content: bytes, max_rows: int = 3000, max_sheets: int = 5) -> list[list]:
+    """Строки прайса как есть — для разбора таблицы по колонкам (catalog.xlsx_items); хранятся в кэше страницы."""
+    from openpyxl import load_workbook
+    wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    out = []
+    for ws in wb.worksheets[:max_sheets]:
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i >= max_rows:
+                break
+            out.append([c if isinstance(c, (int, float, str)) or c is None else str(c) for c in row])
+        out.append(None)                # граница листа: заголовок таблицы ищется заново
+    return out
+
+
+def xlsx_to_text(content: bytes, max_rows: int = 300, max_sheets: int = 2) -> str:
     from openpyxl import load_workbook
     wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
     rows = []
-    for ws in wb.worksheets[:2]:
+    for ws in wb.worksheets[:max_sheets]:
         for i, row in enumerate(ws.iter_rows(values_only=True)):
-            if i >= 300:
+            if i >= max_rows:
                 break
             cells = [str(c).strip() for c in row if c not in (None, "")]
             if cells:
@@ -184,14 +208,23 @@ def xlsx_to_text(content: bytes) -> str:
     return _norm_ws("\n".join(rows))
 
 
-class Fetcher:
-    """Вежливая загрузка: robots.txt, пауза между запросами к одному сайту, кэш на диске."""
+ANTIBOT = (401, 403, 429)       # сайт отказал боту — обходить через посредника не будем
 
-    def __init__(self, delay: float = 1.0):
+
+class Fetcher:
+    """Вежливая загрузка: robots.txt, пауза между запросами к одному сайту, общий лимит загрузок на сайт, кэш на диске.
+
+    offline=True — только кэш: в сеть не ходит, страницы, которых нет в кэше, возвращаются с ошибкой.
+    """
+
+    def __init__(self, delay: float = 1.0, offline: bool = False, max_per_site: int = MAX_FETCHES_PER_SITE):
         self.http = httpx.Client(follow_redirects=True, timeout=httpx.Timeout(45, connect=12),
                                  headers={"User-Agent": USER_AGENT, "Accept-Language": "ru-RU,ru;q=0.9"},
                                  verify=True, trust_env=False)
         self.delay = delay
+        self.offline = offline
+        self.max_per_site = max_per_site
+        self.fetched: dict[str, int] = {}         # загрузки из сети за этот прогон по сайтам — против лимита
         self.robots: dict[str, Robots] = {}
         self.last_hit: dict[str, float] = {}
         self.lock = threading.Lock()
@@ -210,7 +243,8 @@ class Fetcher:
                 else:
                     rb = Robots("")         # 4xx или HTML вместо файла — правил нет (RFC 9309, 2.3.1.3)
             except httpx.HTTPError:
-                rb = Robots("")             # сам файл не открылся — страница, скорее всего, тоже; причину покажет загрузка
+                # RFC 9309, 2.3.1.4: robots.txt недоступен из-за сети или сервера — сайт считается закрытым целиком
+                rb = Robots.disallow_all("robots.txt не открылся")
             self.robots[key] = rb
         return self.robots[key]
 
@@ -229,22 +263,34 @@ class Fetcher:
             time.sleep(wait)
 
     # ---- одна страница ----
-    def page(self, url: str, use_cache: bool = True) -> dict:
+    def page(self, url: str, use_cache: bool = True, full: bool = False) -> dict:
+        """full=True — для каталога и прайс-листов: больше текста, до 40 страниц PDF, до 3000 строк таблицы."""
         key = hashlib.sha1(url.encode()).hexdigest()[:16]
         path = PAGES_DIR / host_of(url) / f"{key}.json"
+        attempts = 0
         if use_cache and path.exists():
-            cached = json.loads(path.read_text(encoding="utf-8"))
+            cached = self._usable(json.loads(path.read_text(encoding="utf-8")))
             attempts = int(cached.get("attempts") or (2 if cached.get("retried") else 1))
-            if not cached.get("error") or attempts >= 3:              # неудачную загрузку повторяем, всего до трёх попыток
+            short = full and not cached.get("full") and (cached.get("kind") in ("pdf", "xlsx") or len(cached.get("text", "")) >= PAGE_TEXT_CAP * 2)
+            if self.offline or ((not cached.get("error") or attempts >= 3) and not short):   # неудачную загрузку повторяем, всего до трёх попыток
                 return cached
-        else:
-            attempts = 0
         res = {"url": url, "final_url": url, "status": None, "fetched_at": date.today().isoformat(),
-               "title": "", "text": "", "links": [], "via": "direct", "error": None, "kind": "html", "attempts": attempts + 1}
+               "title": "", "text": "", "links": [], "via": "direct", "error": None, "kind": "html", "attempts": attempts + 1,
+               "full": full}
+        if self.offline:
+            res["error"] = "нет в кэше, а прогон офлайн"
+            return res
         if not self.allowed(url):
-            res["error"] = "robots.txt запрещает"
+            rb = self._robots(url)
+            res["error"] = f"{rb.why} — сайт закрыт для сбора (RFC 9309)" if rb.block_all else "robots.txt запрещает"
             return self._save(path, res)
-        self._wait(host_of(url))
+        host = host_of(url)
+        with self.lock:
+            if self.fetched.get(host, 0) >= self.max_per_site:
+                res["error"] = f"лимит {self.max_per_site} загрузок на сайт за прогон"
+                return res
+            self.fetched[host] = self.fetched.get(host, 0) + 1
+        self._wait(host)
         try:
             r = self.http.get(url)
             res["status"], res["final_url"] = r.status_code, str(r.url)
@@ -252,17 +298,28 @@ class Fetcher:
             if r.status_code >= 400:
                 res["error"] = f"HTTP {r.status_code}"
             elif "pdf" in ctype or url.lower().endswith(".pdf"):
-                res["kind"], res["text"] = "pdf", pdf_to_text(r.content)
+                res["kind"], res["text"] = "pdf", pdf_to_text(r.content, max_pages=40 if full else 6)
             elif "spreadsheet" in ctype or "excel" in ctype or re.search(r"\.xlsx?($|\?)", url, re.I):
-                res["kind"], res["text"] = "xlsx", xlsx_to_text(r.content)
+                res["kind"], res["text"] = "xlsx", xlsx_to_text(r.content, max_rows=3000 if full else 300, max_sheets=5 if full else 2)
+                if full:
+                    res["rows"] = xlsx_rows(r.content)
             else:
                 res["title"], res["text"], res["links"] = html_to_text_and_links(_decode(r.content, ctype), str(r.url))
         except Exception as e:  # сеть, сертификат, битый HTML — фиксируем причину, сбор продолжается
             res["error"] = f"{type(e).__name__}: {str(e)[:160]}"
-        if len(res["text"]) < JINA_MIN_TEXT and res["kind"] == "html" and res["error"] != "robots.txt запрещает":
+        # Jina — только для сайтов на JS: страница отдалась, а текста почти нет. После отказа сервера (403, 429…)
+        # или сетевой ошибки посредника не зовём — это был бы обход запрета.
+        if len(res["text"]) < JINA_MIN_TEXT and res["kind"] == "html" and not res["error"] and res["status"] and res["status"] < 400:
             self._jina(url, res)
-        res["text"] = res["text"][: PAGE_TEXT_CAP * 2]
+        res["text"] = res["text"][: (CATALOG_TEXT_CAP if full else PAGE_TEXT_CAP * 2)]
         return self._save(path, res)
+
+    @staticmethod
+    def _usable(p: dict) -> dict:
+        """Страница из кэша, полученная через Jina после отказа сервера (так собирали до 14.10), — не используется."""
+        if p.get("via") == "jina" and p.get("status") in ANTIBOT:
+            return {**p, "text": "", "links": [], "error": f"HTTP {p['status']}: сайт отказал, посредник не используется", "attempts": 3}
+        return p
 
     def _jina(self, url: str, res: dict):
         try:
@@ -270,14 +327,14 @@ class Fetcher:
             if r.status_code == 200 and len(r.text) > len(res["text"]):
                 res["text"], res["via"], res["error"] = _norm_ws(r.text), "jina", None
         except httpx.HTTPError as e:
-            res["error"] = (res["error"] or "") + f"; Jina: {type(e).__name__}"
+            res["error"] = f"Jina: {type(e).__name__}"
 
     @staticmethod
     def cached(url: str) -> dict | None:
         """Страница из кэша по исходному или конечному адресу (после редиректа)."""
         folder = PAGES_DIR / host_of(url)
         for f in folder.glob("*.json") if folder.exists() else []:
-            p = json.loads(f.read_text(encoding="utf-8"))
+            p = Fetcher._usable(json.loads(f.read_text(encoding="utf-8")))
             if url in (p.get("url"), p.get("final_url")) and p.get("text"):
                 return p
         return None

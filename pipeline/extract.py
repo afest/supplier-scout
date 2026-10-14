@@ -66,15 +66,78 @@ def number_in(n: float | int | None, quote: str) -> bool:
     return bool(word and re.search(word, norm(quote)))
 
 
-OTHER_CITY = re.compile(r"\b(для|по|в пределах|в)\s+(москв|мкад|санкт|спб|петербург|краснодар|казан|новосибирск|нижн\w* новгород|"
-                        r"ростов|самар|воронеж|челябинск|перм|уф[еы]|тюмен|омск|красноярск|владивосток)", re.I)
+CITIES = (r"москв|мкад|подмосков|санкт|спб|петербург|краснодар|казан|новосибирск|нижн\w* новгород|"
+          r"ростов|самар|воронеж|челябинск|перм|уф[аеы]\b|тюмен|омск|красноярск|владивосток")
+OTHER_CITY = re.compile(rf"\b(для|по|в пределах|в)\s+({CITIES})", re.I)
+CITY_NAMED = re.compile(rf"\b({CITIES})", re.I)
+CITY_PAGE = re.compile(r"/(moskva|moscow|msk|spb|sankt-peterburg|piter|krasnodar|kazan|novosibirsk|rostov|samara|"
+                       r"voronezh|chelyabinsk|perm|ufa|tyumen|omsk|krasnoyarsk|vladivostok)(/|$|\.)", re.I)
+OUR_CITY = re.compile(r"екатеринбург|свердловск|\bекб\b")
 
 
-def other_city(quote: str) -> str | None:
-    """Условие явно для другого города («Для Москвы — от 10 000 ₽»), Екатеринбург в цитате не назван."""
+def other_city(quote: str, value_text: str | None = None, page_url: str | None = None) -> str | None:
+    """Условие для другого города: «Для Москвы — от 10 000 ₽» в цитате, «(Москва)» в значении, страница /delivery/moskva.
+    Если Екатеринбург назван в цитате — условие общее."""
     q = norm(quote)
-    if OTHER_CITY.search(q) and not re.search(r"екатеринбург|свердловск", q):
+    if OUR_CITY.search(q):
+        return None
+    if OTHER_CITY.search(q):
         return "условие для другого города"
+    v = norm(value_text or "")
+    if v and CITY_NAMED.search(v) and not OUR_CITY.search(v):
+        return "в значении назван другой город"
+    if page_url and CITY_PAGE.search(page_url):
+        return "условие со страницы другого города"
+    return None
+
+
+def amount_clause(quote: str, amount) -> str | None:
+    """Часть цитаты между знаками препинания, где стоит число: в «Бесплатная доставка от 5000, минимальный заказ 3000»
+    у 3000 это «минимальный заказ 3000». Точка после сокращения («руб.», «шт.») предложение не делит."""
+    if amount is None:
+        return None
+    q = re.sub(r"(?<=\d)[ ,.](?=\d{3}(?!\d))", "", norm(quote))
+    q = re.sub(r"\b(руб|р|шт|кг|гр|г|ул|тыс|т\.р|д|стр|мин|макс|коп|уп|кор|ед)\.", r"\1", q)
+    target = float(amount)
+    for part in re.split(r"[;!?\n]|,(?!\d)|\.(?!\d)", q):
+        nums = _numbers(part)
+        if target in nums or ("тыс" in part and target / 1000 in nums):
+            return part.strip()
+    return None
+
+
+# Слова, без которых цитата не подтверждает значение (ревью 14.10, В2)
+HORECA_YES = re.compile(r"ресторан|кафе|horeca|хорека|общепит|юр\w*\.?\s*лиц|юрлиц|юридическ|организац|оптов|оптом|\bопт\b|b2b|"
+                        r"предприят|корпоратив|бизнес|заведени|кейтер|отел|гостиниц|пиццер|кофейн|пекарн|столов|фаст-?фуд|"
+                        r"\bбар|точ\w* питани|сетям|сетей|дилер|оптовик")
+HORECA_NO = re.compile(r"только\s+(в\s+)?розниц|только\s+(для\s+)?физ|только\s+частн|только\s+населени|"
+                       r"не\s+работаем\s+с\s+юр|не\s+продаем\s+юр|юр\w*\s+лиц\w*\s+не\s+обслуж")
+DELIVERY_MARK = {
+    "to_door": re.compile(r"доставк|доставля|доставим|привез|привоз|курьер|до двери|до адреса|до склада клиента|до точки|"
+                          r"по адресу|развоз|отвез|экспедир"),
+    "pickup": re.compile(r"самовывоз|забрать|заберите|со склада|пункт\w* выдач|выдач"),
+    "transport_company": re.compile(r"транспортн|\bтк\b|сдэк|cdek|деловые линии|\bпэк\b|байкал|энерги|\bкит\b|\bжд\b|почт|"
+                                    r"межгород|в регион|по росси|отправ"),
+}
+UNIT_MARK = {"RUB": re.compile(r"₽|руб|\bр\b|\bр\.|тыс|т\.?\s?р|сумм"), "kg": re.compile(r"кг|килограм|тонн|\bт\b"),
+             "pcs": re.compile(r"шт|штук|единиц|\bед\b"),
+             "box": re.compile(r"короб|\bкор\b|упаков|ящик|паллет|блок|кейс|пачк|\bмест")}
+MIN_WORDS = re.compile(r"миним|парти|кратн|не менее|заказ\w*[^,;]{0,30}?\b(от|свыше|на сумму)\s*\d|сумм\w*[^,;]{0,30}заказ|"
+                       r"закуп\w*\s+от|отгрузк\w*\s+от|от\s*\d+\s*(шт|кг|короб|упак|ящик|паллет|т\b|тонн|пачк|блок|ед)")
+FREE_WORDS = re.compile(r"бесплатн|free")
+
+
+def words_in(value: str, quote: str, share: float = 0.6) -> str | None:
+    """Пересказ модели (адрес, условия оплаты, документы) сверяется с цитатой: все числа значения и не меньше 60%
+    значимых слов. Слово сравнивается по первым пяти буквам: «сертификаты» ~ «сертифицирована»."""
+    lq = loose(quote)
+    merged = re.sub(r"(?<![\d.,])(\d{1,3})((?:[ .,]\d{3})+)(?![\d])", lambda m: m.group(1) + re.sub(r"\D", "", m.group(2)),
+                    (value or "").replace("\xa0", " "))
+    if not {float(x.replace(",", ".")) for x in re.findall(r"\d+(?:[.,]\d+)?", merged)} <= _numbers(quote):
+        return "числа из значения нет в цитате"
+    words = [w for w in loose(value).split() if len(w) >= 4 and not w.isdigit()]
+    if words and sum(1 for w in words if w[:5] in lq) / len(words) < share:
+        return "значение не совпадает с цитатой"
     return None
 
 
@@ -109,9 +172,16 @@ def inn_valid(inn: str) -> bool:
     return False
 
 
+# Регион свободным текстом — к словам, которые понимает интерфейс (web/src/lib/score.ts, SERVES): «любой город России»
+# без этого читался бы как «не возит в Екатеринбург». «7 городов России» — не вся Россия и сюда не попадает.
 REGION_MAP = [
     (r"екатеринбург", "Екатеринбург"), (r"свердловск", "Свердловская область"),
-    (r"урфо|урал|уральск", "Урал"), (r"всей росси|все регионы|по россии|рф\b|вся россия|любой регион|все города|^россия$|^рф$", "вся Россия"),
+    (r"урфо|урал|уральск", "Урал"),
+    (r"всей росси|все регион|всех регион|во все регион|в любой регион|любой регион|по россии|вся россия|все города|"
+     r"любо\w* город|в любую точку|по всей стран|вся страна|все субъект|"
+     r"(всей|по|все\w*|любо\w*|вся)\s+(территори\w*\s+)?(рф|росси)|регион\w*\s+(рф|росси)|субъект\w*\s+(рф|росси)|"
+     r"^россия$|^рф$",          # «вся центральная Россия» — не вся: между словами допускается только «территория»
+     "вся Россия"),
 ]
 
 
@@ -256,6 +326,7 @@ class Checked:
                 self.links.add(l["url"])
         self.facts: dict = {}
         self.rejected: list[dict] = []
+        self.page_url: str | None = None
 
     def _page_of(self, quote: str, hint: str | None) -> int | None:
         idx = None
@@ -279,6 +350,7 @@ class Checked:
         if i is None:
             self.reject(field, f.get("value"), "цитаты нет в тексте страниц")
             return None
+        self.page_url = self.pages[i].get("final_url") or self.pages[i].get("url")    # для правила «страница другого города»
         if check:
             try:
                 why = check(f["value"], quote)
@@ -342,16 +414,43 @@ def check_answer(ans: dict, pages: list[dict]) -> Checked:
         words = [w for w in re.findall(r"[а-яa-z0-9]{3,}", norm(v)) if w not in ("ооо", "общество", "ограниченной", "ответственностью")]
         return None if words and all(w in norm(q) for w in words) else "название не совпадает с цитатой"
 
+    def horeca_check(v, q):
+        qn = norm(q)
+        if v is True and HORECA_NO.search(qn):
+            return "в цитате сказано обратное: только розница или частные лица"
+        if v is True and not HORECA_YES.search(qn):
+            return "в цитате нет слов про рестораны, юрлиц или опт"
+        if v is False and not (HORECA_NO.search(qn) or re.search(r"не\s+работаем|не\s+продаем", qn)):
+            return "в цитате нет отказа работать с юрлицами"
+        return None
+
     c.fact("legal_name", ans.get("legal_name"), name_check)
     c.fact("inn", ans.get("inn"), inn_check)
     c.fact("ogrn", ans.get("ogrn"), lambda v, q: None if len(digits(v)) in (13, 15) and digits(v) in digits(q) else "ОГРН не совпадает с цитатой")
-    c.fact("city_address", ans.get("city_address"))
+    c.fact("city_address", ans.get("city_address"), words_in)
     if "city_address" in c.facts:
-        c.facts["city_address"]["kind"] = ans.get("city_address_kind")
+        kind = ans.get("city_address_kind")
+        # склад и производство — основание для «склад в городе»: тип адреса должен стоять на странице в цитате или
+        # рядом с ней («Склад» заголовком над адресом), а не только в ответе модели
+        fa = c.facts["city_address"]
+        t = c.norm[fa["page"]]
+        pos = t.find(norm(fa["quote"])[:40])
+        around = t[max(0, pos - 200): pos + len(norm(fa["quote"])) + 100] if pos >= 0 else norm(fa["quote"])
+        if kind in ("склад", "производство") and not re.search(r"склад|производств|цех|завод|фабрик|\bбаз[аеуы]\b|хранени", around):
+            c.reject("city_address_kind", kind, "ни в цитате адреса, ни рядом с ней нет слов про склад или производство")
+            kind = None
+        c.facts["city_address"]["kind"] = kind
     c.fact("home_city", ans.get("home_city"))
-    c.fact("works_with_horeca", ans.get("works_with_horeca"))
-    c.fact("payment_terms", ans.get("payment_terms"))
-    c.fact("doc_mentions", ans.get("doc_mentions"))
+    c.fact("works_with_horeca", ans.get("works_with_horeca"), horeca_check)
+    # условия оплаты и документы — пересказ модели; шире цитаты («работают с НДС и без», которого в ней нет) —
+    # значением становится сама цитата: она стоит на странице дословно и подтверждает себя сама
+    for k in ("payment_terms", "doc_mentions"):
+        got = c.fact(k, ans.get(k))
+        if got:
+            why = words_in(got["value"], got["quote"])
+            if why:
+                c.reject(k, got["value"], f"{why} — значением стала сама цитата")
+                got["value"] = got["quote"]
 
     # списки: каждый элемент должен встречаться в тексте страниц
     prods = ans.get("products")
@@ -414,28 +513,50 @@ def check_answer(ans: dict, pages: list[dict]) -> Checked:
             if vals:
                 c.facts["regions_served"] = {"value": vals, "quote": reg["quote"].strip(), "page": i}
 
+    free_as_min = []            # «Минимальная сумма — 20 000» модель записала порогом бесплатной доставки (Гросс Фуд)
+
     def min_check(v, q):
         amt = v.get("amount")
         if not number_in(amt, q):
             return "числа нет в цитате"
-        qd = re.sub(r"(?<=\d) (?=\d{3}\b)", "", norm(q))
-        if amt and "бесплатн" in qd:          # проба T-510: порог бесплатной доставки выдавали за минимум
-            pos = qd.find(str(int(amt)))
-            if pos == -1 or pos > qd.find("бесплатн"):
-                return "это порог бесплатной доставки, а не минимальный заказ"
-        if not re.search(r"миним|заказ|парти|кратн|от\s*\d", qd):
+        part = amount_clause(q, amt) or norm(q)       # слова смотрим в той части фразы, где стоит число
+        if amt and FREE_WORDS.search(part):          # проба T-510: порог бесплатной доставки выдавали за минимум
+            free_as_min.append((amt, q))
+            return "это порог бесплатной доставки, а не минимальный заказ"
+        if not MIN_WORDS.search(part):
             return "в цитате нет слов про минимальный заказ"
+        unit = v.get("unit") or "RUB"
+        if unit in UNIT_MARK and not UNIT_MARK[unit].search(norm(q)):
+            return "единица минимума не совпадает с цитатой"
         return None
 
-    c.fact("min_order", ans.get("min_order"), lambda v, q: other_city(q) or min_check(v, q))
+    c.fact("min_order", ans.get("min_order"),
+           lambda v, q: other_city(q, v.get("text"), c.page_url) or min_check(v, q))
 
-    got = c.fact("delivery", ans.get("delivery"), lambda v, q: other_city(q))
+    got = c.fact("delivery", ans.get("delivery"), lambda v, q: other_city(q, v.get("zones"), c.page_url))
     if got:                     # число, которого нет в цитате, обнуляется само, остальные условия доставки остаются
         v = dict(got["value"])
         for k in ("free_from", "cost"):
             if v.get(k) is not None and not number_in(v[k], got["quote"]):
                 c.reject(f"delivery.{k}", v[k], "числа нет в цитате")
                 v[k] = None
+        if v.get("free_from"):
+            part = amount_clause(got["quote"], v["free_from"]) or norm(got["quote"])
+            if not FREE_WORDS.search(part):
+                why = ("это минимальный заказ, а не порог бесплатной доставки" if MIN_WORDS.search(part)
+                       else "в цитате нет слов про бесплатную доставку")
+                c.reject("delivery.free_from", v["free_from"], why)
+                if MIN_WORDS.search(part) and "min_order" not in c.facts and UNIT_MARK["RUB"].search(part):
+                    amt = v["free_from"]
+                    c.facts["min_order"] = {"value": {"amount": amt, "unit": "RUB", "text": f"{amt:,.0f} ₽".replace(",", " ")},
+                                            "quote": got["quote"], "page": got["page"]}
+                    c.reject("min_order", amt, "перенесено из порога бесплатной доставки: в цитате минимальный заказ")
+                v["free_from"] = None
+        # да/нет в условиях доставки — только если в цитате есть слово про это
+        for k, rx in DELIVERY_MARK.items():
+            if v.get(k) and not rx.search(norm(got["quote"])):
+                c.reject(f"delivery.{k}", True, "в цитате нет слов про это — не подтверждено")
+                v[k] = False
         # срок и зоны — пересказ модели: оставляем, только если его значимые слова стоят на страницах сайта
         for k in ("lead_time", "zones"):
             txt = v.get(k)
@@ -450,6 +571,13 @@ def check_answer(ans: dict, pages: list[dict]) -> Checked:
         if v.get("to_door") and v.get("free_from") is None and v.get("cost") is None and "бесплатн" in q and not re.search(r"\d", q):
             v["free_from"] = 0
         got["value"] = v
+    elif free_as_min:           # обратный случай: порог бесплатной доставки модель записала минимумом, а доставку не нашла
+        amt, q = free_as_min[0]
+        i = c._page_of(q, None)
+        if i is not None and DELIVERY_MARK["to_door"].search(norm(q)) and not other_city(q):
+            c.facts["delivery"] = {"value": {"to_door": True, "free_from": amt, "cost": None, "lead_time": None, "pickup": False,
+                                             "zones": None, "transport_company": False}, "quote": q.strip(), "page": i}
+            c.reject("delivery", amt, "перенесено из минимального заказа: в цитате порог бесплатной доставки")
 
     pr = ans.get("prices")
     if pr:
