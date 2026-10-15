@@ -620,7 +620,7 @@ async function cardTab(page, name) {
   const csvRaw = fs.readFileSync(csvPath, "utf8");
   fs.unlinkSync(csvPath);
   const csv = parseCsv(csvRaw);
-  check(csvRaw.startsWith("﻿") && csv[0].join("|") === "Поставщик|Категория|Балл|Статус контакта|Заметка|Телефон|Email|Сайт|Демо", "CSV: BOM для Excel, заголовок из девяти колонок", csv[0].join("|"));
+  check(csvRaw.startsWith("﻿") && csv[0].join("|") === "Поставщик|Категория|Балл|Статус контакта|Заметка|Телефон|Email|Сайт|Демо|Позиции", "CSV: BOM для Excel, заголовок из десяти колонок (выбранные позиции — последней, T-546)", csv[0].join("|"));
   check(csv.length - 1 === expectSl.size && sameSet(csv.slice(1).map((r) => r[0]), [...expectSl]), `CSV: строк столько же, сколько в шорт-листе (${csv.length - 1}), имена те же`);
   const csvLead = csv.find((r) => r[0] === leader3);
   const csv2 = csv.find((r) => r[0] === lead2);

@@ -1,6 +1,7 @@
 // Текст объяснения собирается шаблоном из полей (раздел 4, шаг 4 логики сервиса).
 // Модель текст не пишет, поэтому не может приписать поставщику то, чего нет в полях.
 import type { Category, FieldStatus } from "../types.ts";
+import type { WantItem } from "../store.ts";
 import { ageYears, isKnown, plural, rub, years } from "./format.ts";
 import { CRITS, fnsFlags, markingOk, profileDeclarations, type CritId, type Scored } from "./score.ts";
 
@@ -162,14 +163,27 @@ export function compareConclusion(list: Scored[], cat: Category, volume: number 
   return { lead: `Первым — ${lead.supplier.name}`, why: l.why, others };
 }
 
-export function draftRequest(sc: Scored, cat: Category, subName: string, volume: number | null) {
+/** wanted — позиции, ради которых открыли поставщика (T-546): идут списком в начало письма, заново вспоминать их не нужно. */
+export function draftRequest(sc: Scored, cat: Category, subName: string, volume: number | null, wanted: WantItem[] = []) {
   const qs = asks(sc, cat).filter((a) => a.key !== "messengers").slice(0, 4);
+  const vol = volume ? ` Закупка — около ${rub(volume)} в неделю.` : "";
+  const items = wanted.flatMap((w) => (w.text ?? w.name).split("; ")).filter(Boolean);
   const lines = [
     "Здравствуйте!",
     "",
-    `Мы — сеть ресторанов в Екатеринбурге, ищем поставщика: ${subName.toLowerCase()}.${volume ? ` Закупка — около ${rub(volume)} в неделю.` : ""}`,
-    "",
-    "Подскажите, пожалуйста:",
+    ...(items.length ? [
+      `Мы — сеть ресторанов в Екатеринбурге, ищем поставщика.${vol}`,
+      "",
+      "Интересуют позиции:",
+      ...items.map((x, i) => `— ${x}${i === items.length - 1 ? "." : ";"}`),
+      "Пришлите, пожалуйста, цены и фасовку по ним.",
+      "",
+      "И подскажите ещё:",
+    ] : [
+      `Мы — сеть ресторанов в Екатеринбурге, ищем поставщика: ${subName.toLowerCase()}.${vol}`,
+      "",
+      "Подскажите, пожалуйста:",
+    ]),
     ...qs.map((q, i) => `— ${q.question}${i === qs.length - 1 ? "." : ";"}`),
     "",
     "[подпись]",

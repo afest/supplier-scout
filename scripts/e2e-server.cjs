@@ -297,6 +297,90 @@ const hash = (page) => decodeURIComponent(new URL(page.url()).hash);
       await ctx.close();
     }
 
+    // ---------- выбранные позиции → страница поставщика → черновик (Павел 15.10, T-546) ----------
+    {
+      const { ctx, page } = await newPage(1440, 900);
+      step("Выбранные позиции: клик по карточке с чипами → «Вы выбрали» у поставщика → черновик запроса (T-546)");
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      const wantedNow = async () => (await page.locator(".wanted-chip").allInnerTexts()).map((x) => x.replace(/×\s*$/, "").trim());
+      const darkOf = (card) => card.locator(".mc-chip.on").allInnerTexts();
+      // план закупа: карточка итога
+      await page.goto(base + "#/assistant?mode=plan", { waitUntil: "networkidle" });
+      await page.locator(".examples .pill-out", { hasText: "суши-бар" }).click();
+      await page.locator(".plan-go .btn.pr").click();                                     // тот же план — из кэша
+      await page.waitForSelector(".plan-verdict .plan-pick");
+      const pick = page.locator(".plan-pick").first();
+      const takes = await darkOf(pick);
+      const pid = (await pick.getAttribute("href")).replace("#/s/", "");
+      await pick.click();
+      await page.waitForSelector(".wanted");
+      check(same(await wantedNow(), takes) && /Вы выбрали · \d+/i.test(await page.locator(".wanted .label").innerText()),
+        "план: позиции карточки итога — в «Вы выбрали» на странице поставщика", takes.join(", "));
+      await page.locator(".card-tabs .nav-item, .card-nav .nav-item").filter({ hasText: "Условия" }).first().click();
+      check(await page.locator(".wanted").count() === 1, "блок виден и в другом разделе страницы");
+      await page.locator(".wanted-chip", { hasText: takes[0] }).locator("button").click();
+      check(same(await wantedNow(), takes.slice(1)), "крестик убирает одну позицию, остальные на месте", takes[0]);
+      await page.locator(".wanted-go").click();
+      await page.waitForSelector(".draft-text");
+      const draft = await page.locator(".draft-text").inputValue();
+      const items = (draft.split("Интересуют позиции:")[1] || "").split("Пришлите")[0].split("\n").filter((l) => l.startsWith("— "));
+      check(items.length === takes.length - 1 && draft.includes("Нори Gold 50 листов, 140 г") && !draft.includes("«Японика»"),
+        "черновик: позиции уже вписаны строками плана — с брендом и фасовкой, убранной нет", items.slice(0, 2).join(" "));
+      check(/Пришлите, пожалуйста, цены и фасовку/.test(draft) && /И подскажите ещё:/.test(draft), "черновик: просьба о ценах и фасовке, дальше — обычные вопросы");
+      await page.goto(base + "#/s/" + pid, { waitUntil: "networkidle" });
+      check(await page.locator(".wanted-chip").count() === takes.length - 1, "позиции хранятся: снова на странице поставщика — блок на месте");
+      await page.locator(".wanted-close").click();
+      await page.reload({ waitUntil: "networkidle" });
+      check(await page.locator(".wanted").count() === 0, "«Закрыть» убирает блок, после перезагрузки его нет");
+      // план закупа: карточка группы — к уже выбранному, без повторов
+      await page.goto(base + "#/assistant?mode=plan", { waitUntil: "networkidle" });
+      await page.waitForSelector(".plan-group .lcard.mini");
+      const g1 = page.locator(".plan-group").first().locator(".lcard.mini").first();
+      const g1dark = await darkOf(g1);
+      const g1id = (await g1.locator("a.nm").getAttribute("href")).replace("#/s/", "");
+      await g1.locator("a.nm").click();
+      await page.waitForSelector(".wanted");
+      check(same(await wantedNow(), g1dark), "план: карточка группы — её тёмные позиции", g1dark.join(", "));
+      await page.goBack();
+      await page.waitForSelector(".plan-group .lcard.mini");
+      await page.locator(".plan-group").first().locator(".lcard.mini").first().locator("a.nm").click();
+      await page.waitForSelector(".wanted");
+      check(same(await wantedNow(), g1dark), "второй клик по той же карточке позиции не дублирует", g1id);
+      // помощник «Описать словами»: мини-карточка в «Закрывают несколько позиций сразу»
+      await page.goto(base + "#/assistant", { waitUntil: "networkidle" });
+      await page.locator(".add-form input").fill("у меня бабл-ти в ТЦ");                  // то же описание — из кэша
+      await page.locator(".add-form button[type=submit]").click();
+      await page.waitForSelector(".assist-need");
+      await page.locator(".assist-step .btn.pr").click();
+      await page.waitForSelector(".assist-res .lcard.mini");
+      const m1 = page.locator(".assist-res .panel", { hasText: "несколько позиций" }).locator(".lcard.mini").first();
+      const m1dark = await darkOf(m1);
+      await m1.locator("a.nm").click();
+      await page.waitForSelector(".wanted");
+      check(m1dark.length > 1 && same(await wantedNow(), m1dark), "помощник: отмеченные позиции мини-карточки — у поставщика", m1dark.join(", "));
+      // поиск по нескольким товарам
+      await page.goto(base + "#/find?q=" + encodeURIComponent("молоко, сыр сливочный"), { waitUntil: "networkidle" });
+      const f1 = page.locator(".lcard", { has: page.locator(".mc-chip.on") }).first();
+      const f1dark = await darkOf(f1);
+      await f1.locator("a.nm").click();
+      await page.waitForSelector(".wanted");
+      check(f1dark.length >= 1 && (await wantedNow()).slice(-f1dark.length).join("|") === f1dark.join("|"), "поиск по нескольким товарам: найденные товары — у поставщика", f1dark.join(", "));
+      // категория с несколькими подкатегориями: «Кому написать первым»
+      await page.goto(base + "#/results?cat=packaging&sub=cups,straws", { waitUntil: "networkidle" });
+      const c1 = page.locator(".first .gcard").first();
+      const c1dark = await darkOf(c1);
+      await c1.click();
+      await page.waitForSelector(".wanted");
+      check(c1dark.length >= 1 && (await wantedNow()).slice(-c1dark.length).join("|") === c1dark.join("|"), "категория: отмеченные подкатегории из «Кому написать первым» — у поставщика", c1dark.join(", "));
+      check(await noHScroll(page), "страница поставщика с блоком без горизонтального скролла");
+      await page.screenshot({ path: path.join(ROOT, "e2e-out", "want-1440.png") });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(150);
+      const over = await page.locator(".wanted, .wanted *").evaluateAll((els) => els.filter((el) => el.scrollWidth > el.clientWidth + 1).length);
+      check(await noHScroll(page) && over === 0, "390: блок «Вы выбрали» без переполнения и горизонтального скролла", `${over}`);
+      await ctx.close();
+    }
+
     // ---------- уточняющий вопрос (T-544) ----------
     {
       const { ctx, page } = await newPage(1440, 900);

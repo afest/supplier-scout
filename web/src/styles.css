@@ -1595,3 +1595,18 @@ button.rbadge:hover .rb-n, button.rbadge:focus-visible .rb-n { color: var(--ink)
   .plan-group .panel-h { flex-wrap: wrap; }
   .plan-group .panel-h .sub { text-align: left; }
 }
+
+/* ---------- что вы выбрали у поставщика (T-546): позиции с карточки — над разделами страницы и в черновике ---------- */
+.wanted { margin-top: 20px; padding: 16px 20px; border-radius: var(--r-lg); background: var(--surface-cool); }
+.wanted-h { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.wanted-h .label { margin: 0; }
+.wanted-close { margin-left: auto; }
+.wanted-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.wanted-chip { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; min-height: 30px; padding: 3px 3px 3px 12px; border-radius: var(--r-pill); background: var(--ink); color: #fff; font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; }
+.wanted-chip button { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: rgba(255, 255, 255, .7); font-size: 16px; line-height: 1; }
+.wanted-chip button:hover { background: rgba(255, 255, 255, .16); color: #fff; }
+.wanted-go { margin-left: 8px; font-size: 13.5px; white-space: nowrap; }
+@media (max-width: 600px) {
+  .wanted { padding: 14px 16px; }
+  .wanted-go { flex-basis: 100%; margin: 6px 0 0; }
+}

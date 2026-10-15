@@ -5,7 +5,7 @@
 // На телефоне колонка, как у фильтров, встаёт над шапкой, а меню разделов — полосой вкладок, которая прилипает под меню.
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
-import { actions, CONTACT_STATUSES, useStore, type ContactStatus } from "../store.ts";
+import { actions, CONTACT_STATUSES, useStore, type ContactStatus, type WantItem } from "../store.ts";
 import { byId, catById, CATEGORIES, categoryOf, inCategory, queryParams, rankCategory, readQuery, subsIn, volParam } from "../data.ts";
 import { asks } from "../lib/explain.ts";
 import { completeness, CRITS, fnsFlags, PRIORITIES, profileDeclarations, score, stopReason, type Priority } from "../lib/score.ts";
@@ -285,6 +285,7 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
           </section>
         </header>
         {notice && <div className="notice" role="status">{notice}</div>}
+        {(st.wanted[s.id]?.length ?? 0) > 0 && <Wanted id={s.id} items={st.wanted[s.id]} />}
 
         {/* на телефоне колонка — над шапкой, поэтому меню разделов здесь же полосой вкладок */}
         <div ref={anchor} className="tabs-anchor" />
@@ -294,6 +295,30 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
       </div>
       {revDrawer && <ReviewsDrawer s={s} list={rv.list} err={rv.err} setList={rv.setList} startWithForm={revDrawer === "form"} onClose={closeDrawer} />}
     </Railed>
+  );
+}
+
+/** Что вы выбрали у этого поставщика (Павел 15.10, T-546): позиции с карточки, по которой пришли, — из подбора помощника,
+ *  плана закупа, поиска по нескольким товарам или подкатегорий. Над всеми разделами страницы; лишнее — крестиком, блок
+ *  целиком — «Закрыть». Те же позиции уже стоят в черновике запроса. */
+function Wanted({ id, items }: { id: string; items: WantItem[] }) {
+  return (
+    <section className="wanted" aria-label="Вы выбрали">
+      <div className="wanted-h">
+        <span className="label">Вы выбрали · {items.length} {plural(items.length, "позиция", "позиции", "позиций")}</span>
+        <Hint label="Откуда позиции">Позиции, ради которых вы открыли поставщика: с карточки в подборе помощника, плане закупа или поиске. Они хранятся в этом браузере и сами встают в черновик запроса — переписывать не нужно. Лишнюю уберите крестиком.</Hint>
+        <button type="button" className="link-btn wanted-close" onClick={() => actions.clearWant(id)}>Закрыть</button>
+      </div>
+      <div className="wanted-chips">
+        {items.map((x) => (
+          <span key={x.name} className="wanted-chip" title={x.text && x.text !== x.name ? x.text : undefined}>
+            {x.name}
+            <button type="button" aria-label={`Убрать «${x.name}»`} onClick={() => actions.unwant(id, x.name)}>×</button>
+          </span>
+        ))}
+        <a className="wanted-go" href={href("/shortlist", { draft: id })} onClick={() => actions.addShort(id)}>В черновик запроса →</a>
+      </div>
+    </section>
   );
 }
 

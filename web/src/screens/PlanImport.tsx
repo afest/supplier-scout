@@ -4,7 +4,7 @@
 // названия. Состояние — вне компонента и в sessionStorage вкладки: переход к поставщику и «назад» его не сбрасывают.
 import { useEffect, useMemo, useState, useSyncExternalStore, type DragEvent } from "react";
 import { href } from "../router.ts";
-import { useStore } from "../store.ts";
+import { carry, useStore } from "../store.ts";
 import { byId, CATEGORIES, catById, categoryOf, defaultScored } from "../data.ts";
 import { isKnown, plural } from "../lib/format.ts";
 import { bigWholesale, type Scored } from "../lib/score.ts";
@@ -276,6 +276,8 @@ const roleOf = (groups: string[]) => {
 };
 const order = (g: string) => { const i = CATEGORIES.findIndex((c) => c.id === g); return i < 0 ? CATEGORIES.length : i; };
 const groupName = (g: string) => catById(g)?.name ?? "Вне категорий набора";
+/** Позиция плана → что нести поставщику: на чипе — короткое название, в запросе — строки плана с брендом и фасовкой. */
+const wantOf = (p: Pos) => ({ name: p.label, text: p.lines.join("; ") });
 
 function PlanResultView({ res }: { res: PlanResult }) {
   const store = useStore();
@@ -365,7 +367,7 @@ function PickCard({ rank, id, takes, total, sc }: { rank: number; id: string; ta
   // цена — только если она стоит на сайте поставщика у найденной позиции
   const prices = takes.flatMap((p) => p.suppliers.filter((x) => x.id === id && x.price).map((x) => x.price!)).slice(0, 3);
   return (
-    <a className={`gcard plan-pick${rank === 1 ? " lead" : ""}`} href={href(`/s/${id}`)}>
+    <a className={`gcard plan-pick${rank === 1 ? " lead" : ""}`} href={href(`/s/${id}`)} {...carry(id, takes.map(wantOf))}>
       <div className="g-top">
         <span className="g-rank num">{rank}</span>
         <span className="plan-role">{roleOf(takes.map((p) => p.group))}</span>
@@ -447,6 +449,7 @@ function GroupPanel({ group, positions, scored, picked }: { group: string; posit
             const tags = <>{picked.has(id) && <span className="fresh-pill">в итоге</span>}{sc && bigWholesale(sc) && <span className="opt-pill">крупный опт</span>}</>;
             return (
               <ListCard key={id} variant="mini" s={s} cat={categoryOf(s)} href={href(`/s/${id}`)} score={sc?.total ?? null} tags={tags}
+                link={carry(id, positions.filter((p) => has.get(id)!.has(p.label)).map(wantOf))}
                 extra={<CoverChips items={labels} has={has.get(id)!} />} />
             );
           })}

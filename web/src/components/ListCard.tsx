@@ -2,7 +2,7 @@
 // Ссылка — вся карточка: псевдоэлемент названия растянут на неё целиком. Поверх него — только звёздочка шорт-листа
 // и «?»-пояснения, клик по ним карточку не открывает. Справа (в плитке — снизу) за разделителем балл и полнота данных.
 // mini — подбор помощника (T-544): аватар, название, строка «что нашлось» и балл, без звёздочки, бейджей и полноты.
-import { useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useRef, useState, type AnchorHTMLAttributes, type MouseEvent, type ReactNode } from "react";
 import type { Category, FieldStatus, Supplier } from "../types.ts";
 import { completeness } from "../lib/score.ts";
 import { isKnown } from "../lib/format.ts";
@@ -23,7 +23,7 @@ export function CoverChips({ items, has }: { items: string[]; has: ReadonlySet<s
   );
 }
 
-export function ListCard({ s, cat, href, variant = "row", score, rank, stop, starred, onStar, tags, extra, showCat = false, logo }: {
+export function ListCard({ s, cat, href, variant = "row", score, rank, stop, starred, onStar, tags, extra, showCat = false, logo, link }: {
   s: Supplier;
   cat: Category;
   href: string;
@@ -41,6 +41,8 @@ export function ListCard({ s, cat, href, variant = "row", score, rank, stop, sta
   showCat?: boolean;
   /** подмена логотипа — для проверки аватара; по умолчанию из logoOf */
   logo?: Logo;
+  /** обработчики ссылки карточки: клик переносит отмеченные позиции к поставщику (carry в store.ts, T-546) */
+  link?: AnchorHTMLAttributes<HTMLAnchorElement>;
 }) {
   const c = completeness(s);
   // оценка по отзывам, если они есть (правка Павла 15.10, T-543): в поиске она не менее важна, чем балл
@@ -62,7 +64,7 @@ export function ListCard({ s, cat, href, variant = "row", score, rank, stop, sta
     <article className="lcard mini">
       <div className="lc-ava"><Avatar s={s} size={40} logo={logo ?? logoOf(s.id)} /></div>
       <div className="lc-main">
-        <div className="lc-title"><a className="nm" href={href}>{s.name}</a>{tags}</div>
+        <div className="lc-title"><a className="nm" href={href} {...link}>{s.name}</a>{tags}</div>
         {extra}
       </div>
       <div className="lc-score">
@@ -78,7 +80,7 @@ export function ListCard({ s, cat, href, variant = "row", score, rank, stop, sta
       </div>
       <div className="lc-main">
         <div className="lc-title">
-          <a className="nm" href={href}>{s.name}</a>
+          <a className="nm" href={href} {...link}>{s.name}</a>
           {rs && <ReviewBadge stat={rs} size="sm" />}
           {tags}
         </div>

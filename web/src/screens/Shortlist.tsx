@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { href, navigate, useRoute } from "../router.ts";
-import { actions, CONTACT_STATUSES, useStore, type ContactStatus } from "../store.ts";
+import { actions, CONTACT_STATUSES, useStore, type ContactStatus, type WantItem } from "../store.ts";
 import { byId, categoryOf, orphanShortIds, rankCategory, readQuery, shortlistIds, subsIn, volParam, type Query } from "../data.ts";
 import { draftRequest } from "../lib/explain.ts";
 import { score, type Scored } from "../lib/score.ts";
@@ -48,8 +48,10 @@ export function Shortlist() {
   const sameCat = current ? rows.filter((r) => r.s.category === current.s.category).map((r) => r.s.id) : [];
 
   const csv = () => {
-    const head = ["Поставщик", "Категория", "Балл", "Статус контакта", "Заметка", "Телефон", "Email", "Сайт", "Демо"];
-    const lines = rows.map(({ s, sc, item }) => [s.name, categoryOf(s).name, sc.total, item.status, item.note, s.phones.value?.join(", ") ?? "", s.emails.value?.join(", ") ?? "", s.website.value ?? "", s.demo ? "да" : "нет"]);
+    // «Позиции» — в конце: колонки, которые уже разбирают таблицы закупщиков, остаются на своих местах (T-546)
+    const head = ["Поставщик", "Категория", "Балл", "Статус контакта", "Заметка", "Телефон", "Email", "Сайт", "Демо", "Позиции"];
+    const lines = rows.map(({ s, sc, item }) => [s.name, categoryOf(s).name, sc.total, item.status, item.note, s.phones.value?.join(", ") ?? "",
+      s.emails.value?.join(", ") ?? "", s.website.value ?? "", s.demo ? "да" : "нет", (st.wanted[s.id] ?? []).map((w) => w.name).join(", ")]);
     const text = [head, ...lines].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob(["﻿" + text], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
@@ -115,7 +117,8 @@ export function Shortlist() {
           <Orphans ids={orphans} notes={orphanNotes} />
         </div>
 
-        {current && <Draft key={current.s.id} row={current} />}
+        {/* ключ с позициями: убрали позицию на странице поставщика — черновик собирается заново */}
+        {current && <Draft key={`${current.s.id}|${(st.wanted[current.s.id] ?? []).map((w) => w.name).join("|")}`} row={current} wanted={st.wanted[current.s.id] ?? []} />}
       </div>
     </div>
   );
@@ -134,12 +137,12 @@ function NoteCell({ id, note }: { id: string; note: string }) {
   );
 }
 
-function Draft({ row }: { row: { s: Supplier; q: Query; sc: Scored } }) {
+function Draft({ row, wanted }: { row: { s: Supplier; q: Query; sc: Scored }; wanted: WantItem[] }) {
   const { s, q, sc } = row;
   const cat = categoryOf(s);
   // первая подкатегория своей категории; у поставщика без подкатегорий (ассортимент не собран) — категория целиком
   const sub = subsIn(s, cat)[0];
-  const d = draftRequest(sc, cat, sub ? sub.name : cat.name, q.volume);
+  const d = draftRequest(sc, cat, sub ? sub.name : cat.name, q.volume, wanted);
   const [text, setText] = useState(d.text);
   const [copied, setCopied] = useState<"" | "ok" | "fail">("");
   const email = isKnown(s.emails) ? s.emails.value![0] : "";
@@ -153,8 +156,8 @@ function Draft({ row }: { row: { s: Supplier; q: Query; sc: Scored } }) {
   };
   return (
     <aside className="draft">
-      <div className="panel-h"><b>Черновик запроса<Hint>Вопросы собраны из полей «○ не найдено» и «◐ уточнить» карточки: {d.from.map((x) => x.label).join(", ")}. Сервис ничего не отправляет сам — письмо уходит от вас.</Hint></b><span className="sub">{s.name}</span></div>
-      <textarea className="draft-text" value={text} onChange={(e) => setText(e.target.value)} rows={13} aria-label="Текст запроса" />
+      <div className="panel-h"><b>Черновик запроса<Hint>Вопросы собраны из полей «○ не найдено» и «◐ уточнить» карточки: {d.from.map((x) => x.label).join(", ")}. {wanted.length > 0 && " Позиции — те, что вы выбрали у поставщика: в подборе помощника, плане закупа или поиске."} Сервис ничего не отправляет сам — письмо уходит от вас.</Hint></b><span className="sub">{s.name}</span></div>
+      <textarea className="draft-text" value={text} onChange={(e) => setText(e.target.value)} rows={Math.min(13 + wanted.length + (wanted.length ? 3 : 0), 28)} aria-label="Текст запроса" />
       <div className="row-btns">
         <button type="button" className="btn pr" onClick={copy}>{copied === "ok" ? "Скопировано" : "Скопировать"}</button>
         <a className={`btn sec${email ? "" : " disabled"}`} aria-disabled={!email}

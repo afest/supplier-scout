@@ -5,7 +5,7 @@
 // T-546: второй способ — «Загрузить план закупа» (screens/PlanImport.tsx), переключатель в адресе: #/assistant?mode=plan.
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { href, navigate, type Route } from "../router.ts";
-import { useStore } from "../store.ts";
+import { carry, useStore } from "../store.ts";
 import { byId, categoryOf, defaultScores } from "../data.ts";
 import { plural } from "../lib/format.ts";
 import { ApiError, assist, cachedHealth, health, match, type Found, type Health, type Match, type Suggest } from "../lib/api.ts";
@@ -318,8 +318,10 @@ function Result({ res, sort }: { res: Match; sort: Sort }) {
     const s = byId.get(id);
     if (!s) return null;
     const mine = has.get(id)!;
+    // отмеченное, что у поставщика есть, — с кликом к нему на страницу и в черновик запроса (T-546)
+    const want = labels.length > 1 ? labels.filter((x) => mine.has(x)).map((name) => ({ name })) : [];
     return (
-      <ListCard key={id} variant="mini" s={s} cat={categoryOf(s)} href={href(`/s/${id}`)} score={scores.get(id) ?? null}
+      <ListCard key={id} variant="mini" s={s} cat={categoryOf(s)} href={href(`/s/${id}`)} score={scores.get(id) ?? null} link={carry(id, want)}
         extra={labels.length > 1 && <CoverChips items={labels} has={new Set(mine.keys())} />} />
     );
   };

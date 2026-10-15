@@ -4,7 +4,7 @@
 // поиск по каждому, группы по охвату — «есть всё», «2 из 3»…; в карточке — какие из товаров у поставщика нашлись.
 import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
-import { actions, useStore } from "../store.ts";
+import { actions, carry, useStore } from "../store.ts";
 import { CATEGORIES, catById, defaultScores, visibleSuppliers } from "../data.ts";
 import { buildIndex, norm, sameStem, search, suggest, type Hit, type Index, type Suggestion } from "../lib/search.ts";
 import { passes, readFilters } from "../lib/filters.ts";
@@ -222,6 +222,7 @@ export function Find({ route }: { route: Route }) {
                   const cat = catById(c.s.category)!;
                   return (
                     <ListCard key={c.s.id} s={c.s} cat={cat} href={href(`/s/${c.s.id}`, { cat: cat.id })} showCat
+                      link={carry(c.s.id, active.length > 1 ? active.filter((x) => c.terms.has(x.term)).map((x) => ({ name: x.term })) : [])}
                       score={scores.get(c.s.id) ?? null} starred={!!st.shortlist[c.s.id]} onStar={() => actions.toggleShort(c.s.id)}
                       extra={<><FoundIn h={mergeHits(c.hits)} tokens={tokensAll} />{active.length > 1 && <CoverChips items={active.map((x) => x.term)} has={c.terms} />}</>} />
                   );

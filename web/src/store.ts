@@ -19,8 +19,17 @@ export interface LastQuery {
   prio: string;
 }
 
+/** Позиция, ради которой открыли поставщика (Павел 15.10, T-546): name — как на чипе, text — как писать в запросе
+ *  (строка из плана закупа с брендом и фасовкой); без text в запрос идёт name. */
+export interface WantItem {
+  name: string;
+  text?: string;
+}
+
 export interface State {
   shortlist: Record<string, ShortItem>;
+  /** что хотели взять у поставщика: переносится кликом по карточке с чипами, показывается на его странице и уходит в черновик */
+  wanted: Record<string, WantItem[]>;
   compare: string[];
   /** поставщики, которых конвейер счёл «не поставщиком», а закупщик вернул руками */
   returned: string[];
@@ -30,7 +39,7 @@ export interface State {
 }
 
 const KEY = "supplier-scout:v1";
-const EMPTY: State = { shortlist: {}, compare: [], returned: [], collected: {}, last: null };
+const EMPTY: State = { shortlist: {}, wanted: {}, compare: [], returned: [], collected: {}, last: null };
 
 function load(): State {
   try {
@@ -66,6 +75,12 @@ export function useStore(): State {
 
 export const getState = () => state;
 
+/** Клик по карточке с чипами (и колёсиком — в новую вкладку) переносит отмеченное у поставщика к нему на страницу. */
+export const carry = (id: string, items: WantItem[]) => items.length ? {
+  onClick: () => actions.want(id, items),
+  onAuxClick: (e: { button: number }) => { if (e.button === 1) actions.want(id, items); },
+} : {};
+
 export const MAX_COMPARE = 4;
 
 export const actions = {
@@ -88,6 +103,26 @@ export const actions = {
     const item = state.shortlist[id];
     if (!item) return;
     set({ ...state, shortlist: { ...state.shortlist, [id]: { ...item, note, note_at: new Date().toISOString() } } });
+  },
+  /** Позиции с карточки — к уже выбранным у этого поставщика, без повторов: из плана закупа можно открыть его из итога
+   *  и из группы, ничего не потеряв. */
+  want(id: string, items: WantItem[]) {
+    const had = state.wanted[id] ?? [];
+    const seen = new Set(had.map((x) => x.name.toLowerCase()));
+    const add = items.filter((x) => x.name && !seen.has(x.name.toLowerCase()) && seen.add(x.name.toLowerCase()));
+    if (add.length) set({ ...state, wanted: { ...state.wanted, [id]: [...had, ...add] } });
+  },
+  unwant(id: string, name: string) {
+    const left = (state.wanted[id] ?? []).filter((x) => x.name !== name);
+    const w = { ...state.wanted };
+    if (left.length) w[id] = left;
+    else delete w[id];
+    set({ ...state, wanted: w });
+  },
+  clearWant(id: string) {
+    const w = { ...state.wanted };
+    delete w[id];
+    set({ ...state, wanted: w });
   },
   /** Убрать записи разом — для поставщиков, которых больше нет в наборе. */
   dropShort(ids: string[]) {

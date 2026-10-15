@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
-import { actions, MAX_COMPARE, useStore } from "../store.ts";
+import { actions, carry, MAX_COMPARE, useStore } from "../store.ts";
 import { byId, categoryOf, inCategory, queryParams, rankCategory, readQuery, subCover, volParam, type Query } from "../data.ts";
 import type { Category } from "../types.ts";
 import { readSelection, selParams, subsOf } from "../lib/selection.ts";
@@ -231,7 +231,7 @@ function FirstZone({ top, q, cardHref, whyHref }: { top: Scored[]; q: Query; car
           const c = companyShort(sc.supplier);
           const cov = subCover(q, sc.supplier);
           return (
-            <a key={sc.supplier.id} className={`gcard${i === 0 ? " lead" : ""}`} href={cardHref(sc.supplier.id)}>
+            <a key={sc.supplier.id} className={`gcard${i === 0 ? " lead" : ""}`} href={cardHref(sc.supplier.id)} {...carry(sc.supplier.id, covered(cov))}>
               <div className="g-top">
                 <span className="g-rank num">{i + 1}</span>
                 {i === 0 && <span className="signal">первым</span>}
@@ -257,6 +257,9 @@ function FirstZone({ top, q, cardHref, whyHref }: { top: Scored[]; q: Query; car
   );
 }
 
+/** Отмеченные подкатегории, которые у поставщика есть, — в порядке чипов; клик по карточке несёт их к нему (T-546). */
+const covered = (cov: ReturnType<typeof subCover>) => (cov ? cov.items.filter((x) => cov.has.has(x)).map((name) => ({ name })) : []);
+
 /** Оценка по отзывам в карточке «Кому написать первым» — если отзывы есть (T-543). */
 function GcardReviews({ id }: { id: string }) {
   const rs = useReviewStat(id);
@@ -280,7 +283,7 @@ function Row({ sc, rank, q, hrefCard, starred, collected }: { sc: Scored; rank: 
     </>
   );
   return (
-    <ListCard s={s} cat={q.cat} href={hrefCard} score={sc.total} rank={rank} starred={starred} onStar={() => actions.toggleShort(s.id)}
+    <ListCard s={s} cat={q.cat} href={hrefCard} score={sc.total} rank={rank} starred={starred} onStar={() => actions.toggleShort(s.id)} link={carry(s.id, covered(cov))}
       tags={tags} extra={<>{basis.length > 0 && <Basis items={basis} />}
         {cov && <CoverChips items={cov.items} has={cov.has} />}</>} />
   );
