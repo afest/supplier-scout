@@ -79,12 +79,16 @@ function Marked({ text, tokens }: { text: string; tokens: string[] }) {
 
 const VIA: Record<Hit["via"], string> = { item: "в товарах", subcategory: "подкатегория", name: "в названии" };
 
-/** «молоко, сыр, тесто» → ["молоко", "сыр", "тесто"]; повтор без учёта регистра отбрасывается. Без запятой — один товар. */
+/** «молоко, сыр, тесто» → ["молоко", "сыр", "тесто"]; повтор без учёта регистра отбрасывается. Без запятой — один товар.
+ *  Запятая между цифрами — часть товара: «молоко 3,2%», «0,5 л» (ревью Дир 63). Точка с запятой и перевод строки делят всегда. */
+const TERM_SEP = /[;\n]|,(?!\d)|(?<!\d),/;
 export function splitTerms(q: string) {
   const out: string[] = [];
-  for (const t of q.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean)) if (!out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
+  for (const t of q.split(TERM_SEP).map((x) => x.trim()).filter(Boolean)) if (!out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
   return out;
 }
+/** Выключенные товары в адресе (off=) — через «;»: внутри товара её не бывает, запрос по ней всегда делится. */
+const OFF_SEP = ";";
 
 /** Товары запроса чипами: число — сколько поставщиков с этим товаром проходит фильтры; клик выключает и включает товар. */
 function TermsBar({ terms, off, counts, onToggle, onAdd }: {
@@ -129,7 +133,7 @@ export function Find({ route }: { route: Route }) {
   const multi = terms.length > 1;
   const r = useMemo(() => search(multi ? "" : q, vis, ix), [multi, q, vis, ix]);
   const per = useMemo(() => terms.map((term) => ({ term, r: search(term, vis, ix) })), [terms, vis, ix]);
-  const off = new Set((route.params.get("off") ?? "").split(",").filter((t) => terms.includes(t)));
+  const off = new Set((route.params.get("off") ?? "").split(OFF_SEP).filter((t) => terms.includes(t)));
   const active = per.filter((x) => !off.has(x.term));
 
   // балл — внутри своей категории, при запросе по умолчанию (закупка 20 000 ₽, сбалансированно)
@@ -160,7 +164,7 @@ export function Find({ route }: { route: Route }) {
   const tokensAll = active.flatMap((x) => x.r.tokens);
   const toggleTerm = (t: string) => {
     const next = off.has(t) ? [...off].filter((x) => x !== t) : [...off, t];
-    setParam({ off: next.length ? next.join(",") : null });
+    setParam({ off: next.length ? next.join(OFF_SEP) : null });
   };
   const addTerm = (t: string) => navigate("/find", { ...paramsToObject(route.params), q: splitTerms([...terms, t].join(", ")).join(", ") });
 

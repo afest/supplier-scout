@@ -354,6 +354,33 @@ const picker = {
     check(door.length === 0, "  остались только те, кто возит до точки", door.join(", "));
     check(hash(page).includes("f=door"), "  фильтр — в адресе", hash(page));
 
+    step("Поиск по нескольким товарам: запятая внутри числа — часть товара, а не разделитель (T-544, ревью Дир 63)");
+    const chipNames = async () => (await page.locator(".terms-bar .assist-need > span:first-child").allInnerTexts()).map((x) => x.trim());
+    const offParam = () => new URLSearchParams(new URL(page.url()).hash.split("?")[1] ?? "").get("off");
+    await page.goto(base + "#/find?q=" + encodeURIComponent("молоко 3,2%"), { waitUntil: "networkidle" });
+    let chipList = await chipNames();
+    check(chipList.length === 1 && chipList[0] === "молоко 3,2%", "«молоко 3,2%» — один чип", chipList.join(" | "));
+    await page.goto(base + "#/find?q=" + encodeURIComponent("молоко 3,2%, сыр; сливки 10%"), { waitUntil: "networkidle" });
+    chipList = await chipNames();
+    check(chipList.join(" | ") === "молоко 3,2% | сыр | сливки 10%", "«молоко 3,2%, сыр; сливки 10%» — три чипа: запятая вне числа и точка с запятой делят", chipList.join(" | "));
+    await page.goto(base + "#/find?q=" + encodeURIComponent("молоко 3,2%, сыр"), { waitUntil: "networkidle" });
+    chipList = await chipNames();
+    check(chipList.join(" | ") === "молоко 3,2% | сыр", "«молоко 3,2%, сыр» — два чипа", chipList.join(" | "));
+    const milkChip = page.locator(".terms-bar .assist-need").filter({ has: page.locator("span", { hasText: /^молоко 3,2%$/ }) });
+    const cheeseChip = page.locator(".terms-bar .assist-need").filter({ has: page.locator("span", { hasText: /^сыр$/ }) });
+    if (await milkChip.count() === 1) {
+      await milkChip.click();
+      await page.waitForTimeout(200);
+      check(offParam() === "молоко 3,2%" && await milkChip.getAttribute("aria-pressed") === "false" && await cheeseChip.getAttribute("aria-pressed") === "true",
+        "чип «молоко 3,2%» выключается — в адресе он целиком, «сыр» включён", `off=${offParam()}`);
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForSelector(".terms-bar");
+      check(await milkChip.getAttribute("aria-pressed") === "false" && await cheeseChip.getAttribute("aria-pressed") === "true", "  по тому же адресу после перезагрузки — выключен");
+      await milkChip.click();
+      await page.waitForTimeout(200);
+      check(offParam() === null && await milkChip.getAttribute("aria-pressed") === "true", "  и включается обратно — off из адреса ушёл", `off=${offParam()}`);
+    } else check(false, "чип «молоко 3,2%» есть на экране", chipList.join(" | "));
+
     step("Карточка в списке: открывается кликом по любому месту, звёздочка — нет, фокус с клавиатуры виден");
     await page.goto(base + "#/results?cat=dairy", { waitUntil: "networkidle" });
     const card = page.locator(".rows .lcard").first();
