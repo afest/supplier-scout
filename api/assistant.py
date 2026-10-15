@@ -11,7 +11,7 @@ import re
 import threading
 from collections import OrderedDict
 
-from pipeline.config import DATA, load_categories
+from pipeline.config import ASSIST_MODEL, CLAUDE_MODEL, DATA, load_categories
 from pipeline.kie import BudgetExceeded, Kie, KieError
 
 from . import budget, quota
@@ -136,7 +136,12 @@ def _ask_model(text: str) -> dict:
         # потолок — на этот вызов (у Kie он считается от момента создания клиента); запас 5 коп., а не рубль по умолчанию:
         # потолок сам меньше рубля
         kie = Kie(budget_rub=min(CALL_CAP_RUB, budget.left_today_rub()), reserve_rub=0.05)
-        return kie.claude_tool(f"Описание точки: «{text}»", TOOL, label="assist", system=SYSTEM, max_tokens=1200)
+        prompt = f"Описание точки: «{text}»"
+        try:
+            return kie.responses_tool(prompt, TOOL, label="assist", system=SYSTEM, max_tokens=1200)
+        except KieError as e:                    # основная модель не ответила — одна попытка на запасной (другой поставщик)
+            print(f"assist: {ASSIST_MODEL} → {CLAUDE_MODEL}: {type(e).__name__}: {str(e)[:300]}", flush=True)
+        return kie.claude_tool(prompt, TOOL, label="assist", system=SYSTEM, max_tokens=1200)
     except SystemExit as e:                      # keys.get: ключа нет — сервер не настроен
         raise Unavailable("Помощник не настроен на сервере.") from e
     except (BudgetExceeded, KieError) as e:

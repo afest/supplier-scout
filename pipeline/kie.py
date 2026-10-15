@@ -14,7 +14,7 @@ from pathlib import Path
 import httpx
 
 from . import keys
-from .config import CACHE, CLAUDE_MODEL, GEMINI_MODEL, RUB_PER_CREDIT
+from .config import ASSIST_MODEL, CACHE, CLAUDE_MODEL, CREDIT_PRICES, GEMINI_MODEL, RUB_PER_CREDIT
 
 BASE = "https://api.kie.ai"
 LEDGER = CACHE / "spend.jsonl"
@@ -138,6 +138,42 @@ class Kie:
             if block.get("type") == "tool_use" and block.get("name") == tool["name"]:
                 return block["input"]
         raise KieError(f"Claude не вызвал инструмент: stop_reason={j.get('stop_reason')}, {str(j['content'])[:300]}")
+
+    # ---- GPT (Responses API, /codex/v1/responses): ответ через вызов функции ----
+    def responses_tool(self, prompt: str, tool: dict, label: str, system: str | None = None,
+                       max_tokens: int = 4096, model: str = ASSIST_MODEL) -> dict:
+        """Та же схема, что у claude_tool: на входе инструмент с input_schema, на выходе — его аргументы.
+
+        tool_choice здесь только auto (Kie не даёт принудить функцию), поэтому не вызвала — ошибка, а не пустой ответ.
+        """
+        fn = {"type": "function", "name": tool["name"], "description": tool.get("description", ""),
+              "parameters": tool["input_schema"]}
+        body = {"model": model, "input": prompt, "tools": [fn], "tool_choice": "auto", "stream": False,
+                "max_output_tokens": max_tokens, "reasoning": {"effort": "low"}}
+        if system:
+            body["instructions"] = system
+        with self._slot():
+            r = self._post("/codex/v1/responses", body)
+            try:
+                j = r.json()
+            except ValueError as e:
+                raise KieError(f"{model}: HTTP {r.status_code}, не JSON: {r.text[:300]}") from e
+            if not isinstance(j, dict) or "output" not in j:        # ошибки Kie бывают и с HTTP 200 — смотрим тело
+                raise KieError(f"{model}: {str(j)[:400]}")
+            usage = j.get("usage") or {}
+            credits = j.get("credits_consumed")
+            if credits is None and model in CREDIT_PRICES:
+                p_in, p_out = CREDIT_PRICES[model]
+                credits = ((usage.get("input_tokens") or 0) * p_in + (usage.get("output_tokens") or 0) * p_out) / 1e6
+            self._log("responses", j.get("model", model), label, credits, usage)
+        for item in j["output"]:
+            if item.get("name") == tool["name"] and "arguments" in item:
+                try:
+                    return json.loads(item["arguments"])
+                except (TypeError, ValueError) as e:
+                    raise KieError(f"{model}: аргументы функции не JSON (status={j.get('status')}): "
+                                   f"{str(item['arguments'])[:200]}") from e
+        raise KieError(f"{model} не вызвала функцию: status={j.get('status')}, {str(j['output'])[:300]}")
 
     # ---- Gemini + поиск Google: текст ответа и источники выдачи ----
     def gemini_search(self, prompt: str, label: str, model: str = GEMINI_MODEL) -> dict:

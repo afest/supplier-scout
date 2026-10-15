@@ -20,6 +20,9 @@ RUB_PER_CREDIT = 0.5            # Kie: 200 кредитов = $1, курс 100 �
 # Модели Kie
 CLAUDE_MODEL = "claude-haiku-5-5"
 GEMINI_MODEL = "gemini-3-8-flash"
+ASSIST_MODEL = "gpt-6-luna"     # помощник: основная модель; при ошибке Kie — CLAUDE_MODEL (15.10: у Claude на Kie был сбой)
+# Цена кредитов за 1 млн токенов (вход, выход) — для моделей, чей ответ не несёт credits_consumed. Страница цен Kie, 15.10.
+CREDIT_PRICES = {"gpt-6-luna": (6.0, 30.0)}
 
 # Поисковые формулировки по подкатегориям: короткая фраза вместо длинного названия из дерева.
 SEARCH_TERMS = {
