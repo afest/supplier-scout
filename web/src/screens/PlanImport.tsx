@@ -4,7 +4,7 @@
 // названия. Состояние — вне компонента и в sessionStorage вкладки: переход к поставщику и «назад» его не сбрасывают.
 import { useEffect, useMemo, useState, useSyncExternalStore, type DragEvent } from "react";
 import { href } from "../router.ts";
-import { carry, useStore } from "../store.ts";
+import { actions, carry, useStore } from "../store.ts";
 import { byId, CATEGORIES, catById, categoryOf, defaultScored } from "../data.ts";
 import { isKnown, plural } from "../lib/format.ts";
 import { bigWholesale, type Scored } from "../lib/score.ts";
@@ -146,6 +146,10 @@ export function PlanImport() {
   const read = useMemo(() => (st.table ? planFromTable(st.table, st.col) : null), [st.table, st.col]);
   const fresh = !!read && !!st.res && same(st.sent, read.lines);
   useEffect(() => { health().then(setHl).catch(() => setHl(null)); }, [st.res]);
+  // «откуда» для шорт-листа и выбранных позиций (T-546, круг 3)
+  useEffect(() => {
+    if (fresh && st.source) actions.setTrail(`План закупа ${st.source.kind === "paste" ? "из вставки" : `«${st.source.name}»`}`);
+  }, [fresh, st.source]);
 
   const drop = (e: DragEvent) => {
     e.preventDefault();

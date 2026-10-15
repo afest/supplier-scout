@@ -10,6 +10,8 @@ export interface ShortItem {
   note: string;
   note_at: string | null;
   added_at: string;
+  /** откуда добавили в шорт-лист: поиск, категория, план закупа, помощник (T-546, круг 3) — для мини-истории строки */
+  from?: string | null;
 }
 
 export interface LastQuery {
@@ -24,6 +26,9 @@ export interface LastQuery {
 export interface WantItem {
   name: string;
   text?: string;
+  /** где выбрали и когда — для мини-истории в шорт-листе */
+  from?: string | null;
+  at?: string;
 }
 
 export interface State {
@@ -36,10 +41,12 @@ export interface State {
   /** карточки, собранные живым сбором в этом браузере, и когда */
   collected: Record<string, string>;
   last: LastQuery | null;
+  /** откуда пришли к поставщику: последний список, который смотрели («Поиск по товару «молоко, сыр»», «План закупа …») */
+  trail: string | null;
 }
 
 const KEY = "supplier-scout:v1";
-const EMPTY: State = { shortlist: {}, wanted: {}, compare: [], returned: [], collected: {}, last: null };
+const EMPTY: State = { shortlist: {}, wanted: {}, compare: [], returned: [], collected: {}, last: null, trail: null };
 
 function load(): State {
   try {
@@ -87,7 +94,7 @@ export const actions = {
   toggleShort(id: string) {
     const s = { ...state.shortlist };
     if (s[id]) delete s[id];
-    else s[id] = { status: "Не связывались", note: "", note_at: null, added_at: new Date().toISOString() };
+    else s[id] = { status: "Не связывались", note: "", note_at: null, added_at: new Date().toISOString(), from: state.trail };
     set({ ...state, shortlist: s });
   },
   addShort(id: string) {
@@ -109,7 +116,9 @@ export const actions = {
   want(id: string, items: WantItem[]) {
     const had = state.wanted[id] ?? [];
     const seen = new Set(had.map((x) => x.name.toLowerCase()));
-    const add = items.filter((x) => x.name && !seen.has(x.name.toLowerCase()) && seen.add(x.name.toLowerCase()));
+    const at = new Date().toISOString();
+    const add = items.filter((x) => x.name && !seen.has(x.name.toLowerCase()) && seen.add(x.name.toLowerCase()))
+      .map((x) => ({ ...x, from: x.from ?? state.trail, at }));
     if (add.length) set({ ...state, wanted: { ...state.wanted, [id]: [...had, ...add] } });
   },
   unwant(id: string, name: string) {
@@ -144,6 +153,10 @@ export const actions = {
   },
   markCollected(id: string) {
     set({ ...state, collected: { ...state.collected, [id]: new Date().toISOString() } });
+  },
+  /** Список, который сейчас смотрят, — запоминается для «откуда» у шорт-листа и выбранных позиций. */
+  setTrail(trail: string | null) {
+    if (state.trail !== trail) set({ ...state, trail });
   },
   rememberQuery(q: LastQuery) {
     set({ ...state, last: q });

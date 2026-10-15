@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { href, useRoute } from "./router.ts";
-import { useStore } from "./store.ts";
+import { actions, useStore } from "./store.ts";
 import { baseCount, DATA, shortlistIds } from "./data.ts";
 import { AvaFilters, Popover } from "./components/ui.tsx";
 import { Footer } from "./components/Footer.tsx";
@@ -98,6 +98,10 @@ export function App() {
   useEffect(() => {
     const t = TITLES[path];
     if (t) document.title = `${t} · Поставщики`;
+    // «откуда» (T-546, круг 3): на экранах без списка поставщиков его нет — иначе звёздочка у поставщика, открытого
+    // ссылкой с главной, записала бы старый поиск. Списки ставят своё сами, страница поставщика и сравнение — не трогают
+    if (path === "/" || path === "/shortlist" || path === "/about-data" || path === "/categories") actions.setTrail(null);
+    else if (path === "/add") actions.setTrail("Знаю поставщика — живой сбор");
   }, [path]);
 
   // экраны с колонкой фильтров (T-541): колонка сразу после меню, поэтому выдача сама задаёт себе поля

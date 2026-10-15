@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { href, navigate, useRoute } from "../router.ts";
-import { actions, CONTACT_STATUSES, useStore, type ContactStatus, type WantItem } from "../store.ts";
-import { byId, categoryOf, orphanShortIds, rankCategory, readQuery, shortlistIds, subsIn, volParam, type Query } from "../data.ts";
+import { actions, CONTACT_STATUSES, MAX_COMPARE, useStore, type ContactStatus, type ShortItem, type WantItem } from "../store.ts";
+import { byId, CATEGORIES, categoryOf, inCategory, orphanShortIds, rankCategory, readQuery, shortlistIds, subsIn, volParam, type Query } from "../data.ts";
 import { draftRequest } from "../lib/explain.ts";
 import { score, type Scored } from "../lib/score.ts";
 import type { Supplier } from "../types.ts";
@@ -45,7 +45,19 @@ export function Shortlist() {
   }), [st]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const current = rows.find((r) => r.s.id === sel) ?? rows[0];
-  const sameCat = current ? rows.filter((r) => r.s.category === current.s.category).map((r) => r.s.id) : [];
+  // сравнение — те, у кого отмечено «Сравнить» (здесь, в списках или на странице поставщика), а не первые из категории
+  // текущей строки (Павел 15.10, T-546: «не понимаю, что с чем сравниваем»). Сравнивают внутри одной категории
+  const [notice, setNotice] = useState("");
+  const cmpIds = st.compare.filter((id) => byId.has(id));
+  const cmpCat = CATEGORIES.find((c) => cmpIds.length > 0 && cmpIds.every((id) => inCategory(byId.get(id)!, c))) ?? null;
+  const toggleCmp = (s: Supplier) => {
+    setNotice("");
+    const own = categoryOf(s);
+    if (st.compare.some((x) => { const o = byId.get(x); return !o || !inCategory(o, own); })) {
+      actions.setCompare([s.id]);
+      if (cmpIds.length) setNotice(`Сравнивают внутри одной категории — выбор начат заново: ${own.name.toLowerCase()}.`);
+    } else if (!actions.toggleCompare(s.id)) setNotice(`В сравнении уже ${MAX_COMPARE} поставщика — снимите отметку с одного.`);
+  };
 
   const csv = () => {
     // «Позиции» — в конце: колонки, которые уже разбирают таблицы закупщиков, остаются на своих местах (T-546)
@@ -81,14 +93,15 @@ export function Shortlist() {
         <h1 className="h1">Шорт-лист <span className="count-big num">{rows.length}</span><Hint>Статусы: {CONTACT_STATUSES.join(" · ")}. Заметка отсюда и с карточки — одна и та же. Всё хранится в этом браузере, без регистрации.</Hint></h1>
         <div className="page-tools">
           <button type="button" className="btn sec" onClick={csv}>Скачать CSV</button>
-          <a className={`btn sec${sameCat.length < 2 ? " disabled" : ""}`} aria-disabled={sameCat.length < 2}
-            href={sameCat.length < 2 ? undefined : href("/compare", { ids: sameCat.slice(0, 4).join(","), cat: current.s.category, vol: volParam(current.q.volume), prio: current.q.prio === "balanced" ? null : current.q.prio })}
-            title="Сравнение — внутри одной категории">
-            Сравнить · {current ? categoryOf(current.s).short.toLowerCase() : ""}
+          <a className={`btn sec${cmpIds.length < 2 || !cmpCat ? " disabled" : ""}`} aria-disabled={cmpIds.length < 2 || !cmpCat}
+            href={cmpIds.length < 2 || !cmpCat ? undefined : href("/compare", { ids: cmpIds.join(","), cat: cmpCat.id, vol: volParam(current.q.volume), prio: current.q.prio === "balanced" ? null : current.q.prio })}
+            title={cmpIds.length < 2 ? "Отметьте «Сравнить» у двух–четырёх поставщиков одной категории" : "Сравнение отмеченных"}>
+            Сравнить{cmpIds.length ? ` · ${cmpIds.length}` : ""}{cmpCat ? ` · ${cmpCat.short.toLowerCase()}` : ""}
           </a>
         </div>
       </div>
 
+      {notice && <div className="notice" role="status">{notice}</div>}
       <div className="sl-grid">
         <div className="sl-list">
           {rows.map(({ s, sc, item }) => {
@@ -107,6 +120,9 @@ export function Shortlist() {
                   </select>
                 </label>
                 <NoteCell id={s.id} note={item.note} />
+                <button type="button" className={`btn sm sec sl-cmp${st.compare.includes(s.id) ? " on" : ""}`} aria-pressed={st.compare.includes(s.id)}
+                  onClick={() => toggleCmp(s)}>{st.compare.includes(s.id) ? "✓ В сравнении" : "Сравнить"}</button>
+                <History item={item} wanted={st.wanted[s.id] ?? []} />
                 <div className="sl-actions">
                   <button type="button" className={`btn sm ${current?.s.id === s.id ? "pr" : "sec"}`} onClick={() => navigate("/shortlist", { draft: s.id }, { replace: true })}>Черновик</button>
                   <button type="button" className="x" aria-label={`Убрать ${s.name} из шорт-листа`} onClick={() => actions.toggleShort(s.id)}>×</button>
@@ -120,6 +136,47 @@ export function Shortlist() {
         {/* ключ с позициями: убрали позицию на странице поставщика — черновик собирается заново */}
         {current && <Draft key={`${current.s.id}|${(st.wanted[current.s.id] ?? []).map((w) => w.name).join("|")}`} row={current} wanted={st.wanted[current.s.id] ?? []} />}
       </div>
+    </div>
+  );
+}
+
+const when = (iso: string) => new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const day = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+
+/** Мини-история строки (Павел 15.10, T-546): когда и откуда поставщик попал в шорт-лист и какие позиции у него выбраны.
+ *  Свёрнута в строку-подсказку, по шеврону — подробно, с чипами позиций по поводу, где их выбрали. */
+function History({ item, wanted }: { item: ShortItem; wanted: WantItem[] }) {
+  const [open, setOpen] = useState(false);
+  const groups: { from: string; at: string | undefined; items: WantItem[] }[] = [];
+  for (const w of wanted) {
+    const key = w.from ?? "";
+    const g = groups.find((x) => x.from === key);
+    if (g) g.items.push(w);
+    else groups.push({ from: key, at: w.at, items: [w] });
+  }
+  return (
+    <div className="sl-hist">
+      <button type="button" className="sl-hist-t" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="sl-hist-sum">
+          в шорт-листе с {day(item.added_at)}{item.from ? ` · ${item.from}` : ""}
+          {wanted.length > 0 && <b> · {wanted.length} {plural(wanted.length, "позиция", "позиции", "позиций")}</b>}
+        </span>
+        <svg className="sl-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      {open && (
+        <ul className="sl-hist-list">
+          <li><span className="sl-hist-at num">{when(item.added_at)}</span><span>добавлен в шорт-лист{item.from ? <> — {item.from}</> : ""}</span></li>
+          {groups.map((g) => (
+            <li key={g.from}>
+              <span className="sl-hist-at num">{g.at ? when(g.at) : ""}</span>
+              <span>
+                выбрали позиции{g.from ? <> — {g.from}</> : ""}
+                <span className="mc-chips">{g.items.map((w) => <span key={w.name} className="mc-chip on" title={w.text && w.text !== w.name ? w.text : undefined}>{w.name}</span>)}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

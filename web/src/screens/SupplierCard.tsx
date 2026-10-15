@@ -130,6 +130,8 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
   };
 
   const collected = <Collected s={s} comp={comp} now={!!collectedNow} />;
+  // что выбрали у поставщика — не шире левой колонки «Основного» (Павел 15.10, круг 3); в остальных разделах — в начале раздела
+  const wanted = (st.wanted[s.id]?.length ?? 0) > 0 ? <Wanted id={s.id} items={st.wanted[s.id]} /> : null;
   const nav = (cls: string) => (
     <nav className={cls} aria-label="Разделы карточки">
       {TABS.map((t) => (
@@ -144,17 +146,18 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
 
   let body: ReactNode;
   if (tab === "why") {
-    body = <Breakdown s={s} q={q} current={sc} stop={stop} ranked={ranked} excluded={excluded} vsId={route.params.get("vs")} prio={prio} onVs={setVs} linkFor={linkFor} />;
+    body = <>{wanted}<Breakdown s={s} q={q} current={sc} stop={stop} ranked={ranked} excluded={excluded} vsId={route.params.get("vs")} prio={prio} onVs={setVs} linkFor={linkFor} /></>;
   } else if (tab === "terms") {
-    body = <>{collected}<Terms s={s} /></>;
+    body = <>{wanted}{collected}<Terms s={s} /></>;
   } else if (tab === "docs") {
-    body = <>{collected}<Docs s={s} cat={cat} /></>;
+    body = <>{wanted}{collected}<Docs s={s} cat={cat} /></>;
   } else if (tab === "assortment") {
-    body = <>{collected}<Assortment s={s} /></>;
+    body = <>{wanted}{collected}<Assortment s={s} /></>;
   } else {
     body = (
       <div className="card-grid">
         <div className="card-main">
+          {wanted}
           {collected}
           <div className="wdgs">
             <TermsWidget s={s} href={tabHref("terms")} onClick={go("terms")} />
@@ -231,12 +234,13 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
       <div className="card-page">
         <header className="card-h2">
           <div className="card-id">
-            <Avatar s={s} size={88} logo={logoOf(s.id)} color />
             <div className="card-title">
               <div className="label">
                 <CatGlyph cat={cat} size={18} /> {cat.short}{shown.length > 0 && ` · ${shown.slice(0, 2).map((x) => x.name.toLowerCase()).join(" · ")}${shown.length > 2 ? ` · ещё ${shown.length - 2}` : ""}`}
                 {guest && <GuestTag s={s} cat={cat} own={own} />}
               </div>
+              {/* логотип над названием, а не слева от него: всё в шапке — по одному краю с разделами ниже (Павел 15.10, круг 3) */}
+              <div className="card-logo"><Avatar s={s} size={88} logo={logoOf(s.id)} color /></div>
               <h1 className="h1">{s.name}{s.demo && <DemoPill />}{collectedNow && <span className="fresh-pill">собрано сейчас</span>}</h1>
               <div className="sub">
                 <span>{isKnown(s.legal_name) ? s.legal_name.value : "юрлицо не указано"}</span>
@@ -285,7 +289,6 @@ export function SupplierCard({ route, id }: { route: Route; id: string }) {
           </section>
         </header>
         {notice && <div className="notice" role="status">{notice}</div>}
-        {(st.wanted[s.id]?.length ?? 0) > 0 && <Wanted id={s.id} items={st.wanted[s.id]} />}
 
         {/* на телефоне колонка — над шапкой, поэтому меню разделов здесь же полосой вкладок */}
         <div ref={anchor} className="tabs-anchor" />

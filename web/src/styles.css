@@ -1610,3 +1610,40 @@ button.rbadge:hover .rb-n, button.rbadge:focus-visible .rb-n { color: var(--ink)
   .wanted { padding: 14px 16px; }
   .wanted-go { flex-basis: 100%; margin: 6px 0 0; }
 }
+
+/* ---------- страница поставщика и шорт-лист, круг 3 T-546 (Павел 15.10) ---------- */
+/* шапка одним столбцом: метка категории, логотип, название — по одному краю с разделами ниже, без отступа под логотип */
+.card-id, .railed .card-id { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.card-logo { margin: 2px 0 14px; }
+.card-main > .wanted { margin: 0 0 24px; }                    /* «Вы выбрали» в левой колонке — над строкой «сколько найдено» */
+.btn.sec.on:hover { background: #3A3B44; }
+/* плашка балла — той же ширины, что правая колонка под шапкой: 340 px и зазор 32, как у .card-body .card-grid */
+@media (min-width: 1361px) {
+  .railed .card-h2 { grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; }
+}
+/* на телефоне плашка балла — столбцом: правило ≤1360 (балл слева, шкалы справа) стояло ниже правила ≤900 и перебивало его,
+   подписи шкал наезжали друг на друга на 390 */
+@media (max-width: 900px) {
+  .railed .score-panel { grid-template-columns: minmax(0, 1fr); }
+  .railed .score-panel .sp-head { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+  .railed .score-panel .sp-place { text-align: right; }
+}
+/* шорт-лист: «Сравнить» у строки — под «Черновиком»; мини-история — строкой под заметкой, подробно — по шеврону */
+.sl-cmp { grid-column: 4; grid-row: 2; justify-self: stretch; }
+.sl-hist { grid-column: 2 / -1; grid-row: 3; min-width: 0; }
+.sl-hist-t { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.sl-hist-t:hover { color: var(--ink); }
+.sl-hist-sum { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-hist-sum b { font-weight: var(--fw-medium); color: var(--ink); }
+.sl-chev { flex: none; transition: transform .15s; }
+.sl-hist-t[aria-expanded="true"] .sl-chev { transform: rotate(180deg); }
+.sl-hist-list { list-style: none; margin: 10px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); display: grid; gap: 10px; font-size: 13px; }
+.sl-hist-list li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
+.sl-hist-list li > span { min-width: 0; overflow-wrap: anywhere; }
+.sl-hist-at { color: var(--muted); }
+.sl-hist-list .mc-chips { margin-top: 6px; }
+@media (max-width: 600px) {
+  .sl-cmp { grid-column: 1 / -1; grid-row: 4; justify-self: start; }
+  .sl-hist { grid-column: 1 / -1; grid-row: 5; }
+  .sl-hist-list li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}

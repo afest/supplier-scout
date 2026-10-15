@@ -1,6 +1,6 @@
 // «Все поставщики» — витрина для закупщика, который ещё не знает, что ему нужно: смотреть всех, как в магазине.
 // По алфавиту, поиск по названию и товарам, те же фильтры, что в категории.
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
 import { CATEGORIES, catById, rankCategory, readQuery, visibleSuppliers } from "../data.ts";
@@ -33,6 +33,7 @@ export function Catalog({ route }: { route: Route }) {
   const sort = p.get("sort") ?? "az";
   const showEx = p.get("ex") === "1";
   const setParam = (patch: Record<string, string | null>) => navigate("/catalog", { ...paramsToObject(p), ...patch }, { replace: true });
+  useEffect(() => actions.setTrail("Все поставщики"), []);                       // «откуда» для шорт-листа (T-546)
 
   // балл — по сохранённому запросу (объём, «что важнее»), в каждой категории свой рейтинг
   const scores = useMemo(() => {

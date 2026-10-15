@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, carry, MAX_COMPARE, useStore } from "../store.ts";
-import { byId, categoryOf, inCategory, queryParams, rankCategory, readQuery, subCover, volParam, type Query } from "../data.ts";
+import { byId, categoryOf, inCategory, queryParams, rankCategory, readQuery, subAnywhere, subCover, volParam, type Query } from "../data.ts";
 import type { Category } from "../types.ts";
 import { readSelection, selParams, subsOf } from "../lib/selection.ts";
 import { CategoryPicker } from "../components/CategoryPicker.tsx";
@@ -57,6 +57,11 @@ export function Results({ route }: { route: Route }) {
   const hidden = sections.reduce((n, s) => n + s.ranked.length - s.visible.length, 0);
 
   const first = sections[0];
+  // «откуда» для шорт-листа и выбранных позиций (T-546, круг 3): категории и, если выбраны не все, подкатегории
+  useEffect(() => {
+    const subs = sel.subs.map((id) => subAnywhere(id)?.name.toLowerCase()).filter(Boolean);
+    actions.setTrail(`Категория «${sel.cats.map((c) => c.name).join("», «")}»${subs.length ? ` · ${subs.join(", ")}` : ""}`);
+  }, [selKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     actions.rememberQuery({ cat: first.cat.id, sub: first.base.sub ?? "", vol: q0.volume ? String(q0.volume) : "0", prio: q0.prio });
   }, [first.cat.id, first.base.sub, q0.volume, q0.prio]);

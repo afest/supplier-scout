@@ -135,6 +135,8 @@ export function Find({ route }: { route: Route }) {
   const per = useMemo(() => terms.map((term) => ({ term, r: search(term, vis, ix) })), [terms, vis, ix]);
   const off = new Set((route.params.get("off") ?? "").split(OFF_SEP).filter((t) => terms.includes(t)));
   const active = per.filter((x) => !off.has(x.term));
+  // «откуда» для шорт-листа и выбранных позиций (T-546, круг 3)
+  useEffect(() => { if (q) actions.setTrail(`Поиск по товару «${multi ? terms.join(", ") : q}»`); }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // балл — внутри своей категории, при запросе по умолчанию (закупка 20 000 ₽, сбалансированно)
   const scores = useMemo(() => defaultScores(st), [st]);

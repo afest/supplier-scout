@@ -381,6 +381,65 @@ const hash = (page) => decodeURIComponent(new URL(page.url()).hash);
       await ctx.close();
     }
 
+    // ---------- страница поставщика и шорт-лист, круг 3 (Павел 15.10) ----------
+    {
+      const { ctx, page } = await newPage(1440, 900);
+      step("Страница поставщика: шапка столбцом, плашка балла шириной правой колонки, «Вы выбрали» в левой; шорт-лист: сравнение и мини-история (T-546, круг 3)");
+      // поиск по двум товарам: звёздочка у двух поставщиков одной категории, клик по первому — позиции переносятся
+      await page.goto(base + "#/find?q=" + encodeURIComponent("молоко, сыр сливочный"), { waitUntil: "networkidle" });
+      // две карточки с чипами из одной основной категории — по подписи категории целиком, а не по слову в тексте карточки
+      const found = await page.locator(".lcard").evaluateAll((cs) => cs.filter((c) => c.querySelector(".mc-chip.on"))
+        .map((c) => ({ name: c.querySelector("a.nm").textContent.trim(), cat: (c.querySelector(".sc-cat")?.textContent ?? "").trim() })));
+      const pair = found.filter((x) => found.filter((y) => y.cat === x.cat).length > 1);
+      const names = [pair[0].name, pair.find((x) => x.cat === pair[0].cat && x.name !== pair[0].name).name];
+      const card = (n) => page.locator(".lcard", { has: page.locator("a.nm", { hasText: n }) }).first();
+      await card(names[0]).locator(".star").click();
+      await card(names[1]).locator(".star").click();
+      await card(names[0]).locator("a.nm").click();
+      await page.waitForSelector(".wanted");
+      const box = (sel) => page.locator(sel).first().evaluate((e) => { const b = e.getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }; });
+      const [lab, logo, h1, sp, side, main, wanted] = await Promise.all([".card-title .label", ".card-logo", ".card-title .h1", ".score-panel", ".card-grid .side", ".card-grid .card-main", ".card-main .wanted"].map(box));
+      check(lab.t < logo.t && logo.b <= h1.t + 2 && Math.abs(lab.l - logo.l) <= 1 && Math.abs(logo.l - h1.l) <= 1 && Math.abs(h1.l - main.l) <= 1,
+        "шапка столбцом: метка категории, логотип, название — по одному левому краю с разделами ниже", `${lab.l}/${logo.l}/${h1.l}/${main.l}`);
+      check(Math.abs(sp.l - side.l) <= 1 && Math.abs(sp.r - side.r) <= 1, "плашка балла той же ширины, что правая колонка под ней", `${sp.r - sp.l} и ${side.r - side.l}`);
+      check(wanted.l >= main.l - 1 && wanted.r <= main.r + 1 && wanted.r < side.l, "«Вы выбрали» — внутри левой колонки, не заходит под правую", `${wanted.l}–${wanted.r}, правая с ${side.l}`);
+      // шорт-лист: мини-история и сравнение отмеченных
+      await page.goto(base + "#/shortlist", { waitUntil: "networkidle" });
+      await page.waitForSelector(".sl-row");
+      const row = (n) => page.locator(".sl-row", { hasText: n });
+      const sum0 = await row(names[0]).locator(".sl-hist-sum").innerText();
+      check(/в шорт-листе с \d\d\.\d\d/.test(sum0) && sum0.includes("Поиск по товару «молоко, сыр сливочный»") && /\d позици/.test(sum0),
+        "строка шорт-листа: когда добавлен, из какого поиска и сколько позиций выбрано", sum0);
+      check(await row(names[0]).locator(".sl-hist-list").count() === 0, "подробности свёрнуты");
+      await row(names[0]).locator(".sl-hist-t").click();
+      const hist = (await row(names[0]).locator(".sl-hist-list").innerText()).replace(/\s+/g, " ");
+      check(/добавлен в шорт-лист — Поиск по товару/.test(hist) && /выбрали позиции/.test(hist) && await row(names[0]).locator(".sl-hist-list .mc-chip").count() >= 1,
+        "по шеврону — мини-история: добавлен, откуда и чипы выбранных позиций", hist.slice(0, 120));
+      await row(names[0]).locator(".sl-hist-t").click();
+      check(await row(names[0]).locator(".sl-hist-list").count() === 0, "шеврон сворачивает историю обратно");
+      const cmpBtn = page.locator(".page-tools a", { hasText: "Сравнить" });
+      check(await cmpBtn.getAttribute("aria-disabled") === "true", "пока ничего не отмечено — «Сравнить» сверху неактивна");
+      await row(names[0]).locator(".sl-cmp").click();
+      await row(names[1]).locator(".sl-cmp").click();
+      const cmpHref = (await cmpBtn.getAttribute("href")) || "";
+      check(/Сравнить · 2/.test(await cmpBtn.innerText()) && await row(names[0]).locator(".sl-cmp[aria-pressed=true]").count() === 1,
+        "«Сравнить» у строки отмечает, сверху — «Сравнить · 2 · категория»", await cmpBtn.innerText());
+      await cmpBtn.click();
+      await page.waitForURL(/#\/compare/);
+      await page.waitForSelector(".cmp-grid .hd-t");
+      const cols = (await page.locator(".cmp-grid .hd-t b").allInnerTexts()).map((x) => x.trim());
+      check(names.every((n) => cols.some((c) => c.includes(n))) && cmpHref.includes("ids="), "сравнение открывается именно с отмеченными", names.join(" · "));
+      await page.goBack();
+      await page.waitForSelector(".sl-row");
+      await page.setViewportSize({ width: 390, height: 844 });
+      await row(names[0]).locator(".sl-hist-t").click();
+      await page.waitForTimeout(150);
+      const over = await page.locator(".sl-row, .sl-row *").evaluateAll((els) => els.filter((el) => el.tagName !== "OPTION" && !el.classList.contains("sr-only")
+        && getComputedStyle(el).textOverflow !== "ellipsis" && el.scrollWidth > el.clientWidth + 1).length);
+      check(await noHScroll(page) && over === 0, "390: шорт-лист с историей и «Сравнить» без переполнения", `${over}`);
+      await ctx.close();
+    }
+
     // ---------- уточняющий вопрос (T-544) ----------
     {
       const { ctx, page } = await newPage(1440, 900);

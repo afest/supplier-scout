@@ -5,7 +5,7 @@
 // T-546: второй способ — «Загрузить план закупа» (screens/PlanImport.tsx), переключатель в адресе: #/assistant?mode=plan.
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { href, navigate, type Route } from "../router.ts";
-import { carry, useStore } from "../store.ts";
+import { actions, carry, useStore } from "../store.ts";
 import { byId, categoryOf, defaultScores } from "../data.ts";
 import { plural } from "../lib/format.ts";
 import { ApiError, assist, cachedHealth, health, match, type Found, type Health, type Match, type Suggest } from "../lib/api.ts";
@@ -168,6 +168,8 @@ function Describe() {
   const field = useRef<HTMLInputElement>(null);
 
   useEffect(() => { health().then(setHl).catch(() => setHl(null)); }, [sug]);
+  // «откуда» для шорт-листа и выбранных позиций (T-546, круг 3)
+  useEffect(() => { if (st.asked && sug) actions.setTrail(`Помощник: «${st.asked}»${answer ? ` — ${answer}` : ""}`); }, [st.asked, answer, sug]);
 
   const submit = (e: FormEvent) => { e.preventDefault(); setEditing(false); ask(text); };
   const answerWith = async (a: string) => {
