@@ -1,15 +1,17 @@
 // Поиск по товару — по всему набору. Без запроса — вход: поле, примеры, подсказки при наборе.
 // С запросом — результаты, сгруппированные по категориям; рекомендация «кому первым» живёт на странице категории.
+// Несколько товаров через запятую (Павел 15.10): «молоко, сыр, тесто» → чипы над выдачей (выключить, добавить ещё),
+// поиск по каждому, группы по охвату — «есть всё», «2 из 3»…; в карточке — какие из товаров у поставщика нашлись.
 import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
-import { CATEGORIES, catById, rankCategory, readQuery, visibleSuppliers } from "../data.ts";
+import { CATEGORIES, catById, defaultScores, visibleSuppliers } from "../data.ts";
 import { buildIndex, norm, sameStem, search, suggest, type Hit, type Index, type Suggestion } from "../lib/search.ts";
 import { passes, readFilters } from "../lib/filters.ts";
 import { plural } from "../lib/format.ts";
 import type { Category, Supplier } from "../types.ts";
 import { CatGlyph, Hint } from "../components/ui.tsx";
-import { ListCard } from "../components/ListCard.tsx";
+import { CoverChips, ListCard } from "../components/ListCard.tsx";
 import { FilterRail, Railed } from "../components/FilterRail.tsx";
 
 const EXAMPLES = ["моцарелла", "контейнеры для роллов", "нори", "креветки"];
@@ -41,7 +43,7 @@ function SearchBox({ q, vis, ix, big }: { q: string; vis: Supplier[]; ix: Index;
       <div className="gsearch-box">
         <svg className="gsearch-ic" width={big ? 22 : 18} height={big ? 22 : 18} viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="8" cy="8" r="5.2" /><path d="M12 12l4 4" /></svg>
         <input id="q" className={`input${big ? " xl" : ""}`} value={text} onChange={(e) => { setText(e.target.value); setActive(-1); }} onKeyDown={onKey}
-          placeholder={big ? "товар или поставщик: моцарелла, нори, крафт-пакет" : "товар или поставщик"} aria-label="Что ищем" autoComplete="off" autoFocus={big}
+          placeholder={big ? "товар или поставщик; несколько — через запятую: молоко, сыр, тесто" : "товар или поставщик"} aria-label="Что ищем" autoComplete="off" autoFocus={big}
           role="combobox" aria-expanded={sugg.length > 0} aria-controls="sugg" aria-activedescendant={active >= 0 ? `sg-${active}` : undefined} />
         {big
           ? <button className="btn pr xl" type="submit" disabled={!text.trim()}>Найти</button>
@@ -77,31 +79,97 @@ function Marked({ text, tokens }: { text: string; tokens: string[] }) {
 
 const VIA: Record<Hit["via"], string> = { item: "в товарах", subcategory: "подкатегория", name: "в названии" };
 
+/** «молоко, сыр, тесто» → ["молоко", "сыр", "тесто"]; повтор без учёта регистра отбрасывается. Без запятой — один товар. */
+export function splitTerms(q: string) {
+  const out: string[] = [];
+  for (const t of q.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean)) if (!out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
+  return out;
+}
+
+/** Товары запроса чипами: число — сколько поставщиков с этим товаром проходит фильтры; клик выключает и включает товар. */
+function TermsBar({ terms, off, counts, onToggle, onAdd }: {
+  terms: string[]; off: Set<string>; counts: Map<string, number>; onToggle: (t: string) => void; onAdd: (t: string) => void;
+}) {
+  const [add, setAdd] = useState("");
+  const many = terms.length > 1;
+  return (
+    <div className="terms-bar">
+      <div className="assist-needs" role="group" aria-label="Товары в запросе">
+        {terms.map((t) => {
+          const on = !off.has(t);
+          const n = counts.get(t) ?? 0;
+          return (
+            <button key={t} type="button" className={`assist-need${on ? " on" : ""}`} aria-pressed={on} disabled={!many} onClick={() => onToggle(t)}
+              title={many ? (on ? "Убрать из поиска" : "Вернуть в поиск") : undefined}>
+              <span>{t}</span><span className={`assist-n${n ? "" : " zero"}`}>{n || "нет"}</span>
+            </button>
+          );
+        })}
+      </div>
+      <form className="terms-add" onSubmit={(e) => { e.preventDefault(); if (add.trim()) { onAdd(add); setAdd(""); } }}>
+        <input className="input" value={add} onChange={(e) => setAdd(e.target.value)} maxLength={80} placeholder="Ещё товар" aria-label="Добавить товар в поиск" />
+        <button type="submit" className="btn sec" disabled={!add.trim()}>Добавить</button>
+      </form>
+    </div>
+  );
+}
+
+/** Найденное по нескольким товарам — одной строкой «где нашлось». */
+const mergeHits = (hits: Hit[]): Hit => ({
+  supplier: hits[0].supplier, matched: [...new Set(hits.flatMap((h) => h.matched))],
+  via: hits.some((h) => h.via === "item") ? "item" : hits[0].via, n: hits.length,
+});
+
 export function Find({ route }: { route: Route }) {
   const st = useStore();
   const q = (route.params.get("q") ?? "").trim();
   const vis = useMemo(() => visibleSuppliers(st), [st]);
   const ix = useMemo(() => buildIndex(vis, CATEGORIES), [vis]);
-  const r = useMemo(() => search(q, vis, ix), [q, vis, ix]);
+  const terms = useMemo(() => splitTerms(q), [q]);
+  const multi = terms.length > 1;
+  const r = useMemo(() => search(multi ? "" : q, vis, ix), [multi, q, vis, ix]);
+  const per = useMemo(() => terms.map((term) => ({ term, r: search(term, vis, ix) })), [terms, vis, ix]);
+  const off = new Set((route.params.get("off") ?? "").split(",").filter((t) => terms.includes(t)));
+  const active = per.filter((x) => !off.has(x.term));
 
   // балл — внутри своей категории, при запросе по умолчанию (закупка 20 000 ₽, сбалансированно)
-  const scores = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of CATEGORIES) for (const sc of rankCategory(readQuery(new URLSearchParams({ cat: c.id })), st).ranked) m.set(sc.supplier.id, sc.total);
-    return m;
-  }, [st]);
+  const scores = useMemo(() => defaultScores(st), [st]);
 
   // те же фильтры, что в категории (T-541): у каждого найденного — по его собственной категории
   const fs = readFilters(route.params);
   const setParam = (patch: Record<string, string | null>) => navigate("/find", { ...paramsToObject(route.params), ...patch }, { replace: true });
-  const shown = r.hits.filter((h) => passes(h.supplier, catById(h.supplier.category)!, fs));
-  const hidden = r.hits.length - shown.length;
+  const ok = (x: Supplier) => passes(x, catById(x.category)!, fs);
+  const shown = r.hits.filter((h) => ok(h.supplier));
+  // несколько товаров: поставщик → какие из включённых товаров у него нашлись
+  const cover = new Map<string, { s: Supplier; terms: Set<string>; hits: Hit[] }>();
+  for (const { term, r: tr } of active)
+    for (const h of tr.hits) {
+      const c = cover.get(h.supplier.id) ?? { s: h.supplier, terms: new Set<string>(), hits: [] };
+      c.terms.add(term);
+      c.hits.push(h);
+      cover.set(h.supplier.id, c);
+    }
+  const shownMulti = [...cover.values()].filter((c) => ok(c.s));
+  const byScore = (a: { s: Supplier }, b: { s: Supplier }) => (scores.get(b.s.id) ?? -1) - (scores.get(a.s.id) ?? -1) || a.s.name.localeCompare(b.s.name, "ru");
+  const sections = active.map((_, i) => active.length - i)
+    .map((k) => ({ k, items: shownMulti.filter((c) => c.terms.size === k).sort(byScore) })).filter((x) => x.items.length);
+  const termCounts = new Map(per.map((x) => [x.term, x.r.hits.filter((h) => ok(h.supplier)).length]));
+  const total = multi ? cover.size : r.hits.length;
+  const shownN = multi ? shownMulti.length : shown.length;
+  const hidden = total - shownN;
+  const tokensAll = active.flatMap((x) => x.r.tokens);
+  const toggleTerm = (t: string) => {
+    const next = off.has(t) ? [...off].filter((x) => x !== t) : [...off, t];
+    setParam({ off: next.length ? next.join(",") : null });
+  };
+  const addTerm = (t: string) => navigate("/find", { ...paramsToObject(route.params), q: splitTerms([...terms, t].join(", ")).join(", ") });
 
   const by = new Map<string, Hit[]>();
   for (const h of shown) by.set(h.supplier.category, [...(by.get(h.supplier.category) ?? []), h]);
   const groups = CATEGORIES.filter((c) => by.has(c.id)).map((c) => ({ cat: c, hits: by.get(c.id)! })).sort((a, b) => b.hits.length - a.hits.length);
   // «Честный знак» — только если среди найденных есть категория с маркировкой
-  const marking = CATEGORIES.some((c) => c.marking_group && r.hits.some((h) => h.supplier.category === c.id));
+  const found = multi ? [...cover.values()].map((c) => c.s) : r.hits.map((h) => h.supplier);
+  const marking = CATEGORIES.some((c) => c.marking_group && found.some((x) => x.category === c.id));
 
   if (!q) {
     return (
@@ -118,7 +186,7 @@ export function Find({ route }: { route: Route }) {
   }
 
   const rail = (
-    <FilterRail label="Поиск и фильтры" fs={fs} onChange={setParam} onReset={() => setParam({ f: null, max: null, unk: null })} marking={marking} count={shown.length}
+    <FilterRail label="Поиск и фильтры" fs={fs} onChange={setParam} onReset={() => setParam({ f: null, max: null, unk: null })} marking={marking} count={shownN}
       head={<><div className="label">Ключевое слово</div><SearchBox q={q} vis={vis} ix={ix} big={false} /></>} />
   );
 
@@ -126,21 +194,53 @@ export function Find({ route }: { route: Route }) {
     <Railed rail={rail}>
     <div className="find">
       <header className="find-h">
-        <div className="label">Поиск по товару · все категории</div>
-        <h1 className="h1">«{q}»</h1>
-        {r.hits.length > 0 && (
+        <div className="label">Поиск по товару · {multi ? `${terms.length} ${plural(terms.length, "товар", "товара", "товаров")}` : "все категории"}</div>
+        <h1 className="h1">«{multi ? terms.join(", ") : q}»</h1>
+        {total > 0 && (
           <div className="find-count">
-            <span className="num">{shown.length}</span> {plural(shown.length, "поставщик", "поставщика", "поставщиков")} в {groups.length} {plural(groups.length, "категории", "категориях", "категориях")}
+            <span className="num">{shownN}</span> {plural(shownN, "поставщик", "поставщика", "поставщиков")}
+            {!multi && <> в {groups.length} {plural(groups.length, "категории", "категориях", "категориях")}</>}
             {hidden > 0 && <span className="muted"> · {hidden} скрыто фильтрами</span>}
           </div>
         )}
+        <TermsBar terms={terms} off={off} counts={termCounts} onToggle={toggleTerm} onAdd={addTerm} />
       </header>
 
-      {r.corrected && (
+      {multi && (
+        <>
+          {sections.map(({ k, items }) => (
+            <section key={k} className="find-group">
+              <div className="find-group-h">
+                <h2 className="section-h">{k === active.length ? (k > 1 ? "Есть всё, что ищете" : active[0].term) : `Есть ${k} из ${active.length}`} <span className="find-n num">{items.length}</span></h2>
+              </div>
+              <div className="rows">
+                {items.map((c) => {
+                  const cat = catById(c.s.category)!;
+                  return (
+                    <ListCard key={c.s.id} s={c.s} cat={cat} href={href(`/s/${c.s.id}`, { cat: cat.id })} showCat
+                      score={scores.get(c.s.id) ?? null} starred={!!st.shortlist[c.s.id]} onStar={() => actions.toggleShort(c.s.id)}
+                      extra={<><FoundIn h={mergeHits(c.hits)} tokens={tokensAll} />{active.length > 1 && <CoverChips items={active.map((x) => x.term)} has={c.terms} />}</>} />
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+          {!active.length && <div className="empty-list"><p>Все товары выключены — включите хотя бы один чип выше.</p></div>}
+          {active.length > 0 && cover.size > 0 && shownMulti.length === 0 && (
+            <div className="empty-list">
+              <p>Под фильтры никто из {cover.size} не подошёл.</p>
+              <button type="button" className="btn sec sm" onClick={() => setParam({ f: null, max: null, unk: null })}>Сбросить фильтры</button>
+            </div>
+          )}
+          {active.length > 0 && cover.size === 0 && <Empty q={active.map((x) => x.term).join(", ")} unknown={active.flatMap((x) => x.r.unknown)} related={[]} />}
+        </>
+      )}
+
+      {!multi && r.corrected && (
         <div className="notice">Показываем по запросу <b>«{r.corrected}»</b> — похоже, в «{q}» опечатка.</div>
       )}
 
-      {(r.subs.length > 0 || r.cats.length > 0) && (
+      {!multi && (r.subs.length > 0 || r.cats.length > 0) && (
         <div className="sub-jump">
           <span className="label">{r.cats.length ? "Категория" : "Подкатегория"} целиком — с рекомендацией, кому написать первым</span>
           <div className="sub-jump-list">
@@ -170,13 +270,13 @@ export function Find({ route }: { route: Route }) {
         </section>
       ))}
 
-      {r.hits.length > 0 && shown.length === 0 && (
+      {!multi && r.hits.length > 0 && shown.length === 0 && (
         <div className="empty-list">
           <p>Под фильтры никто из {r.hits.length} не подошёл.</p>
           <button type="button" className="btn sec sm" onClick={() => setParam({ f: null, max: null, unk: null })}>Сбросить фильтры</button>
         </div>
       )}
-      {r.hits.length === 0 && r.cats.length === 0 && <Empty q={q} unknown={r.unknown} related={r.relatedCats} />}
+      {!multi && r.hits.length === 0 && r.cats.length === 0 && <Empty q={q} unknown={r.unknown} related={r.relatedCats} />}
     </div>
     </Railed>
   );

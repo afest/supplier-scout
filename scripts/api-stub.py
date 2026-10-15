@@ -35,7 +35,37 @@ ANSWER = {
         {"label": "Сиропы", "why": "вкусы", "terms": ["сироп фруктовый", "сироп карамельный"]},
     ],
 }
-assistant._ask_model = lambda text: ANSWER
+# Описание, на которое модель задаёт уточняющий вопрос (T-544): вопрос, варианты ответа и варианты закупки приходят вместе.
+# После ответа — уточнённые варианты; на ответ «Ещё не решили» заглушка, как непослушная модель, спрашивает ещё раз —
+# интерфейс должен показать второй вопрос текстом, без кнопок.
+DONUT_NEEDS = [
+    {"label": "Стаканы", "why": "кофе к пончикам", "terms": ["стаканы бумажные", "стаканы для кофе"]},
+    {"label": "Пакеты", "why": "пончики с собой", "terms": ["пакеты бумажные", "пакет крафт"]},
+    {"label": "Сахарная пудра", "why": "посыпка", "terms": ["сахарная пудра", "сахар пудра"]},
+]
+QUESTION = {"place": "пончиковая", "question": "Пончики жарите на месте или привозите готовыми?",
+            "answers": ["Жарим на месте", "Привозим готовыми", "Вариант ответа длиннее тридцати знаков", "жарим на месте"],
+            "needs": DONUT_NEEDS}
+FRY = {"place": "пончиковая с фритюром", "question": None, "answers": [],
+       "needs": DONUT_NEEDS + [{"label": "Масло фритюрное", "why": "жарка пончиков", "terms": ["масло фритюрное", "масло подсолнечное"]},
+                               {"label": "Мука", "why": "тесто", "terms": ["мука пшеничная"]}]}
+READY = {"place": "пончиковая без кухни", "question": None, "answers": [], "needs": DONUT_NEEDS}
+SEEN: list[str] = []          # что пришло модели — для проверки склейки и обрезки на сервере
+
+
+def fake_model(text: str) -> dict:
+    SEEN.append(text)
+    t = text.lower()
+    if "пончик" not in t:
+        return ANSWER
+    if "уточнение:" not in t:
+        return QUESTION
+    if "не решили" in t:
+        return dict(FRY, question="А кофе тоже будет?", answers=["Да", "Нет"])
+    return FRY if "жарим" in t else READY
+
+
+assistant._ask_model = fake_model
 
 DATA = json.loads((ROOT / "data" / "suppliers.json").read_text(encoding="utf-8"))["suppliers"]
 CARD = next(s for s in DATA if s.get("live_only") == "site")
@@ -56,6 +86,14 @@ def fake_run(jid):
 
 
 jobs._run = fake_run
+
+from api.main import app  # noqa: E402
+
+
+@app.get("/_stub/seen")
+def stub_seen():
+    """Только у заглушки: тексты, которые дошли до модели, — проверка склейки и серверной обрезки."""
+    return {"texts": SEEN}
 
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765

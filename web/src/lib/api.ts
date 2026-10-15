@@ -48,7 +48,8 @@ export const job = (id: string) => call<Job>(`/jobs/${id}`);
 
 // ---- помощник ----
 export interface Need { id: string; label: string; why: string; terms: string[]; suppliers_count: number }
-export interface Suggest { place: string; question: string | null; needs: Need[] }
+/** answers — 2–4 варианта ответа на уточняющий вопрос для кнопок (T-544); пусто, если вопроса нет */
+export interface Suggest { place: string; question: string | null; answers: string[]; needs: Need[] }
 export interface Found {
   id: string; name: string; category: string; category_name: string | null; demo: boolean;
   exact: boolean; matched: string[]; matched_total: number;
@@ -58,7 +59,8 @@ export interface Match {
   best: { id: string; name: string; category: string; category_name: string | null; demo: boolean; covers: string[] }[];
   missing: string[];
 }
-export const assist = (text: string) => post<Suggest>("/assist", { text });
+export const assist = (text: string, signal?: AbortSignal) =>
+  call<Suggest>("/assist", { method: "POST", body: JSON.stringify({ text }), signal });
 export const match = (needs: Pick<Need, "label" | "terms">[]) => post<Match>("/assist/match", { needs });
 
 // ---- отзывы ----

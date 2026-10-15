@@ -1,11 +1,12 @@
 // Запуск сервера-заглушки (scripts/api-stub.py) из проверки в браузере — в том же процессе, что и браузер.
 // Сайт для проверки собирается с адресом заглушки: VITE_API_URL=http://127.0.0.1:8765 npm --prefix web run build
+// Вторая рабочая копия гоняет проверки параллельно — свой порт: API_STUB_PORT=8775 и тот же порт в VITE_API_URL.
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const PORT = 8765;
+const PORT = Number(process.env.API_STUB_PORT || 8765);
 
 function python() {
   if (process.env.API_STUB_PYTHON) return process.env.API_STUB_PYTHON;
@@ -14,6 +15,9 @@ function python() {
 }
 
 async function startApiStub() {
+  // порт уже отвечает — это чужая заглушка (другая рабочая копия, T-544): сценарии молча проверяли бы её код
+  const busy = await fetch(`http://127.0.0.1:${PORT}/health`).then((r) => r.ok, () => false);
+  if (busy) throw new Error(`порт ${PORT} занят другим сервером — задайте API_STUB_PORT и соберите сайт с тем же портом в VITE_API_URL`);
   const proc = spawn(python(), [path.join(ROOT, "scripts", "api-stub.py"), String(PORT)], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"] });
   let out = "";
   proc.stdout.on("data", (d) => { out += d; });

@@ -91,8 +91,11 @@ class MatchIn(BaseModel):
 
 @app.post("/assist")
 def assist(body: AssistIn, request: Request):
-    """Шаг 1: описание точки → варианты-кнопки; у каждого — сколько поставщиков в наборе. Один вызов модели."""
-    limits.check(request, "assist", limit=5, window_sec=DAY)
+    """Шаг 1: описание точки → варианты-кнопки; у каждого — сколько поставщиков в наборе. Один вызов модели.
+    Повтор описания отвечает из кэша и лимит адреса не тратит, как и лимит стенда (T-544)."""
+    fresh = not assistant.cached(body.text)
+    if fresh:
+        limits.check(request, "assist", limit=5, window_sec=DAY)
     try:
         out = assistant.suggest(body.text)
     except ValueError as e:
@@ -101,7 +104,8 @@ def assist(body: AssistIn, request: Request):
         raise HTTPException(429, str(e))
     except assistant.Unavailable as e:
         raise HTTPException(503, str(e))
-    limits.record(request, "assist")
+    if fresh:
+        limits.record(request, "assist")
     return out
 
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, MAX_COMPARE, useStore } from "../store.ts";
-import { byId, categoryOf, inCategory, queryParams, rankCategory, readQuery, volParam, type Query } from "../data.ts";
+import { byId, categoryOf, inCategory, queryParams, rankCategory, readQuery, subCover, volParam, type Query } from "../data.ts";
 import type { Category } from "../types.ts";
 import { readSelection, selParams, subsOf } from "../lib/selection.ts";
 import { CategoryPicker } from "../components/CategoryPicker.tsx";
@@ -13,7 +13,7 @@ import { matchesSupplier } from "../lib/search.ts";
 import { logoOf } from "../lib/logos.ts";
 import { Avatar, CatGlyph, Check, FillBar, Hint, Score, ScoreNum, StarButton, StatusIcon } from "../components/ui.tsx";
 import { FilterRail, Railed } from "../components/FilterRail.tsx";
-import { ListCard } from "../components/ListCard.tsx";
+import { CoverChips, ListCard } from "../components/ListCard.tsx";
 import { Basis, companyShort, deliveryShort, documentsShort, GuestTag, minOrderShort, pricesShort, subBasis } from "../components/supplier.tsx";
 
 export function Results({ route }: { route: Route }) {
@@ -228,6 +228,7 @@ function FirstZone({ top, q, cardHref, whyHref }: { top: Scored[]; q: Query; car
         {top.map((sc, i) => {
           const t = i === 0 ? leaderText(sc, q.cat, q.volume) : followerText(sc, lead, q.cat, q.volume);
           const c = companyShort(sc.supplier);
+          const cov = subCover(q, sc.supplier);
           return (
             <a key={sc.supplier.id} className={`gcard${i === 0 ? " lead" : ""}`} href={cardHref(sc.supplier.id)}>
               <div className="g-top">
@@ -244,6 +245,7 @@ function FirstZone({ top, q, cardHref, whyHref }: { top: Scored[]; q: Query; car
                 </div>
               </div>
               <div className="why">{t.why}</div>
+              {cov && <CoverChips items={cov.items} has={cov.has} />}
               {t.ask && <div className="ask">{t.ask}</div>}
             </a>
           );
@@ -257,6 +259,7 @@ function FirstZone({ top, q, cardHref, whyHref }: { top: Scored[]; q: Query; car
 function Row({ sc, rank, q, hrefCard, starred, collected }: { sc: Scored; rank: number; q: Query; hrefCard: string; starred: boolean; collected: boolean }) {
   const s = sc.supplier;
   const basis = subBasis(s, q.cat, q.subs);
+  const cov = subCover(q, s);
   const tags = (
     <>
       {collected && <span className="fresh-pill">собрано сейчас</span>}
@@ -270,7 +273,8 @@ function Row({ sc, rank, q, hrefCard, starred, collected }: { sc: Scored; rank: 
   );
   return (
     <ListCard s={s} cat={q.cat} href={hrefCard} score={sc.total} rank={rank} starred={starred} onStar={() => actions.toggleShort(s.id)}
-      tags={tags} extra={basis.length > 0 ? <Basis items={basis} /> : undefined} />
+      tags={tags} extra={<>{basis.length > 0 && <Basis items={basis} />}
+        {cov && <CoverChips items={cov.items} has={cov.has} />}</>} />
   );
 }
 

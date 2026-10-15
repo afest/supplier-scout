@@ -79,3 +79,19 @@ export function rankCategory(q: Query, state: Pick<State, "collected" | "returne
   else if (opts.members || (opts.subsOnly && !whole)) pool = vis.filter((s) => s.subcategories.some((x) => q.subs.includes(x)));
   return { ...rank(pool, { volume: q.volume, category: q.cat, peers }, q.prio, new Set(state.returned)), peers };
 }
+
+/** Отмечено несколько подкатегорий, но не вся категория — какие из отмеченных у поставщика есть (Павел 15.10): для
+ *  «есть N из M» и чипов в списке и в «Кому написать первым». Одна подкатегория или вся категория — null. */
+export function subCover(q: Query, s: Supplier) {
+  if (q.subs.length < 2 || q.subs.length >= q.cat.subcategories.length) return null;
+  const picked = q.cat.subcategories.filter((x) => q.subs.includes(x.id));
+  return { items: picked.map((x) => x.name), has: new Set(picked.filter((x) => s.subcategories.includes(x.id)).map((x) => x.name)) };
+}
+
+/** Балл каждого поставщика внутри его категории при запросе по умолчанию (закупка 20 000 ₽, сбалансированно) —
+ *  для списков вне категории: поиск по товару, подбор помощника. Исключённых из рекомендации в карте нет. */
+export function defaultScores(state: Pick<State, "collected" | "returned">) {
+  const m = new Map<string, number>();
+  for (const c of CATEGORIES) for (const sc of rankCategory(readQuery(new URLSearchParams({ cat: c.id })), state).ranked) m.set(sc.supplier.id, sc.total);
+  return m;
+}

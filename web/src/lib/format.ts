@@ -50,3 +50,6 @@ export function initials(name: string) {
   const b = words[1]?.[0] ?? "";
   return (a + b).toUpperCase();
 }
+
+/** Секунды → «0:07» — счётчик ожидания у живого сбора и помощника. */
+export const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
