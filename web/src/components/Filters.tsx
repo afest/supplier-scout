@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { Category } from "../types.ts";
 import { FILTER_GROUPS, MAX_RANGE, type FilterId, type FilterState } from "../lib/filters.ts";
 import { num, rub } from "../lib/format.ts";
 import { Check, Hint } from "./ui.tsx";
@@ -40,7 +39,8 @@ export function FiltersPanel({ state, onChange, top, marking, count, onClose, on
           <div className="range-val num">{state.max === null ? "любой" : rub(state.max)}</div>
           <input
             type="range" min={0} max={MAX_RANGE} step={1000} value={state.max ?? MAX_RANGE}
-            style={{ ["--w" as string]: `${((state.max ?? MAX_RANGE) / MAX_RANGE) * 100}%` }}
+            // доля, а не процент ширины: бегунок проходит путь «ширина − ширина бегунка», заливка считается от того же пути (styles.css, .range)
+            style={{ ["--p" as string]: String((state.max ?? MAX_RANGE) / MAX_RANGE) }}
             aria-label="Минимальный заказ до, рублей"
             onChange={(e) => onChange({ max: Number(e.target.value) >= MAX_RANGE ? null : e.target.value })}
           />
@@ -61,20 +61,6 @@ export function FiltersPanel({ state, onChange, top, marking, count, onClose, on
         <button type="button" className="btn ghost sm" onClick={onReset}>Сбросить</button>
         <button type="button" className="btn pr sm sm-only" onClick={onClose}>Показать {count}</button>
       </div>
-    </div>
-  );
-}
-
-export function SubcatChecks({ cat, value, onChange }: { cat: Category; value: string[]; onChange: (subs: string[]) => void }) {
-  return (
-    <div className="fgroup">
-      <div className="label">Подкатегория</div>
-      {cat.subcategories.map((s) => (
-        <Check key={s.id} checked={value.includes(s.id)} onChange={(v) => {
-          const next = v ? [...value, s.id] : value.filter((x) => x !== s.id);
-          if (next.length) onChange(next);
-        }}>{s.name}</Check>
-      ))}
     </div>
   );
 }

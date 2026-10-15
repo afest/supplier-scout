@@ -1,0 +1,302 @@
+{
+ "almin-ru": {
+  "file": "logos/almin-ru.png",
+  "on_dark": false,
+  "source_page": "https://www.almin.ru",
+  "collected_at": "2026-10-15"
+ },
+ "anfish": {
+  "file": "logos/anfish.svg",
+  "on_dark": true,
+  "source_page": "https://anfish.ru",
+  "collected_at": "2026-10-15"
+ },
+ "arosa": {
+  "file": "logos/arosa.svg",
+  "on_dark": false,
+  "source_page": "https://arosa.ru",
+  "collected_at": "2026-10-15"
+ },
+ "atlant-grupp": {
+  "file": "logos/atlant-grupp.png",
+  "on_dark": false,
+  "source_page": "https://atlant-group.info",
+  "collected_at": "2026-10-15"
+ },
+ "defa-group": {
+  "file": "logos/defa-group.png",
+  "on_dark": false,
+  "source_page": "https://defagroup.com",
+  "collected_at": "2026-10-15"
+ },
+ "edaprof": {
+  "file": "logos/edaprof.png",
+  "on_dark": false,
+  "source_page": "https://edaprof.ru",
+  "collected_at": "2026-10-15"
+ },
+ "etc-trade": {
+  "file": "logos/etc-trade.png",
+  "on_dark": false,
+  "source_page": "https://www.etctrade.ru",
+  "collected_at": "2026-10-15"
+ },
+ "food-face-ru": {
+  "file": "logos/food-face-ru.svg",
+  "on_dark": false,
+  "source_page": "https://food-face.ru",
+  "collected_at": "2026-10-15"
+ },
+ "foodface": {
+  "file": "logos/foodface.png",
+  "on_dark": false,
+  "source_page": "https://foodface.ru",
+  "collected_at": "2026-10-15"
+ },
+ "gross-fud": {
+  "file": "logos/gross-fud.svg",
+  "on_dark": false,
+  "source_page": "https://ekat.grossfood.ru",
+  "collected_at": "2026-10-15"
+ },
+ "gud-izdat": {
+  "file": "logos/gud-izdat.png",
+  "on_dark": false,
+  "source_page": "https://www.good-izdat.ru",
+  "collected_at": "2026-10-15"
+ },
+ "interfoodgroup": {
+  "file": "logos/interfoodgroup.svg",
+  "on_dark": true,
+  "source_page": "https://interfoodgroup.ru",
+  "collected_at": "2026-10-15"
+ },
+ "italika": {
+  "file": "logos/italika.png",
+  "on_dark": false,
+  "source_page": "https://italika-ural.ru",
+  "collected_at": "2026-10-15"
+ },
+ "izumi-food": {
+  "file": "logos/izumi-food.png",
+  "on_dark": false,
+  "source_page": "https://izumifood.ru",
+  "collected_at": "2026-10-15"
+ },
+ "kimpro-aziya": {
+  "file": "logos/kimpro-aziya.png",
+  "on_dark": false,
+  "source_page": "https://kimpro-asia.ru",
+  "collected_at": "2026-10-15"
+ },
+ "kraft-upakovka": {
+  "file": "logos/kraft-upakovka.png",
+  "on_dark": false,
+  "source_page": "https://kraft-upakovka.ru",
+  "collected_at": "2026-10-15"
+ },
+ "marr-russiya": {
+  "file": "logos/marr-russiya.svg",
+  "on_dark": false,
+  "source_page": "https://marr.ru",
+  "collected_at": "2026-10-15"
+ },
+ "mezh-kompani": {
+  "file": "logos/mezh-kompani.png",
+  "on_dark": false,
+  "source_page": "http://www.xn----8sbnemkkekhm.xn--p1ai",
+  "collected_at": "2026-10-15"
+ },
+ "milco": {
+  "file": "logos/milco.png",
+  "on_dark": false,
+  "source_page": "https://milco.group",
+  "collected_at": "2026-10-15"
+ },
+ "mokeev-s": {
+  "file": "logos/mokeev-s.png",
+  "on_dark": false,
+  "source_page": "https://mokeevs.ru",
+  "collected_at": "2026-10-15"
+ },
+ "morskoe-schaste": {
+  "file": "logos/morskoe-schaste.png",
+  "on_dark": false,
+  "source_page": "https://morskoe96.ru",
+  "collected_at": "2026-10-15"
+ },
+ "nash-soyuz": {
+  "file": "logos/nash-soyuz.png",
+  "on_dark": false,
+  "source_page": "https://nash-souz.ru",
+  "collected_at": "2026-10-15"
+ },
+ "pack24": {
+  "file": "logos/pack24.png",
+  "on_dark": false,
+  "source_page": "https://pack24.ru",
+  "collected_at": "2026-10-15"
+ },
+ "parus-pak": {
+  "file": "logos/parus-pak.svg",
+  "on_dark": false,
+  "source_page": "https://parusekb.ru",
+  "collected_at": "2026-10-15"
+ },
+ "pizzakorob": {
+  "file": "logos/pizzakorob.svg",
+  "on_dark": false,
+  "source_page": "https://pizzakorob.ru",
+  "collected_at": "2026-10-15"
+ },
+ "plastika": {
+  "file": "logos/plastika.png",
+  "on_dark": false,
+  "source_page": "https://plastikko.ru",
+  "collected_at": "2026-10-15"
+ },
+ "po-karton": {
+  "file": "logos/po-karton.png",
+  "on_dark": false,
+  "source_page": "https://po-karton.com",
+  "collected_at": "2026-10-15"
+ },
+ "portsionnye-produkty": {
+  "file": "logos/portsionnye-produkty.png",
+  "on_dark": false,
+  "source_page": "https://ppsous.ru",
+  "collected_at": "2026-10-15"
+ },
+ "promotehnologii": {
+  "file": "logos/promotehnologii.png",
+  "on_dark": false,
+  "source_page": "https://pr-ekb.ru",
+  "collected_at": "2026-10-15"
+ },
+ "rashodnye-materialy": {
+  "file": "logos/rashodnye-materialy.png",
+  "on_dark": false,
+  "source_page": "https://rm-pack.ru",
+  "collected_at": "2026-10-15"
+ },
+ "redfish": {
+  "file": "logos/redfish.png",
+  "on_dark": false,
+  "source_page": "https://www.redfish24.ru",
+  "collected_at": "2026-10-15"
+ },
+ "resfood": {
+  "file": "logos/resfood.svg",
+  "on_dark": false,
+  "source_page": "https://www.resfood.ru",
+  "collected_at": "2026-10-15"
+ },
+ "rosspak": {
+  "file": "logos/rosspak.svg",
+  "on_dark": false,
+  "source_page": "https://rosspak.ru",
+  "collected_at": "2026-10-15"
+ },
+ "sakkuram": {
+  "file": "logos/sakkuram.png",
+  "on_dark": false,
+  "source_page": "https://sakkuram.ru",
+  "collected_at": "2026-10-15"
+ },
+ "sen-soy": {
+  "file": "logos/sen-soy.png",
+  "on_dark": false,
+  "source_page": "https://www.sostra.ru",
+  "collected_at": "2026-10-15"
+ },
+ "shef-arsenal": {
+  "file": "logos/shef-arsenal.svg",
+  "on_dark": false,
+  "source_page": "https://shefarsenal.ru",
+  "collected_at": "2026-10-15"
+ },
+ "sobolev-syr": {
+  "file": "logos/sobolev-syr.svg",
+  "on_dark": false,
+  "source_page": "https://sobolevcheese.ru",
+  "collected_at": "2026-10-15"
+ },
+ "tamaki": {
+  "file": "logos/tamaki.svg",
+  "on_dark": false,
+  "source_page": "https://tamaki.ru",
+  "collected_at": "2026-10-15"
+ },
+ "tara-dlya-tovara": {
+  "file": "logos/tara-dlya-tovara.png",
+  "on_dark": false,
+  "source_page": "https://ekb.tara-tovara.ru",
+  "collected_at": "2026-10-15"
+ },
+ "td-gurman": {
+  "file": "logos/td-gurman.svg",
+  "on_dark": false,
+  "source_page": "https://gurman-llc.ru",
+  "collected_at": "2026-10-15"
+ },
+ "td-opt-torg-horeca": {
+  "file": "logos/td-opt-torg-horeca.png",
+  "on_dark": false,
+  "source_page": "https://opttorg-horeca.ru",
+  "collected_at": "2026-10-15"
+ },
+ "tk-dip": {
+  "file": "logos/tk-dip.png",
+  "on_dark": false,
+  "source_page": "https://tkdip.ru",
+  "collected_at": "2026-10-15"
+ },
+ "u2b-upakovka-dlya-biznesa": {
+  "file": "logos/u2b-upakovka-dlya-biznesa.png",
+  "on_dark": false,
+  "source_page": "https://ekburg.u2b.ru",
+  "collected_at": "2026-10-15"
+ },
+ "upak-komplekt": {
+  "file": "logos/upak-komplekt.png",
+  "on_dark": false,
+  "source_page": "https://upak-komplekt.ru",
+  "collected_at": "2026-10-15"
+ },
+ "uralkarton": {
+  "file": "logos/uralkarton.png",
+  "on_dark": false,
+  "source_page": "https://www.uralkarton-ekb.ru",
+  "collected_at": "2026-10-15"
+ },
+ "webpack": {
+  "file": "logos/webpack.svg",
+  "on_dark": false,
+  "source_page": "https://webpack.ru",
+  "collected_at": "2026-10-15"
+ },
+ "yakimal": {
+  "file": "logos/yakimal.png",
+  "on_dark": false,
+  "source_page": "https://yakimal.com",
+  "collected_at": "2026-10-15"
+ },
+ "yarusmarket": {
+  "file": "logos/yarusmarket.svg",
+  "on_dark": false,
+  "source_page": "https://yarus-market.ru",
+  "collected_at": "2026-10-15"
+ },
+ "yes-upak-ru": {
+  "file": "logos/yes-upak-ru.png",
+  "on_dark": false,
+  "source_page": "https://yes-upak.ru",
+  "collected_at": "2026-10-15"
+ },
+ "yuni-pak": {
+  "file": "logos/yuni-pak.png",
+  "on_dark": false,
+  "source_page": "https://uny-pak.ru",
+  "collected_at": "2026-10-15"
+ }
+}

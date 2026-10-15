@@ -1,6 +1,9 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { Category, FieldStatus, Supplier } from "../types.ts";
 import { initials } from "../lib/format.ts";
+import { level } from "../lib/level.ts";
+import type { Logo } from "../lib/logos.ts";
 
 // ---------- статусы полей: различаются формой знака, не цветом ----------
 export const STATUS_LABEL: Record<FieldStatus, string> = {
@@ -43,6 +46,35 @@ export function Mono({ s, size = 44 }: { s: Pick<Supplier, "name">; size?: numbe
     <span className="mono" style={{ width: size, height: size, fontSize: size * 0.36, borderRadius: size * 0.27 }} aria-hidden="true">
       {initials(s.name)}
     </span>
+  );
+}
+
+/** Аватар поставщика: логотип, если он есть, иначе монограмма в цветах дизайн-системы.
+ *  Логотип в покое — одноцветный синий: SVG-фильтр #ava-navy (AvaFilters) перекрашивает саму картинку, файл не меняется;
+ *  свои цвета — при наведении на карточку или фокусе в ней (.lcard, .gcard). Белый логотип (onDark) — на тёмной плашке всегда. */
+export function Avatar({ s, size = 48, logo }: { s: Pick<Supplier, "name">; size?: number; logo?: Logo }) {
+  if (!logo) return <Mono s={s} size={size} />;
+  return (
+    <span className={`ava${logo.onDark ? " dk" : ""}`} style={{ width: size, height: size, borderRadius: size * 0.27 }} aria-hidden="true">
+      <img src={logo.src} alt="" loading="lazy" />
+    </span>
+  );
+}
+
+/** Фильтр «логотип в синий»: яркость → от --navy (тёмное) до белого (светлое), средние тона темнее (гамма 1,8), прозрачность не трогается.
+ *  Раньше — слой --navy в режиме lighten поверх картинки: полупрозрачные края логотипа становились серым контуром (круг 3). */
+export function AvaFilters() {
+  return (
+    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true" focusable="false">
+      <filter id="ava-navy" colorInterpolationFilters="sRGB">
+        <feColorMatrix type="matrix" values="0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0" />
+        <feComponentTransfer>
+          <feFuncR type="gamma" amplitude="0.8353" exponent="1.8" offset="0.1647" />
+          <feFuncG type="gamma" amplitude="0.7725" exponent="1.8" offset="0.2275" />
+          <feFuncB type="gamma" amplitude="0.6706" exponent="1.8" offset="0.3294" />
+        </feComponentTransfer>
+      </filter>
+    </svg>
   );
 }
 
@@ -121,16 +153,27 @@ export function Rule({ value, left, right, compact = false }: { value: number; l
   );
 }
 
-/** Гребёнка полноты: риска на поле, красные — найдено. */
-export function Comb({ found, total, label = true }: { found: number; total: number; label?: boolean }) {
-  const h = [16, 22, 28, 20, 24];
+/** Балл — только цифра, полужирная, цветом трети (круг 3: плашка на голубом фоне наведения смотрелась плохо).
+ *  Цвет — тот же --lv-c, что у шкалы полноты (круг 4): жёлтый как в шкале, ниже AA на светлом фоне — решение Павла. */
+export function ScoreNum({ value, size }: { value: number; size?: "sm" }) {
+  return <b className={`snum score num lv-${level(value)}${size ? ` ${size}` : ""}`} title={`Балл ${value} из 100`}>{value}</b>;
+}
+
+/** Полнота данных — тонкая шкала из дизайн-системы, как линейки в карточке поставщика: полупрозрачная заливка до черты,
+ *  под ней засечка на каждое поле; цвет — по трети. «18/19» — в той же строке справа, подпись «данные» появляется
+ *  при наведении поверх, ничего не сдвигая (Павел, круг 4). compact — в таблице, без подписи. */
+export function FillBar({ found, total, compact = false }: { found: number; total: number; compact?: boolean }) {
+  const t = `Найдено ${found} полей из ${total}`;
+  const w = total ? Math.min(1, found / total) : 0;
   return (
-    <div className="comb-wrap" title={`Найдено ${found} полей из ${total}`}>
-      <div className="comb" aria-hidden="true">
-        {Array.from({ length: total }, (_, i) => <i key={i} className={i < found ? "f" : ""} style={{ height: h[i % 5] }} />)}
-      </div>
-      {label && <div className="comb-l num">{found} из {total}</div>}
-    </div>
+    <span className={`fbar lv-${level(found, total)}${compact ? " compact" : ""}`} title={t} role="img" aria-label={t}>
+      {!compact && <span className="fbar-k" aria-hidden="true">полнота данных</span>}
+      <span className="fbar-rule" aria-hidden="true" style={{ ["--w" as string]: `${w * 100}%`, ["--n" as string]: String(Math.max(1, total)) }}>
+        <i className="fbar-fill" />
+        <i className="fbar-ticks" />
+      </span>
+      <span className="fbar-n num" aria-hidden="true"><b>{found}</b>/{total}</span>
+    </span>
   );
 }
 
@@ -138,28 +181,49 @@ export function Comb({ found, total, label = true }: { found: number; total: num
 /** Всплывающее пояснение. Закрывается кликом мимо и Esc; у края экрана разворачивается влево. */
 export function Popover({ trigger, label, children, className = "", wide = false }: { trigger: ReactNode; label: string; children: ReactNode; className?: string; wide?: boolean }) {
   const [open, setOpen] = useState(false);
-  const [right, setRight] = useState(false);
+  // окно подсказки — в корне страницы (портал) с fixed-позицией от кнопки: колонка с прокруткой, тёмная зона и карточки
+  // с overflow его больше не обрезают (Павел, круг 4). При прокрутке любой области позиция пересчитывается.
+  const [pos, setPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const ref = useRef<HTMLSpanElement>(null);
+  const body = useRef<HTMLSpanElement>(null);
   const id = useId();
-  useEffect(() => {
-    if (!open) return;
-    const r = ref.current?.getBoundingClientRect();
-    if (r) setRight(r.left + (wide ? 360 : 300) > window.innerWidth - 16);
-    const onDoc = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+  // позиция считается до отрисовки — окно не мигает в углу экрана в первый кадр
+  useLayoutEffect(() => {
+    if (!open) { setPos(null); return; }
+    const place = () => {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r) return;
+      const w = wide ? 360 : 300;
+      // у правого края разворачивается влево
+      setPos(r.left - 14 + w > window.innerWidth - 16 ? { top: r.bottom + 12, right: window.innerWidth - r.right - 14 } : { top: r.bottom + 12, left: r.left - 14 });
+    };
+    place();
+    const onDoc = (e: MouseEvent) => {
+      const n = e.target as Node;
+      if (!ref.current?.contains(n) && !body.current?.contains(n)) setOpen(false);
+    };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
     return () => {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
     };
   }, [open, wide]);
+  const style = pos ? ({ "--pt": `${pos.top}px`, "--pl": pos.left !== undefined ? `${pos.left}px` : "auto", "--pr": pos.right !== undefined ? `${pos.right}px` : "auto" } as CSSProperties) : { visibility: "hidden" as const };
   return (
     <span className={`pop ${className}`} ref={ref}>
       <button type="button" className="pop-btn" aria-label={label} aria-expanded={open} aria-controls={open ? id : undefined} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}>
         {trigger}
       </button>
-      {open && <span id={id} role="dialog" aria-label={label} className={`pop-body${right ? " right" : ""}${wide ? " wide" : ""}`}>{children}</span>}
+      {open && createPortal(
+        <span id={id} ref={body} role="dialog" aria-label={label} style={style} className={`pop-body${pos?.right !== undefined ? " right" : ""}${wide ? " wide" : ""}`}>{children}</span>,
+        document.body,
+      )}
     </span>
   );
 }
@@ -209,11 +273,14 @@ export function Seg<T extends string>({ options, value, onChange, label, size }:
   );
 }
 
-export function StarButton({ on, onClick, label }: { on: boolean; onClick: () => void; label?: string }) {
+/** quiet — тихая звёздочка в карточке списка: без рамки и тёмной заливки, чтобы не спорить с карточкой-ссылкой. */
+export function StarButton({ on, onClick, label, quiet = false }: { on: boolean; onClick: () => void; label?: string; quiet?: boolean }) {
+  const ink = quiet ? (on ? "var(--ink)" : "var(--muted)") : on ? "#fff" : "var(--ink)";
   return (
-    <button type="button" className={`star${on ? " on" : ""}`} onClick={onClick} aria-pressed={on} title={on ? "Убрать из шорт-листа" : "В шорт-лист"}>
+    <button type="button" className={`star${on ? " on" : ""}${quiet ? " quiet" : ""}`} onClick={onClick} aria-pressed={on}
+      title={on ? "Убрать из шорт-листа" : "В шорт-лист"} aria-label={label ? undefined : on ? "Убрать из шорт-листа" : "В шорт-лист"}>
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" fill={on ? "#fff" : "none"} stroke={on ? "#fff" : "var(--ink)"} strokeWidth="1.2" strokeLinejoin="round" />
+        <path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" fill={on ? ink : "none"} stroke={ink} strokeWidth="1.2" strokeLinejoin="round" />
       </svg>
       {label && <span>{label}</span>}
     </button>

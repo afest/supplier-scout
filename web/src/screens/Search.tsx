@@ -56,7 +56,7 @@ function ArtKnown() {
 const WAYS: { to: string; title: string; when: string; ex: ReactNode; art: ReactNode; soon?: boolean }[] = [
   { to: "#/find", title: "Поиск по товару", when: "Знаю, какой товар нужен", ex: "моцарелла, нори", art: <ArtSearch /> },
   { to: "#/categories", title: "Поиск по категории", when: "Хочу посмотреть всех в категории", ex: "упаковка целиком или только коробки для пиццы", art: <ArtCats /> },
-  { to: "#/assistant", title: "Помощник", when: "Не знаю, что нужно — опишу точку", ex: "у меня бабл-ти в ТЦ", art: <ArtAssist /> },
+  { to: "#/assistant", title: "Помощник", when: "Не знаю, как искать — опишу точку", ex: "у меня бабл-ти в ТЦ", art: <ArtAssist /> },
   { to: "#/add", title: "Знаю поставщика", when: "Уже есть на примете — проверить и сравнить", ex: "сайт или ИНН", art: <ArtKnown /> },
 ];
 
@@ -64,7 +64,6 @@ export function Search() {
   return (
     <div className="home">
       <section className="home-head">
-        <div className="label">Закупка для ресторанов · Екатеринбург</div>
         <h1 className="hero">Найти поставщика</h1>
         <p className="lead">Условия со всех сайтов в одной форме — <em>с источником у каждого поля</em> и подсказкой, кому написать первым.</p>
       </section>

@@ -1,17 +1,19 @@
 // «Все поставщики» — витрина для закупщика, который ещё не знает, что ему нужно: смотреть всех, как в магазине.
 // По алфавиту, поиск по названию и товарам, те же фильтры, что в категории.
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
 import { CATEGORIES, catById, rankCategory, readQuery, visibleSuppliers } from "../data.ts";
 import { completeness, stopReason } from "../lib/score.ts";
-import { activeCount, minRub, passes, readFilters } from "../lib/filters.ts";
-import { isKnown, plural } from "../lib/format.ts";
+import { minRub, passes, readFilters } from "../lib/filters.ts";
+import { plural } from "../lib/format.ts";
 import { matchesSupplier } from "../lib/search.ts";
 import type { Supplier } from "../types.ts";
-import { CatGlyph, Check, Comb, Hint, Mono, Score, StarButton, StatusIcon } from "../components/ui.tsx";
-import { FiltersPanel, SubcatChecks } from "../components/Filters.tsx";
-import { RowBadges, supplierMeta } from "../components/supplier.tsx";
+import { inSelection, readSelection, selParams } from "../lib/selection.ts";
+import { Check, Hint } from "../components/ui.tsx";
+import { CategoryPicker } from "../components/CategoryPicker.tsx";
+import { FilterRail, Railed } from "../components/FilterRail.tsx";
+import { ListCard } from "../components/ListCard.tsx";
 
 const SORTS = [
   { id: "az", label: "По алфавиту, А → Я" },
@@ -25,19 +27,12 @@ export function Catalog({ route }: { route: Route }) {
   const st = useStore();
   const p = route.params;
   const fs = readFilters(p);
-  const cats = (p.get("cats") ?? "").split(",").map((id) => catById(id)).filter(Boolean) as typeof CATEGORIES;
-  const single = cats.length === 1 ? cats[0] : null;
-  const subs = single ? (p.get("sub") ?? "").split(",").filter((id) => single.subcategories.some((x) => x.id === id)) : [];
+  // тот же выбор, что в «Поиске по категории»: несколько категорий и в каждой свои подкатегории; пусто — все (T-541, круг 2)
+  const sel = readSelection(p);
   const text = p.get("q") ?? "";
   const sort = p.get("sort") ?? "az";
   const showEx = p.get("ex") === "1";
-  const [sheet, setSheet] = useState(false);
   const setParam = (patch: Record<string, string | null>) => navigate("/catalog", { ...paramsToObject(p), ...patch }, { replace: true });
-  const toggleCat = (id: string) => {
-    const ids = cats.map((c) => c.id);
-    const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
-    setParam({ cats: next.join(",") || null, sub: null });
-  };
 
   // балл — по сохранённому запросу (объём, «что важнее»), в каждой категории свой рейтинг
   const scores = useMemo(() => {
@@ -53,10 +48,8 @@ export function Catalog({ route }: { route: Route }) {
   const all = visibleSuppliers(st);
   const pool = all.filter((s) => {
     const cat = catById(s.category)!;
-    // выбрана подкатегория — все, кто её продаёт, из любой категории (T-538); иначе — по основной категории
-    if (subs.length) {
-      if (!s.subcategories.some((x) => subs.includes(x))) return false;
-    } else if (cats.length && !cats.some((c) => c.id === s.category)) return false;
+    // подкатегория — все, кто её продаёт, из любой категории (T-538); категория целиком — по основной категории
+    if (!inSelection(s, sel)) return false;
     if (!matchesSupplier(s, text)) return false;
     return passes(s, cat, fs);
   });
@@ -71,61 +64,38 @@ export function Catalog({ route }: { route: Route }) {
   if (sort === "min") sorted.sort((a, b) => (minRub(a) ?? Infinity) - (minRub(b) ?? Infinity));
   if (sort === "full") sorted.sort((a, b) => completeness(b).found - completeness(a).found);
 
-  const markingAny = (cats.length ? cats : CATEGORIES).some((c) => c.marking_group);
+  const markingAny = (sel.cats.length ? sel.cats : CATEGORIES).some((c) => c.marking_group);
 
+  const cardParams = st.last ? { vol: st.last.vol || null, prio: st.last.prio === "balanced" ? null : st.last.prio } : {};
   const card = (s: Supplier) => {
-    const cat = catById(s.category)!;
-    const c = completeness(s);
     const stop = stopReason(s, returned);
     return (
-      <article key={s.id} className={`shop-card${stop ? " stopped" : ""}`}>
-        <div className="sc-top">
-          <Mono s={s} size={52} />
-          <div className="sc-score">
-            {stop ? <span className="ex-tag" title={stop.reason}>исключён</span> : <Score value={scores.get(s.id) ?? 0} />}
-          </div>
-        </div>
-        <a className="nm" href={href(`/s/${s.id}`, st.last ? { vol: st.last.vol || null, prio: st.last.prio === "balanced" ? null : st.last.prio } : {})}>{s.name}</a>
-        <div className="sc-cat"><CatGlyph cat={cat} size={22} /> {cat.short}{st.collected[s.id] && <span className="fresh-pill">собрано сейчас</span>}</div>
-        <div className="row-meta">{!isKnown(s.company) && <StatusIcon status="not_found" size={10} />} {supplierMeta(s)}</div>
-        {stop ? <div className="sc-stop"><StatusIcon status={stop.mark} size={10} /> {stop.reason}</div> : <RowBadges s={s} cat={cat} />}
-        <div className="sc-foot">
-          <Comb found={c.found} total={c.total} />
-          <StarButton on={!!st.shortlist[s.id]} onClick={() => actions.toggleShort(s.id)} />
-        </div>
-      </article>
+      <ListCard key={s.id} variant="tile" s={s} cat={catById(s.category)!} href={href(`/s/${s.id}`, cardParams)} showCat
+        score={stop ? null : scores.get(s.id) ?? 0} stop={stop} starred={!!st.shortlist[s.id]} onStar={() => actions.toggleShort(s.id)}
+        tags={st.collected[s.id] ? <span className="fresh-pill">собрано сейчас</span> : undefined} />
     );
   };
 
+  const head = (
+    <>
+      <div className="label">Каталог</div>
+      <input className="input" type="search" value={text} onChange={(e) => setParam({ q: e.target.value || null })} placeholder="Название или товар" aria-label="Поиск по названию и товарам" />
+      <CategoryPicker sel={sel} onChange={(next) => setParam(selParams(next))} state={st} />
+    </>
+  );
+
+  const rail = (
+    <FilterRail label="Поиск и фильтры" head={head} fs={fs} onChange={setParam} marking={markingAny} count={list.length}
+      onReset={() => setParam({ f: null, max: null, unk: null, sub: null, cat: null, cats: null, q: null })} />
+  );
+
   return (
-    <div className="catalog">
-      <header className="cat-head">
-        <div>
-          <div className="label">Каталог</div>
+    <Railed rail={rail}>
+      <div className="catalog">
+        <header className="cat-head">
           <h1 className="h1">Все поставщики</h1>
-        </div>
-        <div className="cat-count"><span className="num">{list.length}</span>{plural(list.length, "поставщик", "поставщика", "поставщиков")}</div>
-      </header>
-
-      <div className="cat-bar">
-        <input className="input lg" type="search" value={text} onChange={(e) => setParam({ q: e.target.value || null })} placeholder="Название или товар: моцарелла, нори, крафт-пакет" aria-label="Поиск по названию и товарам" />
-        <div className="cat-chips" role="group" aria-label="Категории">
-          <button type="button" className={`cat-chip-btn${cats.length === 0 ? " on" : ""}`} aria-pressed={cats.length === 0} onClick={() => setParam({ cats: null, sub: null })}>Все</button>
-          {CATEGORIES.map((c) => (
-            <button key={c.id} type="button" className={`cat-chip-btn${cats.some((x) => x.id === c.id) ? " on" : ""}`} aria-pressed={cats.some((x) => x.id === c.id)} onClick={() => toggleCat(c.id)}>
-              <img src={c.illustration} alt="" width={36} height={36} />{c.short}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="lr">
-        <aside className={`filters${sheet ? " open" : ""}`} aria-label="Фильтры">
-          <FiltersPanel state={fs} onChange={setParam} marking={markingAny} count={list.length}
-            onClose={() => setSheet(false)} onReset={() => setParam({ f: null, max: null, unk: null, sub: null, cats: null, q: null })}
-            top={single ? <SubcatChecks cat={single} value={subs.length ? subs : single.subcategories.map((x) => x.id)} onChange={(next) => setParam({ sub: next.length === single.subcategories.length ? null : next.join(",") })} /> : undefined} />
-        </aside>
-        {sheet && <div className="scrim" onClick={() => setSheet(false)} />}
+          <div className="cat-count"><span className="num">{list.length}</span>{plural(list.length, "поставщик", "поставщика", "поставщиков")}</div>
+        </header>
 
         <div className="list">
           <div className="list-head">
@@ -136,10 +106,9 @@ export function Catalog({ route }: { route: Route }) {
               <Check checked={showEx} onChange={(v) => setParam({ ex: v ? "1" : null })}>исключённые · {stopped.length}</Check>
               <Hint>Балл — тот же, что в поиске: по объёму закупки и «что важнее» из последнего запроса, внутри своей категории. Исключённые — ликвидированные, не возящие в Екатеринбург и «не поставщики» — по умолчанию скрыты.</Hint>
             </div>
-            <button type="button" className="btn sec sm sm-only" onClick={() => setSheet(true)}>Фильтры{activeCount(fs) ? ` · ${activeCount(fs)}` : ""}</button>
           </div>
 
-          <div className="shop-grid">{sorted.map(card)}</div>
+          <div className="tile-grid">{sorted.map(card)}</div>
           {sorted.length === 0 && (
             <div className="empty-list">
               <p>Никого не нашли — ослабьте фильтры или поиск.</p>
@@ -148,6 +117,6 @@ export function Catalog({ route }: { route: Route }) {
           )}
         </div>
       </div>
-    </div>
+    </Railed>
   );
 }

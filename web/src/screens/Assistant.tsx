@@ -56,7 +56,7 @@ export function Assistant() {
   return (
     <div className="assistant">
       <div className="label">Помощник</div>
-      <h1 className="h1">Не знаете, что нужно?</h1>
+      <h1 className="h1">Не знаете, как искать?</h1>
       <p className="lead-sm">Опишите точку своими словами — помощник предложит, что ей обычно закупают, а поставщиков подберёт из собранного набора по их ассортименту.</p>
 
       <form className="add-form" onSubmit={submit}>

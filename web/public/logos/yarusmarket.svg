@@ -1,0 +1,31 @@
+<svg class="logo-svg" enable-background="new" version="1.1" viewBox="0 0 854 557.99" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <style>@font-face {font-family: 'MagistralCTT'; src: url('/catalog/view/theme/default/font/MagistralTT.woff') format('woff');}.cls-1{opacity:0.22;}.cls-2{fill:#ebf9b4;}.cls-3{fill:url(#Безымянный_градиент_78);}.cls-4{font-size:55px;letter-spacing:0.03em;}.cls-4,.cls-5{fill:#fff;stroke:#fff;stroke-miterlimit:10;font-family:'MagistralCTT', sans-serif; font-weight: 300;}.cls-5{font-size:120px;stroke-width:2px;letter-spacing:0.01em;}</style>
+              <linearGradient id="gradient" x1="431.81" x2="425.69" y1=".19906" y2="558.47" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#bfe05a" offset=".30185"/>
+                <stop stop-color="#b3dc42" offset=".45333"/>
+                <stop stop-color="#9ad30d" offset=".62642"/>
+                <stop stop-color="#639316" offset=".91729"/>
+              </linearGradient>
+              <filter id="filter6684" style="color-interpolation-filters:sRGB">
+                <feFlood flood-color="rgb(0,0,0)" flood-opacity=".65098" result="flood"/>
+                <feComposite in="flood" in2="SourceGraphic" operator="in" result="composite1"/>
+                <feGaussianBlur in="composite1" result="blur" stdDeviation="8.3"/>
+                <feOffset dx="0" dy="10.5" result="offset"/>
+                <feComposite in="offset" in2="SourceGraphic" operator="out" result="fbSourceGraphic"/>
+                <feColorMatrix in="fbSourceGraphic" result="fbSourceGraphicAlpha" values="0 0 0 -1 0 0 0 0 -1 0 0 0 0 -1 0 0 0 0 1 0"/>
+                <feFlood flood-color="rgb(0,0,0)" flood-opacity=".65098" in="fbSourceGraphic" result="flood"/>
+                <feComposite in="flood" in2="fbSourceGraphic" operator="in" result="composite1"/>
+                <feGaussianBlur in="composite1" result="blur"/>
+                <feOffset dx="0" dy="7" result="offset"/>
+                <feComposite in="offset" in2="fbSourceGraphic" operator="out" result="composite2"/>
+              </filter>
+            </defs>
+            <path d="m17 0.43571s1.2688 224.98 0.07702 328.59c-0.16941 14.728 4.2868 25.201 10.504 36.072 3.8127 6.6665 9.6689 12.143 15.8 16.768 6.8379 5.1581 14.987 8.3468 22.823 11.807 9.3168 4.1142 16.737 5.7226 28.657 10.599 11.92 4.8768 26.91 10.934 41.944 16.975s27.954 12.065 44.977 18.725c34.045 13.32 69.079 26.388 104.94 39.173s73.473 24.05 98.391 28.354c11.743 2.0287 26.531 4.7579 39.628 5.1006 10.927 0.28591 23.393-1.0314 34.918-2.9329 20.964-3.4592 41.484-9.3493 61.865-15.354 39.481-11.631 78.372-24.67 116.82-39.981 46.786-18.63 92.637-37.375 139.08-56.785 16.821-7.0301 36.62-14.341 48.508-28.942 6.7306-8.2667 10.301-20.226 10.478-30.215 0.78218-44.025 0.1776-98.605 0-157.04-0.28393-93.424 0-180.88 0-180.88z" style="fill:url(#gradient);stroke-width:10"/>
+            <path d="m17 0.43571s1.2688 224.98 0.077 328.59c-0.16941 14.728 4.2868 25.201 10.504 36.072 3.8127 6.6665 9.6689 12.143 15.8 16.768 6.8379 5.1581 14.987 8.3468 22.823 11.807 9.3168 4.1142 16.737 5.7226 28.657 10.599 11.92 4.8768 26.91 10.934 41.944 16.975s27.954 12.065 44.977 18.725c34.045 13.32 69.079 26.388 104.94 39.173s73.473 24.05 98.391 28.354c11.743 2.0287 26.531 4.7579 39.628 5.1006 10.927 0.28591 23.393-1.0314 34.918-2.9329 20.964-3.4592 41.484-9.3493 61.865-15.354 39.481-11.631 78.372-24.67 116.82-39.981 46.786-18.63 92.637-37.375 139.08-56.785 16.821-7.0301 36.62-14.341 48.508-28.942 6.7306-8.2667 10.301-20.226 10.478-30.215 0.7822-44.025 0.1776-98.605 0-157.04-0.2839-93.424 0-180.88 0-180.88z" style="fill:url(#gradient);filter:url(#filter6684);stroke-width:10"/>
+            <path d="m23.117 302.52s-4.2001 35.157 0.856 51.599c2.8029 9.115 8.6344 17.503 15.68 23.929 15.146 13.815 34.897 20.833 54.314 28.846 38.456 15.87 76.629 31.8 115.33 46.717 30.553 11.776 61.113 23.621 92.246 33.766 23.364 7.6135 46.848 15.116 70.866 20.311 17.073 3.6931 34.372 7.5327 51.84 7.6714 20.43 0.16231 40.848-3.4634 60.768-8.0082 15.041-3.4319 29.96-7.8243 44.727-12.457 36.13-11.336 71.789-24.169 107.23-37.498 36.316-13.658 72.392-28.005 107.96-43.502 13.049-5.6851 26.485-10.573 39.55-16.278 7.8829-3.4421 16.104-6.3091 23.424-10.827 4.8311-2.9815 9.5001-6.4138 13.319-10.615 3.2893-3.6187 5.8987-7.8029 8.0104-12.291 5.4153-11.509 3.5209-46.656 2.9923-56.696" style="fill:none;stroke-width:10;stroke:#ffffff"/>
+            <path d="m17 0.43571s1.2688 224.98 0.07702 328.59c-0.16941 14.728 4.2868 25.201 10.504 36.072 3.8127 6.6665 9.6689 12.143 15.8 16.768 6.8379 5.1581 14.987 8.3468 22.823 11.807 9.3168 4.1142 16.737 5.7226 28.657 10.599 11.92 4.8768 26.91 10.934 41.944 16.975s27.954 12.065 44.977 18.725c34.045 13.32 69.079 26.388 104.94 39.173s73.473 24.05 98.391 28.354c11.743 2.0287 26.531 4.7579 39.628 5.1006 10.927 0.28591 23.393-1.0314 34.918-2.9329 20.964-3.4592 41.484-9.3493 61.865-15.354 39.481-11.631 78.372-24.67 116.82-39.981 18.787-7.4811 37.424-14.981 56.009-22.534 27.697-11.257 55.278-22.635 83.071-34.251 16.821-7.0301 36.62-14.341 48.508-28.942 6.7306-8.2667 10.301-20.226 10.478-30.215 0.78218-44.025 0.1776-98.605 0-157.04-0.28393-93.424 0-180.88 0-180.88z" style="fill:url(#gradient);stroke-width:10"/>
+            <text class="cls-5" transform="translate(96.19,207.39)" style="fill:#ffffff;font-family:MagistralCTT, sans-serif;font-size:120px;font-weight:300;letter-spacing:.01em;stroke-miterlimit:10;stroke-width:2px;">ЯрусМаркет</text>
+            <text class="cls-4" transform="translate(173.34,318.37)" style="fill:#ffffff;font-family:MagistralCTT, sans-serif;font-size:55px;font-weight:300;letter-spacing:.03em;stroke-miterlimit:10;">товары для бизнеса</text>
+          </svg>
+          

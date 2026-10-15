@@ -69,14 +69,23 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
 
 // ---------- приёмы работы с экраном ----------
 /** Строки списка результатов: имя, балл, место, пометки. */
-const rowsInfo = (page) => page.locator(".rows .row").evaluateAll((rs) => rs.map((r) => ({
+const rowsInfo = (page) => page.locator(".rows .lcard").evaluateAll((rs) => rs.map((r) => ({
   name: r.querySelector("a.nm").textContent.trim(),
-  score: Number(r.querySelector(".row-score .score")?.textContent.match(/\d+/)?.[0]),
-  rank: r.querySelector(".rank-n")?.textContent.trim(),
+  score: Number(r.querySelector(".lc-score .score")?.textContent.match(/\d+/)?.[0]),
+  rank: r.querySelector(".lc-rank")?.textContent.trim(),
   opt: !!r.querySelector(".opt-pill"),
   fresh: !!r.querySelector(".fresh-pill"),
 })));
-const rowOf = (page, name) => page.locator(".rows .row").filter({ has: page.locator("a.nm", { hasText: new RegExp(`^${esc(name)}$`) }) });
+const rowOf = (page, name) => page.locator(".rows .lcard").filter({ has: page.locator("a.nm", { hasText: new RegExp(`^${esc(name)}$`) }) });
+/** Строка вида «Таблица» — в ней флажок сравнения (T-541). */
+const tableRowOf = (page, name) => page.locator(".tbl tbody tr").filter({ has: page.locator("a.nm", { hasText: new RegExp(`^${esc(name)}$`) }) });
+/** Выпадающий выбор категорий и подкатегорий в колонке (T-541, круг 2). */
+const picker = {
+  open: async (page) => { if (!(await page.locator(".cpick.open").count())) await page.locator(".cp-trigger").click(); },
+  done: async (page) => { if (await page.locator(".cpick.open").count()) await page.locator(".cp-foot .btn", { hasText: "Готово" }).click(); },
+  cat: async (page, short) => { await picker.open(page); await page.locator(".cp-cat-h .cp-row", { hasText: short }).click(); await settle(page); },
+  all: async (page) => { await picker.open(page); await page.locator(".cp-foot .link-btn", { hasText: "Все категории" }).click(); await settle(page); },
+};
 const flag = (page, label) => page.locator(".filters .chk", { hasText: label });
 const sig = (rows) => rows.map((r) => `${r.name}:${r.score}`).join();
 
@@ -93,9 +102,9 @@ async function setRange(page, target) {
   return Number(await r.inputValue());
 }
 
-/** Закупка в неделю — поле в линейке над списком. */
+/** Закупка в неделю — поле в параметрах рекомендации, в колонке слева (T-541). */
 async function setVolume(page, value) {
-  const inp = page.locator(".ruler input[aria-label='Закупка в неделю, рублей']");
+  const inp = page.locator(".rail-params input[aria-label='Закупка в неделю, рублей']");
   await inp.click();
   await inp.press("Control+A");
   await page.keyboard.type(String(value));
@@ -166,7 +175,7 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   const extra1 = rows.map((r) => r.name).filter((n) => !names(sushiSet).includes(n));
   check(sameSet(rows.map((r) => r.name), names(sushiSet)), `в списке все поставщики подкатегории из набора: ${rows.length}`, `пропали: ${miss1.join(", ") || "нет"}; лишние: ${extra1.join(", ") || "нет"}`);
   check(rows.every((r, i) => i === 0 || rows[i - 1].score >= r.score), "список по рекомендации идёт по убыванию балла", rows.map((r) => r.score).join(" ≥ "));
-  check(rows.every((r, i) => r.rank === `${i + 1}-й`), "место в списке 1-й, 2-й, 3-й… без пропусков");
+  check(rows.every((r, i) => r.rank === String(i + 1)), "место по рекомендации под логотипом: 1, 2, 3… без пропусков");
 
   const zone = await page.locator(".first .gcard").evaluateAll((cs) => cs.map((c) => ({
     name: c.querySelector(".nm").textContent.trim(),
@@ -189,16 +198,17 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   check(sig(await rowsInfo(page)) !== before, "при закупке 1 000 ₽ (минимальные заказы ~3 500 ₽ стали больше закупки) баллы пересчитались");
   await setVolume(page, 20000);
   check(sig(await rowsInfo(page)) === before, "возврат к 20 000 ₽ возвращает те же баллы");
-  await page.locator(".ruler .pill-select select").selectOption({ label: "Надёжность и документы" });
+  await page.locator(".rail-params select").selectOption({ label: "Надёжность и документы" });
   await settle(page);
   check(hashOf(page).includes("prio=reliability"), "«что важнее» → «Надёжность и документы» в адресе", hashOf(page));
   const relRows = await rowsInfo(page);
   check(sig(relRows) !== before && relRows.every((r, i) => i === 0 || relRows[i - 1].score >= r.score), "баллы пересчитаны и список снова по убыванию");
-  await page.locator(".ruler .pill-select select").selectOption({ label: "Сбалансированно" });
+  await page.locator(".rail-params select").selectOption({ label: "Сбалансированно" });
   await settle(page);
 
   // фильтры — на всей категории, ожидания из набора
-  await page.locator(".sub-chip", { hasText: "Вся категория" }).click();
+  await picker.cat(page, cat("packaging").short);
+  await picker.done(page);
   await settle(page, 300);
   const pack = inCat("packaging", null);
   rows = await rowsInfo(page);
@@ -228,7 +238,7 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   check(sameSet(rows.map((r) => r.name), names(want)), `до 5 000 ₽: остаются те, у кого минимум ≤ 5 000 ₽ или не указан в рублях — ${want.length}`, `из них без минимума в рублях: ${withUnknown.length}`);
   check(withUnknown.length > 0 && (await page.locator(".list-count .pop-btn").count()) === 1, "неизвестный минимум не выкинут молча — рядом «?» с объяснением");
   await page.locator(".list-count .pop-btn").click();
-  check(norm(await page.locator(".list-count .pop-body").textContent()).includes("помечены"), "в «?» объяснено, почему они остались");
+  check(norm(await page.locator(".pop-body").textContent()).includes("помечены"), "в «?» объяснено, почему они остались");
   await page.keyboard.press("Escape");
   await flag(page, "и где не указан").click();
   await settle(page);
@@ -242,12 +252,12 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   check(rows.length === pack.length && !/[?&](f|max|unk)=/.test(page.url()), "«Сбросить» возвращает всех и чистит адрес", `${rows.length}, ${hashOf(page)}`);
 
   // поиск внутри категории и сортировка
-  await page.locator("input[aria-label='Поиск внутри категории']").fill("крафт");
+  await page.locator("input[aria-label='Поиск по названию и товарам в выбранном']").fill("крафт");
   await settle(page);
   want = pack.filter((s) => hasWord(s, "крафт"));
   rows = await rowsInfo(page);
   check(want.length > 0 && sameSet(rows.map((r) => r.name), names(want)), `«Поиск в категории: крафт» — те, у кого слово есть в названии или товарах: ${want.length}`, delta(rows.map((r) => r.name), names(want)));
-  await page.locator("input[aria-label='Поиск внутри категории']").fill("");
+  await page.locator("input[aria-label='Поиск по названию и товарам в выбранном']").fill("");
   await page.locator("select[aria-label='Сортировка']").selectOption({ label: "По минимальному заказу" });
   await settle(page);
   rows = await rowsInfo(page);
@@ -275,13 +285,17 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   const picks1 = [pickA, pickB, pickC];
   const rankB = rows.findIndex((r) => r.name === pickB) + 1;
   const nRows1 = rows.length;
-  for (const n of picks1) await rowOf(page, n).locator(".chk").click();
-  check(norm(await page.locator(".selbar").textContent()).includes("Выбрано 3 из 4"), "отмечены трое — панель «Выбрано 3 из 4»", picks1.join(", "));
+  // T-541: карточка списка целиком — ссылка, второй кнопкой в ней только звёздочка; сравнение отмечается в виде «Таблица»
+  check(await rowOf(page, pickA).locator(".chk").count() === 0, "в карточке списка нет флажка «сравнить» — только звёздочка");
+  await page.locator(".seg[aria-label='Вид'] button", { hasText: "Таблица" }).click();
+  await settle(page);
+  for (const n of picks1) await tableRowOf(page, n).locator(".chk").click();
+  check(norm(await page.locator(".selbar").textContent()).includes("Выбрано 3 из 4"), "в таблице отмечены трое — панель «Выбрано 3 из 4»", picks1.join(", "));
   const spare = rows.filter((r) => !picks1.includes(r.name)).map((r) => r.name);
-  await rowOf(page, spare[0]).locator(".chk").click();
-  await rowOf(page, spare[1]).locator(".chk").click();
-  check(norm(await page.locator(".selbar").textContent()).includes("Выбрано 4 из 4") && !(await rowOf(page, spare[1]).locator("input").isChecked()), "пятого выбрать нельзя: потолок «4 из 4»", `пятый — ${spare[1]}`);
-  await rowOf(page, spare[0]).locator(".chk").click();
+  await tableRowOf(page, spare[0]).locator(".chk").click();
+  await tableRowOf(page, spare[1]).locator(".chk").click();
+  check(norm(await page.locator(".selbar").textContent()).includes("Выбрано 4 из 4") && !(await tableRowOf(page, spare[1]).locator("input").isChecked()), "пятого выбрать нельзя: потолок «4 из 4»", `пятый — ${spare[1]}`);
+  await tableRowOf(page, spare[0]).locator(".chk").click();
   check(norm(await page.locator(".selbar").textContent()).includes("Выбрано 3 из 4"), "четвёртого снимаем — снова «3 из 4»");
 
   await page.locator(".selbar").getByRole("link", { name: "Сравнить" }).click();
@@ -331,7 +345,7 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   const payF = page.locator(".field", { hasText: "Оплата и отсрочка" });
   await payF.locator(".pop-btn").click();
   check(norm(await payF.locator(".v").first().textContent()).startsWith("не найдено"), "«Оплата и отсрочка»: явное «не найдено», а не пустота");
-  const where = norm(await payF.locator(".pop-body").textContent());
+  const where = norm(await page.locator(".pop-body").textContent());
   check(where.includes("Искали:") && where.includes(norm(sB.payment_terms.searched_in[0])), "«?» говорит, где искали, — из набора", sB.payment_terms.searched_in[0].slice(0, 60));
   await page.keyboard.press("Escape");
   const decl = sB.documents.declarations.value || [];
@@ -370,11 +384,12 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   await settle(page);
   await page.locator(".cat-acc-h", { hasText: cat("fish").short }).click();
   await page.locator(".cat-sub", { hasText: salmon.name }).first().click();
+  await page.locator(".cats-go-btn").click();   // T-541, круг 3: подкатегории отмечаются, переход — кнопкой справа
   await settle(page, 300);
   const salmonSet = inCat("fish", "salmon");
   rows = await rowsInfo(page);
   check(hashOf(page) === "#/results?cat=fish&sub=salmon" && sameSet(rows.map((r) => r.name), names(salmonSet)), `каталог → Рыба → «${salmon.name}»: ${rows.length} поставщиков = набор`, hashOf(page));
-  await page.locator(".ruler .pill-select select").selectOption({ label: "Быстрая доставка" });
+  await page.locator(".rail-params select").selectOption({ label: "Быстрая доставка" });
   await settle(page);
   check(hashOf(page).includes("prio=fast"), "«что важнее» → «Быстрая доставка»", hashOf(page));
   const fastRows = await rowsInfo(page);
@@ -413,7 +428,7 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   if (s2.delivery.quote) check((await page.locator(".field", { hasText: "Доставка" }).first().locator(".q").first().innerText()).includes(norm(s2.delivery.quote).slice(0, 40)), "у доставки — цитата с сайта", norm(s2.delivery.quote).slice(0, 70));
   const docHead = page.locator(".section-h", { hasText: "Документы" });
   await docHead.locator(".pop-btn").click();
-  check(norm(await docHead.locator(".pop-body").textContent()).includes("ВетИС"), "у рыбы в «Документах» есть «?»: ветеринарные документы по ИНН не проверить, ВетИС — по номеру");
+  check(norm(await page.locator(".pop-body").textContent()).includes("ВетИС"), "у рыбы в «Документах» есть «?»: ветеринарные документы по ИНН не проверить, ВетИС — по номеру");
   await page.keyboard.press("Escape");
   const mark = s2.documents.marking;
   const markRow = norm(await page.locator(".field", { hasText: "«Честный знак»" }).innerText());
@@ -490,7 +505,7 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   await page.locator(".result-card").waitFor({ timeout: 15000 });
   await page.getByRole("link", { name: "Сравнить с остальными" }).click();
   await page.waitForURL(/#\/results/);
-  await page.locator(".rows .row").first().waitFor();
+  await page.locator(".rows .lcard").first().waitFor();
   rows = await rowsInfo(page);
   const fresh = rows.filter((r) => r.fresh).map((r) => r.name);
   check(fresh.join() === bySite.name && rows.length === nPack, `в выдаче категории — собранный сейчас (${bySite.name}) с пометкой, всего ${rows.length}`, `пометки: ${fresh.join(", ")}`);
@@ -498,17 +513,19 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   check(myPlace === Number(placeM[1]), `его место в списке (${myPlace}-й) = месту в результате сбора (${placeM[1]}-й)`);
 
   // сессия помнит прошлые выборы: «что важнее» из сценария 2 и отмеченные для сравнения в сценарии 1
-  check((await page.locator(".ruler .pill-select select").inputValue()) === "fast", "«что важнее» осталось от прошлого запроса — «Быстрая доставка»");
+  check((await page.locator(".rail-params select").inputValue()) === "fast", "«что важнее» осталось от прошлого запроса — «Быстрая доставка»");
   check(norm(await page.locator(".selbar").textContent()).includes("Выбрано 3 из 4"), "отмеченные в сценарии 1 трое всё ещё выбраны для сравнения");
   await page.locator(".selbar").getByRole("button", { name: "очистить" }).click();
   check((await page.locator(".selbar").count()) === 0, "«очистить» снимает выбор, панель исчезает");
-  await page.locator(".ruler .pill-select select").selectOption({ label: "Сбалансированно" });
+  await page.locator(".rail-params select").selectOption({ label: "Сбалансированно" });
   await settle(page);
   rows = await rowsInfo(page);
   // трое: собранный сейчас + два верхних из остальных
   const others = rows.filter((r) => !r.fresh && !r.opt).slice(0, 2).map((r) => r.name);
   const trio = [bySite.name, ...others];
-  for (const n of trio) await rowOf(page, n).locator(".chk").click();
+  await page.locator(".seg[aria-label='Вид'] button", { hasText: "Таблица" }).click();
+  await settle(page);
+  for (const n of trio) await tableRowOf(page, n).locator(".chk").click();
   await page.locator(".selbar").getByRole("link", { name: "Сравнить" }).click();
   await page.waitForURL(/#\/compare/);
   await page.locator(".conclusion").waitFor();
@@ -599,51 +616,49 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   step("Каталог «Все поставщики»: смотреть всех, как в магазине");
   await page.locator(".side-nav .nav-item", { hasText: "Все поставщики" }).click();
   await page.waitForURL(/#\/catalog/);
-  await page.locator(".shop-card").first().waitFor();
-  const cnames = (await page.locator(".shop-card .nm").allInnerTexts()).map(norm);
+  await page.locator(".lcard.tile").first().waitFor();
+  const cnames = (await page.locator(".lcard.tile a.nm").allInnerTexts()).map(norm);
   const alive = S.filter((s) => !stopped(s));
   const shown = [...alive, bySite, byInn]; // в каталоге рядом с набором лежат собранные в этой сессии
   check(sameSet(cnames, names(shown)), `все ${S.length} поставщиков набора и двое собранных сейчас — ${cnames.length}`, delta(cnames, names(shown)));
   const sorted = [...cnames].sort((a, b) => a.localeCompare(b, "ru"));
   check(cnames.join("|") === sorted.join("|"), "по алфавиту, А → Я", `${cnames[0]} … ${cnames.at(-1)}`);
-  check((await page.locator(".shop-card .fresh-pill").count()) === 2 && norm(await page.locator(".cat-count").innerText()).startsWith(String(shown.length)) && norm(await page.locator(".side-nav .nav-item", { hasText: "Все поставщики" }).locator(".nav-n").innerText()) === String(S.length), "две карточки «собрано сейчас»; счётчик на странице считает их, в меню — только основной набор", `${norm(await page.locator(".cat-count").innerText())} / ${norm(await page.locator(".side-nav .nav-item", { hasText: "Все поставщики" }).locator(".nav-n").innerText())}`);
+  check((await page.locator(".lcard.tile .fresh-pill").count()) === 2 && norm(await page.locator(".cat-count").innerText()).startsWith(String(shown.length)) && norm(await page.locator(".side-nav .nav-item", { hasText: "Все поставщики" }).locator(".nav-n").innerText()) === String(S.length), "две карточки «собрано сейчас»; счётчик на странице считает их, в меню — только основной набор", `${norm(await page.locator(".cat-count").innerText())} / ${norm(await page.locator(".side-nav .nav-item", { hasText: "Все поставщики" }).locator(".nav-n").innerText())}`);
   await page.locator("select[aria-label='Сортировка']").selectOption({ label: "По алфавиту, Я → А" });
   await settle(page);
-  check((await page.locator(".shop-card .nm").allInnerTexts()).map(norm).join("|") === [...sorted].reverse().join("|"), "«Я → А» разворачивает порядок");
+  check((await page.locator(".lcard.tile a.nm").allInnerTexts()).map(norm).join("|") === [...sorted].reverse().join("|"), "«Я → А» разворачивает порядок");
   await page.locator("select[aria-label='Сортировка']").selectOption({ label: "По алфавиту, А → Я" });
   await settle(page);
-  await page.locator(".cat-chip-btn", { hasText: cat("dairy").short }).click();
-  await settle(page);
-  let cn = (await page.locator(".shop-card .nm").allInnerTexts()).map(norm);
-  check(sameSet(cn, names(alive.filter((s) => s.category === "dairy"))) && (await page.locator(".shop-card .sc-cat").allInnerTexts()).every((c) => norm(c).startsWith(cat("dairy").short)), `чип «${cat("dairy").short}» оставляет только эту категорию: ${cn.length}`);
-  await page.locator(".cat-chip-btn", { hasText: cat("fish").short }).click();
-  await settle(page);
-  cn = (await page.locator(".shop-card .nm").allInnerTexts()).map(norm);
-  check(sameSet(cn, names(alive.filter((s) => ["dairy", "fish"].includes(s.category)))), "второй чип добавляет категорию (можно несколько)", `${cn.length}`);
-  await page.locator(".cat-chip-btn", { hasText: /^Все$/ }).click();
-  await settle(page);
-  const allN = await page.locator(".shop-card").count();
+  await picker.cat(page, cat("dairy").short);
+  let cn = (await page.locator(".lcard.tile a.nm").allInnerTexts()).map(norm);
+  check(sameSet(cn, names(alive.filter((s) => s.category === "dairy"))) && (await page.locator(".lcard.tile .sc-cat").allInnerTexts()).every((c) => norm(c).startsWith(cat("dairy").short)), `отметка «${cat("dairy").short}» в списке категорий оставляет только эту категорию: ${cn.length}`);
+  await picker.cat(page, cat("fish").short);
+  cn = (await page.locator(".lcard.tile a.nm").allInnerTexts()).map(norm);
+  check(sameSet(cn, names(alive.filter((s) => ["dairy", "fish"].includes(s.category)))), "вторая отметка добавляет категорию (можно несколько)", `${cn.length}`);
+  await picker.all(page);
+  await picker.done(page);
+  const allN = await page.locator(".lcard.tile").count();
   await flag(page, "Доставка до точки").click();
   await settle(page);
   const doorN = shown.filter(PRED.door).length;
-  check((await page.locator(".shop-card").count()) === doorN && doorN < allN, "те же фильтры, что в поиске: «Доставка до точки»", `${allN} → ${doorN}`);
+  check((await page.locator(".lcard.tile").count()) === doorN && doorN < allN, "те же фильтры, что в поиске: «Доставка до точки»", `${allN} → ${doorN}`);
   await flag(page, "Доставка до точки").click();
   await page.getByLabel("Поиск по названию и товарам").click();
   await page.keyboard.type("нори");
   await settle(page);
-  const foundNori = (await page.locator(".shop-card .nm").allInnerTexts()).map(norm);
+  const foundNori = (await page.locator(".lcard.tile a.nm").allInnerTexts()).map(norm);
   const wantNori = shown.filter((s) => hasWord(s, "нори"));
   check(wantNori.length > 0 && sameSet(foundNori, names(wantNori)), `поиск «нори» по названию и товарам: ${foundNori.length}`, foundNori.join(", "));
   await page.getByLabel("Поиск по названию и товарам").fill("");
   await settle(page);
   const exBox = page.locator(".list-tools .chk", { hasText: "исключённые" });
-  check(norm(await exBox.innerText()).endsWith("· 0") && (await page.locator(".shop-card.stopped").count()) === 0, "«исключённые · 0»: в этом наборе таких нет — и приглушённых карточек нет");
+  check(norm(await exBox.innerText()).endsWith("· 0") && (await page.locator(".lcard.tile.is-stopped").count()) === 0, "«исключённые · 0»: в этом наборе таких нет — и приглушённых карточек нет");
   await page.locator("select[aria-label='Сортировка']").selectOption({ label: "По рекомендации" });
   await settle(page);
-  const recScores = (await page.locator(".shop-card .sc-score .score").allInnerTexts()).map(int);
+  const recScores = (await page.locator(".lcard.tile .lc-score .score").allInnerTexts()).map(int);
   check(recScores.length === shown.length && recScores.every((v, i) => i === 0 || recScores[i - 1] >= v), "«По рекомендации»: баллы по убыванию", recScores.join(" ≥ "));
-  const firstCard = norm(await page.locator(".shop-card .nm").first().innerText());
-  await page.locator(".shop-card .nm").first().click();
+  const firstCard = norm(await page.locator(".lcard.tile a.nm").first().innerText());
+  await page.locator(".lcard.tile a.nm").first().click();
   await page.waitForURL(/#\/s\//);
   check(norm(await page.locator(".card-title .h1").innerText()).startsWith(firstCard), "карточка из каталога открывается на том же поставщике", firstCard);
 

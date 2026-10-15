@@ -1,9 +1,9 @@
 import { useEffect, type ReactNode } from "react";
 import { href, useRoute } from "./router.ts";
 import { useStore } from "./store.ts";
-import { baseCount, CATEGORIES, DATA, shortlistIds } from "./data.ts";
-import { dateRu } from "./lib/format.ts";
-import { Popover } from "./components/ui.tsx";
+import { baseCount, DATA, shortlistIds } from "./data.ts";
+import { AvaFilters, Popover } from "./components/ui.tsx";
+import { Footer } from "./components/Footer.tsx";
 import { Search } from "./screens/Search.tsx";
 import { Find } from "./screens/Find.tsx";
 import { Categories } from "./screens/Categories.tsx";
@@ -16,6 +16,7 @@ import { Shortlist } from "./screens/Shortlist.tsx";
 import { AddSupplier } from "./screens/AddSupplier.tsx";
 import { AboutData } from "./screens/AboutData.tsx";
 import { Assistant } from "./screens/Assistant.tsx";
+import { AvatarLab } from "./screens/AvatarLab.tsx";
 
 function BrandMark() {
   return (
@@ -74,7 +75,6 @@ function SideNav({ path }: { path: string }) {
       </div>
       <nav className="nav-main">
         <div className="nav-group">
-          <div className="nav-cap">Найти поставщика</div>
           {item("/find", "search", "Поиск по товару", path === "/find")}
           {item("/categories", "categories", "Поиск по категории", inCat)}
           {item("/assistant", "assistant", "Помощник", path === "/assistant")}
@@ -90,17 +90,6 @@ function SideNav({ path }: { path: string }) {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="foot">
-      <div className="wrap foot-in">
-        <span>{DATA.meta.city.name} · {CATEGORIES.length} категории · {baseCount} поставщиков · собрано {dateRu(DATA.meta.collected_at)}</span>
-        <a href={href("/about-data")}>Как собраны данные →</a>
-      </div>
-    </footer>
-  );
-}
-
 const TITLES: Record<string, string> = { "/": "Найти поставщика", "/find": "Поиск по товару", "/categories": "Поиск по категории", "/results": "Категория", "/catalog": "Все поставщики", "/compare": "Сравнение", "/why": "Почему такой порядок", "/shortlist": "Шорт-лист", "/add": "Добавить поставщика", "/about-data": "Как собраны данные", "/assistant": "Помощник" };
 
 export function App() {
@@ -110,6 +99,9 @@ export function App() {
     const t = TITLES[path];
     if (t) document.title = `${t} · Поставщики`;
   }, [path]);
+
+  // экраны с колонкой фильтров (T-541): колонка сразу после меню, поэтому выдача сама задаёт себе поля
+  const railed = path === "/results" || path === "/catalog" || (path === "/find" && !!route.params.get("q")?.trim());
 
   let screen;
   if (path === "/" || path === "") screen = <Search />;
@@ -124,6 +116,7 @@ export function App() {
   else if (path === "/add") screen = <AddSupplier route={route} />;
   else if (path === "/about-data") screen = <AboutData />;
   else if (path === "/assistant") screen = <Assistant />;
+  else if (import.meta.env.DEV && path === "/lab/avatar") screen = <AvatarLab />;
   else screen = (
     <div className="empty">
       <h1 className="h1">Страница не найдена</h1>
@@ -133,10 +126,11 @@ export function App() {
 
   return (
     <div className="app">
+      <AvaFilters />
       <SideNav path={path} />
       <div className="app-col">
-        <main className="wrap main" id="main">{screen}</main>
-        <Footer />
+        <main className={railed ? "main railed-page" : "wrap main"} id="main">{screen}</main>
+        {!railed && <Footer />}
       </div>
     </div>
   );

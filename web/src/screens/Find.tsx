@@ -1,14 +1,16 @@
 // Поиск по товару — по всему набору. Без запроса — вход: поле, примеры, подсказки при наборе.
 // С запросом — результаты, сгруппированные по категориям; рекомендация «кому первым» живёт на странице категории.
 import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
-import { href, navigate, type Route } from "../router.ts";
+import { href, navigate, paramsToObject, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
-import { CATEGORIES, rankCategory, readQuery, visibleSuppliers } from "../data.ts";
+import { CATEGORIES, catById, rankCategory, readQuery, visibleSuppliers } from "../data.ts";
 import { buildIndex, norm, sameStem, search, suggest, type Hit, type Index, type Suggestion } from "../lib/search.ts";
-import { isKnown, plural } from "../lib/format.ts";
+import { passes, readFilters } from "../lib/filters.ts";
+import { plural } from "../lib/format.ts";
 import type { Category, Supplier } from "../types.ts";
-import { CatGlyph, Hint, Mono, Score, StarButton, StatusIcon } from "../components/ui.tsx";
-import { RowBadges, supplierMeta } from "../components/supplier.tsx";
+import { CatGlyph, Hint } from "../components/ui.tsx";
+import { ListCard } from "../components/ListCard.tsx";
+import { FilterRail, Railed } from "../components/FilterRail.tsx";
 
 const EXAMPLES = ["моцарелла", "контейнеры для роллов", "нори", "креветки"];
 const KIND_LABEL: Record<Suggestion["kind"], string> = { sub: "подкатегория", item: "товар", supplier: "поставщик" };
@@ -35,13 +37,15 @@ function SearchBox({ q, vis, ix, big }: { q: string; vis: Supplier[]; ix: Index;
     if (e.key === "Escape") setActive(-1);
   };
   return (
-    <form className={`gsearch${big ? "" : " sm"}`} onSubmit={submit} role="search">
+    <form className={`gsearch${big ? "" : " in-rail"}`} onSubmit={submit} role="search">
       <div className="gsearch-box">
-        <svg className="gsearch-ic" width={big ? 22 : 20} height={big ? 22 : 20} viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="8" cy="8" r="5.2" /><path d="M12 12l4 4" /></svg>
-        <input id="q" className={`input ${big ? "xl" : "lg"}`} value={text} onChange={(e) => { setText(e.target.value); setActive(-1); }} onKeyDown={onKey}
+        <svg className="gsearch-ic" width={big ? 22 : 18} height={big ? 22 : 18} viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="8" cy="8" r="5.2" /><path d="M12 12l4 4" /></svg>
+        <input id="q" className={`input${big ? " xl" : ""}`} value={text} onChange={(e) => { setText(e.target.value); setActive(-1); }} onKeyDown={onKey}
           placeholder={big ? "товар или поставщик: моцарелла, нори, крафт-пакет" : "товар или поставщик"} aria-label="Что ищем" autoComplete="off" autoFocus={big}
           role="combobox" aria-expanded={sugg.length > 0} aria-controls="sugg" aria-activedescendant={active >= 0 ? `sg-${active}` : undefined} />
-        <button className={`btn pr${big ? " xl" : ""}`} type="submit" disabled={!text.trim()}>Найти</button>
+        {big
+          ? <button className="btn pr xl" type="submit" disabled={!text.trim()}>Найти</button>
+          : <button className="gsearch-go" type="submit" disabled={!text.trim() || text.trim() === q} aria-label="Найти"><span aria-hidden="true">→</span></button>}
         {sugg.length > 0 && (
           <ul className="sugg" id="sugg" role="listbox" aria-label="Подсказки">
             {sugg.map((s, i) => (
@@ -87,11 +91,17 @@ export function Find({ route }: { route: Route }) {
     return m;
   }, [st]);
 
-  const groups = useMemo(() => {
-    const by = new Map<string, Hit[]>();
-    for (const h of r.hits) by.set(h.supplier.category, [...(by.get(h.supplier.category) ?? []), h]);
-    return CATEGORIES.filter((c) => by.has(c.id)).map((c) => ({ cat: c, hits: by.get(c.id)! })).sort((a, b) => b.hits.length - a.hits.length);
-  }, [r]);
+  // те же фильтры, что в категории (T-541): у каждого найденного — по его собственной категории
+  const fs = readFilters(route.params);
+  const setParam = (patch: Record<string, string | null>) => navigate("/find", { ...paramsToObject(route.params), ...patch }, { replace: true });
+  const shown = r.hits.filter((h) => passes(h.supplier, catById(h.supplier.category)!, fs));
+  const hidden = r.hits.length - shown.length;
+
+  const by = new Map<string, Hit[]>();
+  for (const h of shown) by.set(h.supplier.category, [...(by.get(h.supplier.category) ?? []), h]);
+  const groups = CATEGORIES.filter((c) => by.has(c.id)).map((c) => ({ cat: c, hits: by.get(c.id)! })).sort((a, b) => b.hits.length - a.hits.length);
+  // «Честный знак» — только если среди найденных есть категория с маркировкой
+  const marking = CATEGORIES.some((c) => c.marking_group && r.hits.some((h) => h.supplier.category === c.id));
 
   if (!q) {
     return (
@@ -107,14 +117,23 @@ export function Find({ route }: { route: Route }) {
     );
   }
 
-  return (
-    <div className="find">
-      <SearchBox q={q} vis={vis} ix={ix} big={false} />
+  const rail = (
+    <FilterRail label="Поиск и фильтры" fs={fs} onChange={setParam} onReset={() => setParam({ f: null, max: null, unk: null })} marking={marking} count={shown.length}
+      head={<><div className="label">Ключевое слово</div><SearchBox q={q} vis={vis} ix={ix} big={false} /></>} />
+  );
 
+  return (
+    <Railed rail={rail}>
+    <div className="find">
       <header className="find-h">
         <div className="label">Поиск по товару · все категории</div>
         <h1 className="h1">«{q}»</h1>
-        {r.hits.length > 0 && <div className="find-count"><span className="num">{r.hits.length}</span> {plural(r.hits.length, "поставщик", "поставщика", "поставщиков")} в {groups.length} {plural(groups.length, "категории", "категориях", "категориях")}</div>}
+        {r.hits.length > 0 && (
+          <div className="find-count">
+            <span className="num">{shown.length}</span> {plural(shown.length, "поставщик", "поставщика", "поставщиков")} в {groups.length} {plural(groups.length, "категории", "категориях", "категориях")}
+            {hidden > 0 && <span className="muted"> · {hidden} скрыто фильтрами</span>}
+          </div>
+        )}
       </header>
 
       {r.corrected && (
@@ -143,36 +162,33 @@ export function Find({ route }: { route: Route }) {
           </div>
           <div className="rows">
             {hits.map((h) => (
-              <FindRow key={h.supplier.id} h={h} cat={cat} tokens={r.tokens} score={scores.get(h.supplier.id)} starred={!!st.shortlist[h.supplier.id]} />
+              <ListCard key={h.supplier.id} s={h.supplier} cat={cat} href={href(`/s/${h.supplier.id}`, { cat: cat.id })}
+                score={scores.get(h.supplier.id) ?? null} starred={!!st.shortlist[h.supplier.id]} onStar={() => actions.toggleShort(h.supplier.id)}
+                extra={<FoundIn h={h} tokens={r.tokens} />} />
             ))}
           </div>
         </section>
       ))}
 
+      {r.hits.length > 0 && shown.length === 0 && (
+        <div className="empty-list">
+          <p>Под фильтры никто из {r.hits.length} не подошёл.</p>
+          <button type="button" className="btn sec sm" onClick={() => setParam({ f: null, max: null, unk: null })}>Сбросить фильтры</button>
+        </div>
+      )}
       {r.hits.length === 0 && r.cats.length === 0 && <Empty q={q} unknown={r.unknown} related={r.relatedCats} />}
     </div>
+    </Railed>
   );
 }
 
-function FindRow({ h, cat, tokens, score, starred }: { h: Hit; cat: Category; tokens: string[]; score: number | undefined; starred: boolean }) {
-  const s = h.supplier;
+/** Где нашлось слово: в товарах, в подкатегории или в названии. */
+function FoundIn({ h, tokens }: { h: Hit; tokens: string[] }) {
   return (
-    <div className="row find-row">
-      <Mono s={s} size={48} />
-      <div className="row-main">
-        <div className="row-title"><a className="nm" href={href(`/s/${s.id}`, { cat: cat.id })}>{s.name}</a></div>
-        <div className="row-meta">{!isKnown(s.company) && <StatusIcon status="not_found" size={10} />} {supplierMeta(s)}</div>
-        <div className="found-in">
-          <span className="found-k">{VIA[h.via]}:</span>{" "}
-          {h.matched.slice(0, 3).map((m, i) => <span key={i} className="found-v">{i > 0 && " · "}<Marked text={m} tokens={tokens} /></span>)}
-          {h.matched.length > 3 && <span className="muted"> · ещё {h.matched.length - 3}</span>}
-        </div>
-        <RowBadges s={s} cat={cat} />
-      </div>
-      <div className="row-score">
-        {score !== undefined ? <><Score value={score} /><span className="rank-n">балл в категории</span></> : <span className="ex-tag">исключён</span>}
-      </div>
-      <StarButton on={starred} onClick={() => actions.toggleShort(s.id)} />
+    <div className="found-in">
+      <span className="found-k">{VIA[h.via]}:</span>{" "}
+      {h.matched.slice(0, 3).map((m, i) => <span key={i} className="found-v">{i > 0 && " · "}<Marked text={m} tokens={tokens} /></span>)}
+      {h.matched.length > 3 && <span className="muted"> · ещё {h.matched.length - 3}</span>}
     </div>
   );
 }
