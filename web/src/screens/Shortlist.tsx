@@ -6,7 +6,8 @@ import { draftRequest } from "../lib/explain.ts";
 import { score, type Scored } from "../lib/score.ts";
 import type { Supplier } from "../types.ts";
 import { isKnown, plural } from "../lib/format.ts";
-import { CatGlyph, Hint, Mono, Score, StatusIcon } from "../components/ui.tsx";
+import { Avatar, CatGlyph, Hint, Score, StatusIcon } from "../components/ui.tsx";
+import { logoOf } from "../lib/logos.ts";
 
 /** Записи о поставщиках, которых нет в нынешнем наборе: не считаются и не показываются, но и не удаляются молча —
  *  после пересборки набора ID могут смениться, и с записью ушла бы заметка закупщика. Убрать — его решение. */
@@ -92,7 +93,7 @@ export function Shortlist() {
             const cat = categoryOf(s);
             return (
               <div key={s.id} className={`sl-row${current?.s.id === s.id ? " on" : ""}`}>
-                <Mono s={s} size={40} />
+                <Avatar s={s} size={40} logo={logoOf(s.id)} />
                 <div className="sl-main">
                   <a className="nm" href={href(`/s/${s.id}`)}>{s.name}</a>
                   <div className="sub"><CatGlyph cat={cat} size={20} /> {cat.short} · <Score value={sc.total} className="xs" /></div>

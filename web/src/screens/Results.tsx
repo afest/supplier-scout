@@ -11,7 +11,8 @@ import { minRub, passes, readFilters } from "../lib/filters.ts";
 import { isKnown, num, plural } from "../lib/format.ts";
 import { matchesSupplier } from "../lib/search.ts";
 import { logoOf } from "../lib/logos.ts";
-import { Avatar, CatGlyph, Check, FillBar, Hint, Score, ScoreNum, StarButton, StatusIcon } from "../components/ui.tsx";
+import { ReviewBadge, Avatar, CatGlyph, Check, FillBar, Hint, Score, ScoreNum, StarButton, StatusIcon } from "../components/ui.tsx";
+import { useReviewStat } from "../lib/reviewStats.ts";
 import { FilterRail, Railed } from "../components/FilterRail.tsx";
 import { ListCard } from "../components/ListCard.tsx";
 import { Basis, companyShort, deliveryShort, documentsShort, GuestTag, minOrderShort, pricesShort, subBasis } from "../components/supplier.tsx";
@@ -158,7 +159,7 @@ export function Results({ route }: { route: Route }) {
                 {subsOf(sel, sec.cat).length > 0 && <div className="res-sec-subs">{sec.cat.subcategories.filter((s) => sec.q.subs.includes(s.id)).map((s) => s.name).join(" · ")}</div>}
               </div>
             )}
-            {sec.top.length > 0 && <FirstZone top={sec.top} q={sec.q} cardHref={cardHref} whyHref={href("/why", sec.base)} />}
+            {sec.top.length > 0 && <FirstZone top={sec.top} q={sec.q} cardHref={cardHref} whyHref={href(`/s/${sec.top[0].supplier.id}`, { ...sec.base, tab: "why" })} />}
 
             <div className="list">
               {view === "list" ? (
@@ -239,6 +240,7 @@ function FirstZone({ top, q, cardHref, whyHref }: { top: Scored[]; q: Query; car
                 <Avatar s={sc.supplier} logo={logoOf(sc.supplier.id)} />
                 <div>
                   <div className="nm">{sc.supplier.name}</div>
+                  <GcardReviews id={sc.supplier.id} />
                   <div className="sub">{c.status === "found" ? `${sc.supplier.company.value!.form} · ${c.text.replace("действует ", "")}` : "компания не проверена"}</div>
                   <GuestTag s={sc.supplier} cat={q.cat} own={categoryOf(sc.supplier)} />
                 </div>
@@ -251,6 +253,12 @@ function FirstZone({ top, q, cardHref, whyHref }: { top: Scored[]; q: Query; car
       </div>
     </section>
   );
+}
+
+/** Оценка по отзывам в карточке «Кому написать первым» — если отзывы есть (T-543). */
+function GcardReviews({ id }: { id: string }) {
+  const rs = useReviewStat(id);
+  return rs ? <ReviewBadge stat={rs} size="sm" /> : null;
 }
 
 /** Строка списка — общая карточка (T-541). Сравнение отмечается в виде «Таблица»: в карточке второй кнопкой остаётся только звёздочка. */

@@ -6,7 +6,8 @@ import type { Category, FieldStatus, Supplier } from "../types.ts";
 import { completeness } from "../lib/score.ts";
 import { isKnown } from "../lib/format.ts";
 import { logoOf, type Logo } from "../lib/logos.ts";
-import { Avatar, CatGlyph, FillBar, ScoreNum, StarButton, StatusIcon } from "./ui.tsx";
+import { useReviewStat } from "../lib/reviewStats.ts";
+import { Avatar, CatGlyph, FillBar, ReviewBadge, ScoreNum, StarButton, StatusIcon } from "./ui.tsx";
 import { RowBadges, supplierMeta } from "./supplier.tsx";
 
 export function ListCard({ s, cat, href, variant = "row", score, rank, stop, starred, onStar, tags, extra, showCat = false, logo }: {
@@ -29,6 +30,8 @@ export function ListCard({ s, cat, href, variant = "row", score, rank, stop, sta
   logo?: Logo;
 }) {
   const c = completeness(s);
+  // оценка по отзывам, если они есть (правка Павла 15.10, T-543): в поиске она не менее важна, чем балл
+  const rs = useReviewStat(s.id);
   // подпись «что это» — только когда курсор над цифрой рейтинга или над шкалой, а не над всей карточкой (Павел, круг 5).
   // Поверх карточки лежит общая ссылка, поэтому часть под курсором определяется по координатам, клик по-прежнему открывает поставщика
   const scoreRef = useRef<HTMLDivElement>(null);
@@ -51,6 +54,7 @@ export function ListCard({ s, cat, href, variant = "row", score, rank, stop, sta
       <div className="lc-main">
         <div className="lc-title">
           <a className="nm" href={href}>{s.name}</a>
+          {rs && <ReviewBadge stat={rs} size="sm" />}
           {tags}
         </div>
         {showCat && <div className="sc-cat"><CatGlyph cat={cat} size={20} /> {cat.short}</div>}

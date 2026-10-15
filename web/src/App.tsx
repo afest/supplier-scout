@@ -101,7 +101,8 @@ export function App() {
   }, [path]);
 
   // экраны с колонкой фильтров (T-541): колонка сразу после меню, поэтому выдача сама задаёт себе поля
-  const railed = path === "/results" || path === "/catalog" || (path === "/find" && !!route.params.get("q")?.trim());
+  // и страница поставщика (T-543): слева её колонка — меню разделов, на «Разборе» — «что важнее»
+  const railed = path === "/results" || path === "/catalog" || (path === "/find" && !!route.params.get("q")?.trim()) || path.startsWith("/s/");
 
   let screen;
   if (path === "/" || path === "") screen = <Search />;

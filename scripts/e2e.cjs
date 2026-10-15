@@ -134,6 +134,12 @@ async function readCompare(page) {
 const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean).map((l) => (l.match(/"((?:[^"]|"")*)"/g) || []).map((c) => c.slice(1, -1).replace(/""/g, '"')));
 
 // ====================================================================================================
+/** Раздел страницы поставщика (T-543): меню — в колонке слева; поля условий и документов — в своих разделах, на «Основном» — виджеты. */
+async function cardTab(page, name) {
+  await page.locator(".card-nav .nav-item", { hasText: name }).click();
+  await page.waitForTimeout(200);
+}
+
 (async () => {
   const { server, base } = await serveDist(path.join(ROOT, "web", "dist"));
   const api = await startApiStub();
@@ -338,19 +344,24 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   await page.waitForURL(/#\/s\//);
   await page.locator(".card-grid").waitFor();
   const sB = byName.get(pickB);
+  // поля с цитатами — во вкладках «Условия» и «Документы» страницы поставщика (T-543)
+  await cardTab(page, "Условия");
   const quotes = (await page.locator(".field .q").allInnerTexts()).map(norm);
-  const expectQuoted = [sB.min_order, sB.prices, sB.delivery, sB.regions_served, sB.works_with_horeca, sB.payment_terms, sB.documents.declarations, sB.documents.site_mentions, sB.hours].filter((f) => f && f.quote && !["not_found", "estimated"].includes(f.status)).length;
-  check(quotes.length > 0 && quotes.length >= expectQuoted - 1, `в карточке у значений — цитаты с сайта: ${quotes.length} (полей с цитатой в наборе: ${expectQuoted})`);
-  check(known(sB.min_order) && quotes.includes(`«${norm(sB.min_order.quote)}»`), "цитата под «Минимальный заказ» — дословно из набора", norm(sB.min_order.quote).slice(0, 90));
   const payF = page.locator(".field", { hasText: "Оплата и отсрочка" });
   await payF.locator(".pop-btn").click();
   check(norm(await payF.locator(".v").first().textContent()).startsWith("не найдено"), "«Оплата и отсрочка»: явное «не найдено», а не пустота");
   const where = norm(await page.locator(".pop-body").textContent());
   check(where.includes("Искали:") && where.includes(norm(sB.payment_terms.searched_in[0])), "«?» говорит, где искали, — из набора", sB.payment_terms.searched_in[0].slice(0, 60));
   await page.keyboard.press("Escape");
+  await cardTab(page, "Документы");
+  quotes.push(...(await page.locator(".field .q").allInnerTexts()).map(norm));
+  const expectQuoted = [sB.min_order, sB.prices, sB.delivery, sB.regions_served, sB.works_with_horeca, sB.payment_terms, sB.documents.declarations, sB.documents.site_mentions, sB.hours].filter((f) => f && f.quote && !["not_found", "estimated"].includes(f.status)).length;
+  check(quotes.length > 0 && quotes.length >= expectQuoted - 1, `во вкладках «Условия» и «Документы» у значений — цитаты с сайта: ${quotes.length} (полей с цитатой в наборе: ${expectQuoted})`);
+  check(known(sB.min_order) && quotes.includes(`«${norm(sB.min_order.quote)}»`), "цитата под «Минимальный заказ» — дословно из набора", norm(sB.min_order.quote).slice(0, 90));
   const decl = sB.documents.declarations.value || [];
   check((await page.locator(".decls li").count()) === decl.length, `декларации в карточке: ${decl.length} из реестра Росаккредитации`);
   check(norm(await page.locator(".decls").innerText()).includes(decl[0].number), "у декларации виден её номер", decl[0].number);
+  await cardTab(page, "Основное");                  // компания, контакты, заметки — плашки «Основного»
   const stText = norm(await page.locator(".status .status-h").textContent());
   check(known(sB.company) ? stText.includes("Действует") : stText.includes("Не проверена"), "блок «Компания»: статус по набору", stText);
   const placeTxt = norm(await page.locator(".sp-place").innerText());
@@ -423,9 +434,11 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   await page.waitForURL(/#\/s\//);
   const id2 = decodeURIComponent(hashOf(page).split("/s/")[1].split("?")[0]);
   check(id2 === s2.id, "клик по карточке лидера открывает его карточку", id2);
+  await cardTab(page, "Условия");
   const card2 = norm(await page.locator(".card-page").innerText());
   check(known(s2.delivery) && (!s2.delivery.value.lead_time || card2.includes(norm(s2.delivery.value.lead_time))), "срок доставки на карточке — из набора", s2.delivery.value?.lead_time ?? "срока нет в наборе");
   if (s2.delivery.quote) check((await page.locator(".field", { hasText: "Доставка" }).first().locator(".q").first().innerText()).includes(norm(s2.delivery.quote).slice(0, 40)), "у доставки — цитата с сайта", norm(s2.delivery.quote).slice(0, 70));
+  await cardTab(page, "Документы");
   const docHead = page.locator(".section-h", { hasText: "Документы" });
   await docHead.locator(".pop-btn").click();
   check(norm(await page.locator(".pop-body").textContent()).includes("ВетИС"), "у рыбы в «Документах» есть «?»: ветеринарные документы по ИНН не проверить, ВетИС — по номеру");
@@ -433,6 +446,7 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   const mark = s2.documents.marking;
   const markRow = norm(await page.locator(".field", { hasText: "«Честный знак»" }).innerText());
   check(mark && known(mark) ? markRow.includes(`участник: ${mark.value.join(", ")}`) : markRow.includes("не найдено"), "«Честный знак»: группы из набора или «не найдено»", markRow.slice(0, 120));
+  await cardTab(page, "Основное");
   check(norm(await page.locator(".asks").innerText()).includes("ветеринарные документы (Меркурий)"), "в «Что уточнить» для рыбы — вопрос про Меркурий");
   const contacts2 = norm(await page.locator(".mini-fields").innerText());
   check((s2.phones.value || []).every((p) => contacts2.includes(norm(p))) && (s2.messengers.value || []).every((m) => contacts2.includes(m)), "телефоны и мессенджеры из набора на месте", `${(s2.phones.value || []).join(", ")}; ${(s2.messengers.value || []).join(", ")}`);
@@ -533,51 +547,56 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   check(sameSet(cmp.cols, trio), "сравнение: собранный сейчас рядом с двумя из выдачи", cmp.cols.join(" | "));
   const leaderCmp = cmp.cols[0];
   await page.locator(".conclusion a").click();
-  await page.waitForURL(/#\/why/);
+  await page.waitForURL(/#\/s\/.*tab=why/);
+  // разбор — вкладка «Разбор» на странице лидера сравнения, второй из сравнения — рядом (T-543)
   const readWhy = async () => ({
-    h1: norm(await page.locator(".why-page .h1").innerText()),
-    w: (await page.locator(".why-tbl tbody tr:not(.total) td:nth-child(2)").allInnerTexts()).map(int),
-    c: (await page.locator(".why-tbl tbody tr:not(.total) td:nth-child(5)").allInnerTexts()).map((t) => Number(norm(t).replace(",", "."))),
-    total: int(await page.locator(".why-tbl tr.total .score").innerText()),
-    order: await page.locator(".order li").evaluateAll((ls) => ls.map((l) => ({ name: l.querySelector(".nm").childNodes[0].textContent.trim(), score: Number(l.querySelector(".score").textContent.match(/\d+/)[0]) }))),
+    me: norm(await page.locator(".brk-h.me .brk-h-nm").innerText()),
+    vs: (await page.locator(".brk-h.vs .brk-h-nm").count()) ? norm(await page.locator(".brk-h.vs .brk-h-nm").innerText()).replace(/\s*↗$/, "") : null,
+    w: (await page.locator(".brk-k:not(.brk-hk):not(.brk-total) .num").allInnerTexts()).map(int),
+    c: (await page.locator(".brk-c.cur:not(.brk-total) .brk-contrib").allInnerTexts()).map((t) => Number(norm(t).replace("+", "").replace(",", "."))),
+    total: int(await page.locator(".brk-c.cur.brk-total .snum").innerText()),
+    vsTotal: (await page.locator(".brk-c.vs.brk-total .snum").count()) ? int(await page.locator(".brk-c.vs.brk-total .snum").innerText()) : null,
+    order: await page.locator(".order.rk li").evaluateAll((ls) => ls.map((l) => ({ name: l.querySelector(".nm").firstChild.textContent.trim(), score: Number(l.querySelector(".snum").textContent), me: l.classList.contains("me") }))),
   });
   const why = await readWhy();
-  check(why.h1 === `Почему ${leaderCmp} первый`, "«Почему такой порядок» из сравнения открывает разбор лидера", why.h1);
+  const trioOrder = (o) => o.filter((x) => trio.includes(x.name)).map((x) => x.name);
+  check(why.me === leaderCmp && why.vs === cmp.cols[1], "«Почему такой порядок» из сравнения открывает «Разбор» лидера, второй из сравнения — рядом", `${why.me} | ${why.vs}`);
   check(why.w.length === 6 && why.w.reduce((a, b) => a + b, 0) === 100, "веса шести критериев в сумме 100", why.w.join(" + "));
   check(Math.abs(why.c.reduce((a, b) => a + b, 0) - why.total) <= 1, "вклады критериев в сумме дают итоговый балл", `${why.c.join(" + ")} ≈ ${why.total}`);
-  check(why.order.length === 3 && why.order[0].name === leaderCmp && why.order[0].score === why.total && why.order.every((o, i) => i === 0 || why.order[i - 1].score >= o.score), "«Порядок при этих весах» — те же трое по убыванию, лидер совпадает", why.order.map((o) => `${o.name} ${o.score}`).join(" › "));
+  check(sameSet(trioOrder(why.order), trio) && trioOrder(why.order)[0] === leaderCmp && why.order.find((o) => o.me).score === why.total && why.order.every((o, i) => i === 0 || why.order[i - 1].score >= o.score),
+    "рейтинг категории по убыванию, трое из сравнения в нём, лидер сравнения — выше двоих", trioOrder(why.order).join(" › "));
   await shot(page, "_s3-why-balanced.png");
-  const prio = (label) => page.locator(".why-page .seg[aria-label='Что важнее'] button", { hasText: label });
-  await prio("Условия и цена").click();
+  const prio = (label) => page.locator(".card-rail .prio-sw button", { hasText: label });
+  await prio("Условия").click();
   await settle(page);
   const wTerms = await readWhy();
-  check(hashOf(page).includes("prio=terms") && wTerms.w[2] > why.w[2] && wTerms.w[4] > why.w[4] && wTerms.w.reduce((a, b) => a + b, 0) === 100, "«Условия и цена»: веса минимального заказа и цен выросли, сумма всё равно 100", `${why.w.join("/")} → ${wTerms.w.join("/")}`);
+  check(hashOf(page).includes("prio=terms") && hashOf(page).startsWith(`#/s/${byName.get(leaderCmp).id}`) && wTerms.w[2] > why.w[2] && wTerms.w[4] > why.w[4] && wTerms.w.reduce((a, b) => a + b, 0) === 100, "«Условия и цена»: веса минимального заказа и цен выросли, сумма всё равно 100", `${why.w.join("/")} → ${wTerms.w.join("/")}`);
   check(Math.abs(wTerms.c.reduce((a, b) => a + b, 0) - wTerms.total) <= 1 && wTerms.order.every((o, i) => i === 0 || wTerms.order[i - 1].score >= o.score), "и там вклады дают итог, порядок по убыванию", wTerms.order.map((o) => `${o.name} ${o.score}`).join(" › "));
-  await prio("Быстрая доставка").click();
+  await prio("Доставка").click();
   await settle(page);
   const wFast = await readWhy();
   check(wFast.w[3] > why.w[3] && wFast.w.reduce((a, b) => a + b, 0) === 100, "«Быстрая доставка»: вес доставки вырос", `${why.w[3]} → ${wFast.w[3]}`);
-  await prio("Надёжность и документы").click();
+  await prio("Надёжность").click();
   await settle(page);
   const wRel = await readWhy();
   check(wRel.w[0] > why.w[0] && wRel.w[1] > why.w[1], "«Надёжность и документы»: вес надёжности и документов вырос", `${why.w.join("/")} → ${wRel.w.join("/")}`);
-  const second = wRel.order[1].name;
-  await page.locator(".order li button", { hasText: second }).click();
-  await settle(page);
+  const second = wRel.order.find((o) => !o.me).name;
+  await page.locator(".order.rk li:not(.me)", { hasText: second }).first().locator(".rk-cmp").click();
+  await settle(page, 600);
   const wFocus = await readWhy();
-  check(wFocus.h1 === `Разбор балла · ${second}` && wFocus.total === wRel.order[1].score, "нажатие на строку порядка открывает разбор другого поставщика с его баллом", `${wFocus.h1}: ${wFocus.total}`);
+  check(wFocus.vs === second && wFocus.vsTotal === wRel.order.find((o) => o.name === second).score && wFocus.me === leaderCmp, "значок «сравнить» в строке рейтинга ставит разбор другого поставщика рядом, с его баллом", `${wFocus.me} | ${wFocus.vs}: ${wFocus.vsTotal}`);
   await prio("Сбалансированно").click();
   await settle(page);
-  const orderBal = (await readWhy()).order.map((o) => o.name);
-  await prio("Условия и цена").click();
+  const orderBal = trioOrder((await readWhy()).order);
+  await prio("Условия").click();
   await settle(page);
-  const orderTerms = (await readWhy()).order.map((o) => o.name);
+  const orderTerms = trioOrder((await readWhy()).order);
   const leader3 = orderTerms[0];
-  log.push(`  - порядок при «Сбалансированно»: ${orderBal.join(" › ")}; при «Условия и цена»: ${orderTerms.join(" › ")}`);
-  await page.locator(".why-page .crumb").click();
+  log.push(`  - порядок троих при «Сбалансированно»: ${orderBal.join(" › ")}; при «Условия и цена»: ${orderTerms.join(" › ")}`);
+  await page.goBack();
   await settle(page);
   cmp = await readCompare(page);
-  check(hashOf(page).startsWith("#/compare") && sameSet(cmp.cols, trio), "«← Сравнение» ведёт назад к тем же троим", hashOf(page));
+  check(hashOf(page).startsWith("#/compare") && sameSet(cmp.cols, trio), "«назад» из разбора ведёт к сравнению тех же троих", hashOf(page));
   for (const btn of await page.locator(".cmp-grid .star").all()) {
     if ((await btn.getAttribute("aria-pressed")) !== "true") await btn.click();
   }
@@ -677,7 +696,7 @@ const parseCsv = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean
   await mob.setViewportSize({ width: 390, height: 844 });
   const trioIds = idsOf(trio);
   const routes = {
-    find: "#/find?q=контейнеры для роллов", results: "#/results?cat=packaging&sub=sushi-boxes", card: `#/s/${byName.get(pickB).id}?cat=packaging`,
+    find: "#/find?q=контейнеры для роллов", results: "#/results?cat=packaging&sub=sushi-boxes", card: `#/s/${byName.get(pickB).id}?cat=packaging&tab=terms`,
     compare: `#/compare?ids=${trioIds.join(",")}&cat=packaging`, why: `#/why?ids=${trioIds.join(",")}&cat=packaging`,
     shortlist: "#/shortlist", add: "#/add", catalog: "#/catalog",
   };

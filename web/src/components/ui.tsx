@@ -1,7 +1,8 @@
-import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { Category, FieldStatus, Supplier } from "../types.ts";
-import { initials } from "../lib/format.ts";
+import { initials, plural } from "../lib/format.ts";
+import { avgText, type ReviewStat } from "../lib/reviewStats.ts";
 import { level } from "../lib/level.ts";
 import type { Logo } from "../lib/logos.ts";
 
@@ -52,10 +53,10 @@ export function Mono({ s, size = 44 }: { s: Pick<Supplier, "name">; size?: numbe
 /** Аватар поставщика: логотип, если он есть, иначе монограмма в цветах дизайн-системы.
  *  Логотип в покое — одноцветный синий: SVG-фильтр #ava-navy (AvaFilters) перекрашивает саму картинку, файл не меняется;
  *  свои цвета — при наведении на карточку или фокусе в ней (.lcard, .gcard). Белый логотип (onDark) — на тёмной плашке всегда. */
-export function Avatar({ s, size = 48, logo }: { s: Pick<Supplier, "name">; size?: number; logo?: Logo }) {
+export function Avatar({ s, size = 48, logo, color = false }: { s: Pick<Supplier, "name">; size?: number; logo?: Logo; /** свои цвета всегда — страница поставщика (T-543) */ color?: boolean }) {
   if (!logo) return <Mono s={s} size={size} />;
   return (
-    <span className={`ava${logo.onDark ? " dk" : ""}`} style={{ width: size, height: size, borderRadius: size * 0.27 }} aria-hidden="true">
+    <span className={`ava${logo.onDark ? " dk" : ""}${color ? " color" : ""}`} style={{ width: size, height: size, borderRadius: size * 0.27 }} aria-hidden="true">
       <img src={logo.src} alt="" loading="lazy" />
     </span>
   );
@@ -105,47 +106,12 @@ export function DocGlyph({ size = 26 }: { size?: number }) {
   );
 }
 
-// ---------- шкалы: кольцо, линейка, гребёнка ----------
-export function Gauge({ value, size = 200, label }: { value: number; size?: number; label?: ReactNode }) {
-  const id = useId().replace(/:/g, "");
-  const s = size, cx = s / 2, cy = s / 2, r = s * 0.4, rt = s * 0.47, a0 = 150, sw = 240, N = 48;
-  const p = (a: number, rr: number) => [cx + rr * Math.cos((a * Math.PI) / 180), cy + rr * Math.sin((a * Math.PI) / 180)];
-  const ticks = [];
-  for (let i = 0; i <= N; i++) {
-    const a = a0 + (sw * i) / N, maj = i % 8 === 0;
-    const [x1, y1] = p(a, rt), [x2, y2] = p(a, rt - (maj ? s * 0.05 : s * 0.03));
-    ticks.push(<line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={maj ? "var(--ink)" : "var(--tick)"} strokeWidth={maj ? 1.4 : 1} strokeLinecap="round" />);
-  }
-  const v = Math.max(0, Math.min(100, value));
-  const e = a0 + (sw * v) / 100;
-  const [sx, sy] = p(a0, r), [ex, ey] = p(e, r), [tx, ty] = p(a0 + sw, r);
-  return (
-    <div className="gauge" style={{ width: s, height: s * 0.86 }}>
-      <svg width={s} height={s * 0.86} viewBox={`0 0 ${s} ${s * 0.86}`} aria-hidden="true">
-        <defs>
-          <linearGradient id={id} x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0" stopColor="#EB4425" stopOpacity=".08" />
-            <stop offset="1" stopColor="#EB4425" />
-          </linearGradient>
-        </defs>
-        {ticks}
-        <path d={`M${sx} ${sy} A${r} ${r} 0 1 1 ${tx} ${ty}`} fill="none" stroke="var(--line)" strokeWidth="1.5" />
-        {v > 0 && <path d={`M${sx} ${sy} A${r} ${r} 0 ${(sw * v) / 100 > 180 ? 1 : 0} 1 ${ex} ${ey}`} fill="none" stroke={`url(#${id})`} strokeWidth="2" />}
-        <circle cx={ex} cy={ey} r={s * 0.028} fill="var(--accent)" />
-      </svg>
-      <div className="gauge-val">
-        <b className="num">{Math.round(v)}</b>
-        {label && <span>{label}</span>}
-      </div>
-    </div>
-  );
-}
-
-/** Линейка: заливка от прозрачного к розовому до красного маркера, под ней риски. */
+// ---------- шкалы: линейка, гребёнка ----------
+/** Линейка: заливка от прозрачного до маркера, под ней риски. Цвет — по трети (T-543): «чем больше, тем лучше». */
 export function Rule({ value, left, right, compact = false }: { value: number; left?: ReactNode; right?: ReactNode; compact?: boolean }) {
   const w = `${Math.max(0, Math.min(1, value)) * 100}%`;
   return (
-    <div className={`rule${compact ? " compact" : ""}`}>
+    <div className={`rule lv-${level(value, 1)}${compact ? " compact" : ""}`}>
       {(left || right) && <div className="rule-top"><span>{left}</span><span className="num">{right}</span></div>}
       <div className="rule-bar" style={{ ["--w" as string]: w }} />
       <div className="rule-ticks" />
@@ -261,7 +227,7 @@ export function Check({ checked, onChange, children, disabled }: { checked: bool
   );
 }
 
-export function Seg<T extends string>({ options, value, onChange, label, size }: { options: { id: T; label: string }[]; value: T; onChange: (v: T) => void; label: string; size?: "sm" }) {
+export function Seg<T extends string>({ options, value, onChange, label, size }: { options: { id: T; label: ReactNode }[]; value: T; onChange: (v: T) => void; label: string; size?: "sm" }) {
   return (
     <div className={`seg${size ? ` ${size}` : ""}`} role="radiogroup" aria-label={label}>
       {options.map((o) => (
@@ -294,6 +260,29 @@ export function Score({ value, unit = false, className = "" }: { value: number; 
       {unit && <span className="unit">/100</span>}
     </span>
   );
+}
+
+/** Пять звёзд: закрашено по средней, округлённой до целой. */
+export function Stars({ avg }: { avg: number }) {
+  const n = Math.round(avg);
+  return <span className="stars" aria-hidden="true"><b>{"★".repeat(n)}</b>{"★".repeat(5 - n)}</span>;
+}
+
+/** Оценка по отзывам: ★ 5,0 · 2 отзыва (T-543). onClick — в шапке страницы поставщика раскрывает отзывы;
+ *  в карточке списка — просто подпись (вся карточка — ссылка). */
+export function ReviewBadge({ stat, onClick, size }: { stat: ReviewStat; onClick?: (e: ReactMouseEvent) => void; size?: "sm" }) {
+  const t = `Оценка по отзывам ${avgText(stat.avg)} из 5 · ${stat.count} ${plural(stat.count, "отзыв", "отзыва", "отзывов")}`;
+  const body = (
+    <>
+      <span className="rb-star" aria-hidden="true">★</span>
+      <b className="num">{avgText(stat.avg)}</b>
+      <span className="rb-n">{stat.count} {plural(stat.count, "отзыв", "отзыва", "отзывов")}</span>
+    </>
+  );
+  const cls = `rbadge${size ? ` ${size}` : ""}`;
+  return onClick
+    ? <button type="button" className={cls} onClick={onClick} aria-label={`${t} — показать отзывы`}>{body}</button>
+    : <span className={cls} title={t} aria-label={t} role="img">{body}</span>;
 }
 
 export function Arrow() {

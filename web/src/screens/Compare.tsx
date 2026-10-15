@@ -6,7 +6,8 @@ import { compareConclusion } from "../lib/explain.ts";
 import { completeness, fnsFlags, PRIORITIES, type CritId, type Priority, type Scored } from "../lib/score.ts";
 import { ageYears, isKnown, years } from "../lib/format.ts";
 import type { FieldStatus } from "../types.ts";
-import { Check, DocGlyph, Hint, Mono, Score, Seg, StarButton, StatusIcon } from "../components/ui.tsx";
+import { Avatar, Check, DocGlyph, Hint, Score, Seg, StarButton, StatusIcon } from "../components/ui.tsx";
+import { logoOf } from "../lib/logos.ts";
 import { deliveryShort, documentsShort, PRICE_SHORT } from "../components/supplier.tsx";
 
 interface Cell { status: FieldStatus | null; text: ReactNode; plain: string; extra?: ReactNode }
@@ -139,7 +140,7 @@ export function Compare({ route }: { route: Route }) {
           <div className="hd k sticky" />
           {cols.map((sc, i) => (
             <div key={sc.supplier.id} className={`hd${i === 0 ? " col1" : ""}`}>
-              <Mono s={sc.supplier} />
+              <Avatar s={sc.supplier} logo={logoOf(sc.supplier.id)} />
               <div className="hd-t">
                 <a href={href(`/s/${sc.supplier.id}`, base)}><b>{sc.supplier.name}</b></a>
                 <div className="hd-meta">{i === 0 && <span className="signal sm">первым</span>}</div>
@@ -150,7 +151,7 @@ export function Compare({ route }: { route: Route }) {
           ))}
           {excluded.map((e) => (
             <div key={e.supplier.id} className="hd ex">
-              <Mono s={e.supplier} />
+              <Avatar s={e.supplier} logo={logoOf(e.supplier.id)} />
               <div className="hd-t"><b>{e.supplier.name}</b><div className="sub">исключён: {e.reason}</div></div>
               <button type="button" className="x" aria-label="Убрать" onClick={() => setIds(ids.filter((x) => x !== e.supplier.id))}>×</button>
             </div>
@@ -200,7 +201,7 @@ export function Compare({ route }: { route: Route }) {
         <div className="conclusion">
           <p><b>{concl.lead}:</b> {concl.why.charAt(0).toLowerCase() + concl.why.slice(1)}</p>
           {concl.others.map((o) => <p key={o}>{o}</p>)}
-          <a href={href("/why", { ...base, ids: ids.join(",") })}>Почему такой порядок — разбор балла →</a>
+          {cols.length > 0 && <a href={href(`/s/${cols[0].supplier.id}`, { ...base, tab: "why", vs: cols[1]?.supplier.id })}>Почему такой порядок — разбор балла →</a>}
         </div>
       )}
     </div>

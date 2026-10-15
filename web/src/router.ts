@@ -42,11 +42,15 @@ export function href(path: string, params: Params = {}) {
   return `#${path}${s ? `?${s}` : ""}`;
 }
 
-/** replace: true — смена фильтра не плодит записи в истории браузера. */
-export function navigate(path: string, params: Params = {}, opts: { replace?: boolean } = {}) {
+/** replace: true — смена фильтра не плодит записи в истории браузера.
+ *  keepScroll: true — новая запись в истории («назад» работает), но страница не прыгает наверх: вкладки карточки (T-543). */
+export function navigate(path: string, params: Params = {}, opts: { replace?: boolean; keepScroll?: boolean } = {}) {
   const h = href(path, params);
   if (opts.replace) {
     history.replaceState(null, "", h);
+    emit();
+  } else if (opts.keepScroll) {
+    history.pushState(null, "", h);
     emit();
   } else {
     window.location.hash = h;

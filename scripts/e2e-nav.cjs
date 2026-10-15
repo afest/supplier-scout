@@ -1,6 +1,7 @@
 // Навигация и раскладка (T-537): главная → четыре входа, каталог категорий → подкатегория на месте,
 // поиск по товару, пустой ответ, шорт-лист и его счётчик, отсутствие горизонтального скролла на 390.
 // T-541: колонка фильтров на трёх экранах, карточка-ссылка и звёздочка, цвет шкал по третям, ползунок по пикселям.
+// T-543: страница поставщика — вкладки в адресе, разбор с весами и сравнением, старые ссылки #/why, логотипы, отзывы-примеры.
 // Всё кликами и вводом в headless Chromium; сервер dist — в том же процессе.
 //
 // Запуск (нужен Playwright с установленным Chromium; экраны с сервером ходят в заглушку API — scripts/api-stub.cjs):
@@ -248,9 +249,11 @@ const picker = {
     await page.waitForTimeout(300);
     const label = await page.locator(".card-title .label").innerText();
     check(/основная категория/i.test(label) && label.toLowerCase().includes("креветки"), "карточка гостя: категория просмотра и пометка «основная категория»", label.replace(/\s+/g, " "));
-    check((await page.locator(".card-page > .crumb").innerText()).includes("Рыба и морепродукты"), "«назад» ведёт в рыбу, откуда пришли");
+    check((await page.locator(".card-rail .crumb").innerText()).includes("Рыба и морепродукты"), "«назад» ведёт в рыбу, откуда пришли");
     check((await page.locator(".sp-place").innerText()).replace(/\s+/g, " ").includes("в подкатегории «Креветки»"), "место — в подкатегории «Креветки»", (await page.locator(".sp-place").innerText()).replace(/\s+/g, " "));
-    check(await page.locator(".in-subs-line").count() >= 2, "в ассортименте — «В подкатегориях» по категориям, со ссылками");
+    await page.locator(".card-nav .nav-item", { hasText: "Ассортимент" }).click();
+    await page.waitForTimeout(200);
+    check(await page.locator(".in-subs-line").count() >= 2, "во вкладке «Ассортимент» — «В подкатегориях» по категориям, со ссылками");
 
     // поиск по товару ведёт в подкатегорию целиком; «тапиока» — честное «не нашли»
     await page.goto(base + "#/find?q=стаканчики", { waitUntil: "networkidle" });
@@ -271,18 +274,18 @@ const picker = {
     const field = async (label) => (await row(label).innerText()).replace(/\s+/g, " ");
     const value = async (label) => (await row(label).locator(".v").first().innerText()).replace(/\s+/g, " ");
     const paid = (t) => /(?<!бес)платн/i.test(t);
-    await page.goto(base + "#/s/morskoe-schaste", { waitUntil: "networkidle" });
+    await page.goto(base + "#/s/morskoe-schaste?tab=terms", { waitUntil: "networkidle" });
     const sea = await value("Доставка");
     const seaQuote = await field("Доставка");
     check(sea.includes("бесплатно от 10 000 ₽") && !paid(sea) && seaQuote.includes("10 000руб. доставка бесплатно"),
       "«Морское счастье»: доставка бесплатно от 10 000 ₽, в цитате — строка с порогом", sea);
-    await page.goto(base + "#/s/uralpaksistem", { waitUntil: "networkidle" });
+    await page.goto(base + "#/s/uralpaksistem?tab=terms", { waitUntil: "networkidle" });
     const ural = await value("Доставка");
     check(ural.includes("бесплатно от 1 000 шт") && !paid(ural), "Уралпаксистем: «бесплатно от 1 000 шт», а не «платно»", ural);
-    await page.goto(base + "#/s/atlant-grupp", { waitUntil: "networkidle" });
+    await page.goto(base + "#/s/atlant-grupp?tab=terms", { waitUntil: "networkidle" });
     const atl = await value("Доставка");
     check(atl.includes("стоимость не указана") && !paid(atl), "Атлант: стоимость доставки не указана — не «платно»", atl);
-    await page.goto(base + "#/s/redfish", { waitUntil: "networkidle" });
+    await page.goto(base + "#/s/redfish?tab=terms", { waitUntil: "networkidle" });
     const red = await field("Цены");
     check(red.includes("не собрано: сайт запрещает сбор"), "RedFish: цены «не собрано: сайт запрещает сбор», а не «не найдено»", red.slice(0, 120));
     await page.goto(base + "#/s/food-face-ru", { waitUntil: "networkidle" });
@@ -293,9 +296,12 @@ const picker = {
     check(first.length > 0 && !first.some((n) => n.includes("Атлант")), "«Креветки»: Атланта нет в «Кому написать первым»", first.join(" · "));
     const atlRow = page.locator(".rows .lcard", { has: page.locator(".nm", { hasText: "Атлант" }) });
     check(await atlRow.count() === 1 && await atlRow.locator(".opt-pill").count() === 1, "«Креветки»: Атлант в списке с пометкой «крупный опт»");
-    await page.goto(base + "#/why?cat=fish&sub=shrimp", { waitUntil: "networkidle" });
+    await page.locator(".first-head a", { hasText: "Почему такой порядок" }).click();
+    await page.waitForTimeout(300);
     const verdict = await page.locator(".verdict").innerText();
     check(!verdict.includes("Атлант") && verdict.includes(first[0]), "«Почему такой порядок»: первым — тот же, что в тройке", verdict.slice(0, 80));
+    check(hash(page).startsWith(`#/s/${byName.get(first[0].trim())?.id}?`) && hash(page).includes("tab=why") && hash(page).includes("sub=shrimp") && (await page.locator(".sp-place").innerText()).includes("Креветки"),
+      "  ссылка ведёт во вкладку «Разбор» первого, рейтинг — внутри «Креветок»", hash(page));
 
     step("«Знаю поставщика» → живой сбор → «Сравнить с остальными»");
     await page.goto(base + "#/add", { waitUntil: "networkidle" });
@@ -548,6 +554,298 @@ const picker = {
     check(bad.length === 0, "ни на одном из 15 экранов содержимое не вылезает за карточку, балл «кому первым» целиком, кружок места круглый", bad.join(" | "));
   }
 
+  // ---------- страница поставщика: вкладки, разбор с весами и сравнением, логотипы, отзывы-примеры (T-543) ----------
+  {
+    const { ctx, page } = await newPage(1440, 900);
+    const tabOn = async () => (await page.locator(".card-nav .nav-item.on .nav-l").allInnerTexts()).join("");
+    const qp = (k) => new URLSearchParams(hash(page).split("?")[1] ?? "").get(k);
+    const sup = (id) => DATA.suppliers.find((x) => x.id === id);
+    const lvOf = (v, max = 100) => { const p = Math.round((v / max) * 100); return p <= 33 ? "low" : p <= 66 ? "mid" : "high"; };
+    const norm = (x) => x.replace(/\s+/g, " ").trim();
+    const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+
+    step("Страница поставщика: меню разделов в колонке слева, раздел — в адресе, «назад» и «вперёд» ходят по разделам (T-543)");
+    await page.goto(base + "#/s/rosspak?cat=packaging", { waitUntil: "networkidle" });
+    const tabNames = await page.locator(".card-nav .nav-l").allInnerTexts();
+    check(tabNames.join(" · ") === "Основное · Разбор · Условия · Документы · Ассортимент", "пять вкладок — вариант, выбранный Павлом на показе", tabNames.join(" · "));
+    check(await tabOn() === "Основное" && await page.locator(".card-nav .nav-item.on").getAttribute("aria-current") === "page", "без параметра открыто «Основное»");
+    const railBox = await page.evaluate(() => { const r = document.querySelector(".card-rail").getBoundingClientRect(), n = document.querySelector(".side-nav").getBoundingClientRect(), h = document.querySelector(".card-h2").getBoundingClientRect(); return [Math.round(r.left - n.right), Math.round(h.left - r.right), getComputedStyle(document.querySelector(".card-rail")).position, getComputedStyle(document.querySelector(".card-tabs")).display]; });
+    check(railBox[0] === 0 && railBox[1] > 0 && railBox[2] === "sticky" && railBox[3] === "none", "меню разделов — колонкой сразу после основного меню, как колонка фильтров; полосы вкладок над разделом нет", railBox.join(" / "));
+    const look = await page.evaluate(() => { const a = getComputedStyle(document.querySelector(".card-nav .nav-item")), b = getComputedStyle(document.querySelector(".side-nav .nav-item")); return [a.height, a.borderRadius, b.height, b.borderRadius]; });
+    check(look[0] === look[2] && look[1] === look[3], "пункты разделов оформлены как основное меню: высота и скругление", look.join(" / "));
+    const wdgs = await page.locator(".wdg").evaluateAll((ws) => ws.map((w) => `${w.tagName}:${w.querySelector(".wdg-h b").textContent}:${new URLSearchParams(w.getAttribute("href").split("?")[1]).get("tab")}`));
+    check(wdgs.join(" ") === "A:Условия:terms A:Документы:docs A:Ассортимент:assortment", "на «Основном» три виджета, каждый целиком — ссылка на свою вкладку", wdgs.join(" "));
+    check(await page.locator(".side .panel", { hasText: "Контакты" }).count() === 1 && await page.locator(".side .status").count() === 1, "на «Основном» справа плашки: компания, контакты");
+    const colW = await page.evaluate(() => { const c = document.querySelector(".card-main .collected").getBoundingClientRect(), m = document.querySelector(".card-main").getBoundingClientRect(), s = document.querySelector(".side").getBoundingClientRect(); return [c.width, m.width, c.right, s.left]; });
+    check(Math.abs(colW[0] - colW[1]) < 1 && colW[2] < colW[3], "строка «N из M полей найдено» — шириной левого столбца, правый не делит", colW.map(Math.round).join(" / "));
+    await page.evaluate(() => window.scrollTo(0, 700));
+    await page.waitForTimeout(150);
+    await page.locator(".wdg", { hasText: "Все условия" }).click();
+    await page.waitForTimeout(250);
+    const y1 = await page.evaluate(() => [Math.round(window.scrollY), Math.round(document.querySelector(".tabs-anchor").getBoundingClientRect().top), Math.round(document.querySelector(".card-rail").getBoundingClientRect().top)]);
+    check(qp("tab") === "terms" && await tabOn() === "Условия", "клик по виджету «Условия» → раздел «Условия», ?tab=terms", hash(page));
+    check(await page.locator(".side, .status, .rev-panel").count() === 0 && await page.locator(".card-body .fsec").evaluate((e) => e.getBoundingClientRect().width) > 700, "в разделе «Условия» плашек компании и контактов нет — раздел во всю ширину");
+    check(y1[0] > 0 && Math.abs(y1[1]) <= 1 && y1[2] === 0, "страница не прыгает наверх: начало раздела у верхнего края, колонка с меню на месте", `scrollY ${y1[0]}, раздел на ${y1[1]} px, колонка на ${y1[2]} px`);
+    check(await page.locator(".card-body .field .k", { hasText: "Минимальный заказ" }).count() === 1, "  в разделе — поля условий с цитатами");
+    await page.locator(".card-nav .nav-item", { hasText: "Документы" }).click();
+    await page.waitForTimeout(200);
+    check(qp("tab") === "docs" && await page.locator(".card-body .field .k", { hasText: "Декларации" }).count() === 1, "раздел «Документы» — декларации", hash(page));
+    await page.locator(".card-nav .nav-item", { hasText: "Ассортимент" }).click();
+    await page.waitForTimeout(200);
+    const nItems = await page.locator(".card-body .assort li").count();
+    check(qp("tab") === "assortment" && nItems === sup("rosspak").assortment.value.items.length && await page.locator(".card-body .link-btn", { hasText: "показать все" }).count() === 0,
+      `раздел «Ассортимент» — весь список сразу: ${nItems} позиций`);
+    check(await page.locator(".card-body .in-subs-line").count() >= 1, "  над списком — «В подкатегориях» со ссылками");
+    await page.goBack(); await page.waitForTimeout(250);
+    const b1 = qp("tab");
+    await page.goBack(); await page.waitForTimeout(250);
+    const b2 = qp("tab");
+    await page.goForward(); await page.waitForTimeout(250);
+    const f1 = qp("tab");
+    check(b1 === "docs" && b2 === "terms" && f1 === "docs" && await tabOn() === "Документы", "«назад» и «вперёд» ходят по разделам", `${b1} → ${b2} → ${f1}`);
+    await page.goto(base + "#/s/rosspak?cat=packaging&tab=assortment", { waitUntil: "networkidle" });
+    check(await tabOn() === "Ассортимент", "ссылка на раздел открывает его сразу");
+
+    step("Разбор: «что важнее» в колонке слева пересчитывает балл и место компании на той же странице");
+    await page.goto(base + "#/s/rosspak?cat=packaging", { waitUntil: "networkidle" });
+    await page.locator(".score-panel a", { hasText: "разбор" }).click();
+    await page.waitForTimeout(250);
+    check(qp("tab") === "why" && await tabOn() === "Разбор" && await page.locator(".card-rail .prio-sw").count() === 1, "«Почему N — разбор →» в плашке открывает раздел «Разбор», в колонке появляется «что важнее»", hash(page));
+    check(await page.locator(".side, .status").count() === 0, "в «Разборе» плашек компании и контактов нет");
+    const read = () => page.evaluate(() => ({
+      big: document.querySelector(".sp-big").firstChild.textContent, place: document.querySelector(".sp-place").innerText.replace(/\s+/g, " "),
+      me: document.querySelector(".order.rk li.me .n").textContent, meScore: document.querySelector(".order.rk li.me .snum").textContent,
+      cur: document.querySelector(".brk-c.cur.brk-total .snum").textContent, foot: document.querySelector(".sp-foot").innerText,
+    }));
+    const r0 = await read();
+    const segRel = page.locator(".card-rail .prio-sw button", { hasText: "Надёжность" });
+    const promised = (await segRel.locator(".ps-n").innerText()).match(/\d+/)[0];
+    await segRel.click();
+    await page.waitForTimeout(250);
+    const r1 = await read();
+    check(qp("prio") === "reliability" && hash(page).startsWith("#/s/rosspak") && await tabOn() === "Разбор", "веса — в адресе, остаёмся на той же странице и в том же разделе", hash(page));
+    check(r0.place !== r1.place && r1.place.startsWith(`${promised}-й`) && r1.me === promised,
+      `место в рейтинге категории пересчиталось: «${r0.place}» → «${r1.place}», строка «эта компания» — ${r1.me}-я, как обещала подпись в колонке`);
+    check(r1.big === r1.meScore && r1.big === r1.cur && await page.locator(".sp-prio select").inputValue() === "reliability", `балл в плашке пересчитан (${r0.big} → ${r1.big}) и совпадает с разбором и строкой рейтинга; список «Веса» в плашке показывает тот же набор`);
+
+    step("Веса — выпадающим списком в плашке балла на любом разделе; шапка — название слева, плашка сбоку (Павел, круг 3)");
+    await page.goto(base + "#/s/rosspak?cat=packaging&tab=terms", { waitUntil: "networkidle" });
+    const side = await page.evaluate(() => { const a = document.querySelector(".card-id").getBoundingClientRect(), b = document.querySelector(".score-panel").getBoundingClientRect(); return [Math.round(b.left - a.right), Math.round(Math.abs(a.top - b.top))]; });
+    check(side[0] > 0 && side[1] < 10, "на 1440 плашка балла — сбоку от названия, на одной высоте", side.join(" / "));
+    const placeBefore = norm(await page.locator(".sp-place").innerText());
+    await page.locator(".sp-prio select").selectOption("reliability");
+    await page.waitForTimeout(250);
+    check(qp("prio") === "reliability" && qp("tab") === "terms" && norm(await page.locator(".sp-place").innerText()) !== placeBefore && await page.locator(".sp-prio select").inputValue() === "reliability",
+      "в разделе «Условия» список «Веса» в плашке меняет набор: место пересчиталось, раздел тот же", `${placeBefore} → ${norm(await page.locator(".sp-place").innerText())}`);
+    await page.locator(".card-nav .nav-item", { hasText: "Разбор" }).click();
+    await page.waitForTimeout(250);
+    check(await page.locator(".card-rail .prio-sw button.on").innerText().then((x) => x.includes("Надёжность")), "в колонке «Разбора» выбран тот же набор — переключатели согласованы");
+
+    step("Разбор: строка компании закреплена, кнопка «Сравнить» в строке — сравнение в два столбца, имя — переход");
+    check(await page.locator(".brk-grid.cmp").count() === 0 && await page.locator(".brk-h").count() === 1, "пока второй не выбран — один столбец, без заготовки под сравнение");
+    const meVisible = () => page.locator(".order.rk li.me").evaluate((li) => { const r = li.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(li).position === "sticky"; });
+    await page.goto(base + "#/s/uralkarton?cat=packaging&tab=why", { waitUntil: "networkidle" });
+    const lowPlace = Number(await page.locator(".order.rk li.me .n").innerText());
+    await page.locator(".order.rk").evaluate((ol) => ol.scrollIntoView({ block: "start" }));
+    await page.waitForTimeout(150);
+    const pinBottom = await meVisible();
+    await page.goto(base + "#/s/u2b-upakovka-dlya-biznesa?cat=packaging&tab=why", { waitUntil: "networkidle" });
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(150);
+    const pinTop = await meVisible();
+    check(lowPlace > 15 && pinBottom && pinTop, `строка «эта компания» не уезжает: ${lowPlace}-я видна у нижнего края при начале списка, 1-я — у верхнего в конце прокрутки`);
+    await page.goto(base + "#/s/rosspak?cat=packaging&tab=why", { waitUntil: "networkidle" });
+    const other = page.locator(".order.rk li:not(.me)").nth(2);
+    const otherName = (await other.locator(".nm a").innerText()).trim();
+    await other.scrollIntoViewIfNeeded();
+    const ob = await other.boundingBox();
+    await page.mouse.click(ob.x + ob.width * 0.62, ob.y + ob.height / 2);      // по полосе вклада — мимо значка
+    await page.waitForTimeout(200);
+    check(!qp("vs") && await page.locator(".brk-grid.cmp").count() === 0 && norm(await other.locator(".rk-cmp").innerText()) === "Сравнить", "в строке — кнопка «Сравнить»; клик по строке мимо неё сравнение не включает");
+    await other.locator(".rk-cmp").click();
+    await page.waitForTimeout(700);
+    const heads = await page.locator(".brk-h .brk-h-nm").allInnerTexts();
+    check(qp("vs") === byName.get(otherName)?.id && await page.locator(".brk-grid.cmp").count() === 1 && hash(page).startsWith("#/s/rosspak"), `«Сравнить» у «${otherName}» — сравнение на той же странице, в адресе vs=`, hash(page));
+    check(heads.length === 2 && heads[0].includes("РоссПак") && heads[1].includes(otherName), "верхние блоки в два столбца: эта компания и выбранная", heads.join(" | "));
+    check(await page.locator(".brk-grid").evaluate((g) => { const r = g.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight / 2; }), "  разбор прокручен в зону видимости");
+    check(await page.locator(".order.rk li.sel").count() === 1 && await other.locator(".rk-cmp").getAttribute("aria-pressed") === "true" && norm(await other.locator(".rk-cmp").innerText()) === "✓ Сравнение" && await page.locator(".brk-c.win").count() > 0, "  кнопка — «✓ Сравнение», строка подсвечена, у лучшей оценки в строке — «▲ выше»");
+    await page.locator(".brk-x").click();
+    await page.waitForTimeout(200);
+    check(!qp("vs") && await page.locator(".brk-grid.cmp").count() === 0, "× закрывает сравнение", hash(page));
+    await other.locator(".rk-cmp").click();
+    await page.waitForTimeout(300);
+    await other.locator(".rk-cmp").click();
+    await page.waitForTimeout(300);
+    check(!qp("vs"), "повторный клик по кнопке убирает компанию из сравнения", hash(page));
+    const first = page.locator(".order.rk li:not(.me)").first();
+    const firstName = (await first.locator(".nm a").innerText()).trim();
+    await first.locator(".nm a").click();
+    await page.waitForTimeout(300);
+    check(hash(page).startsWith(`#/s/${byName.get(firstName)?.id}`) && qp("tab") === "why" && (await page.locator(".order.rk li.me .nm b").innerText()).trim() === firstName,
+      `клик по имени «${firstName}» — его страница, сразу «Разбор», закреплён уже он`, hash(page));
+    await page.goBack(); await page.waitForTimeout(250);
+    check(hash(page).startsWith("#/s/rosspak"), "«назад» — к прежней компании", hash(page));
+    await page.locator(".order.rk li:not(.me) .rk-go").first().click();
+    await page.waitForTimeout(300);
+    check(hash(page).startsWith(`#/s/${byName.get(firstName)?.id}`), "значок ↗ — тот же переход", hash(page));
+
+    step("Старые ссылки #/why — во вкладку «Разбор» нужного поставщика; #/compare — как раньше");
+    await page.goto(base + "#/why?cat=packaging&id=rosspak", { waitUntil: "networkidle" });
+    await page.waitForTimeout(200);
+    check(hash(page).startsWith("#/s/rosspak?") && qp("tab") === "why" && await page.locator(".brk").count() === 1, "#/why?…&id=rosspak → РоссПак, раздел «Разбор»", hash(page));
+    await page.goto(base + "#/why?cat=packaging", { waitUntil: "networkidle" });
+    await page.waitForTimeout(200);
+    const leadRow = (await page.locator(".order.rk li").first().locator(".nm").innerText()).split("\n")[0].trim();
+    check(qp("tab") === "why" && (await page.locator(".order.rk li.me .nm b").innerText()).trim() === leadRow, `#/why?cat=packaging → первый в рейтинге упаковки (${leadRow})`, hash(page));
+    await page.goto(base + "#/why?ids=kraft-upakovka,po-karton,tara-dlya-tovara&cat=packaging", { waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    check(qp("tab") === "why" && !!qp("vs") && await page.locator(".brk-grid.cmp").count() === 1, "#/why?ids=… (старая ссылка из сравнения) → лучший из сравниваемых, второй рядом", hash(page));
+    await page.goto(base + "#/compare?ids=kraft-upakovka,po-karton,tara-dlya-tovara,parus-pak&cat=packaging", { waitUntil: "networkidle" });
+    check(await page.locator(".cmp-grid .hd:not(.k):not(.add):not(.ex)").count() === 4 && await page.locator(".cmp-grid .best").count() > 0, "сравнение из шорт-листа: четыре столбца, ▲ лучший");
+    const cmpFirst = (await page.locator(".cmp-grid .hd:not(.k) .hd-t b").first().innerText()).trim();
+    await page.locator(".conclusion a", { hasText: "Почему такой порядок" }).click();
+    await page.waitForTimeout(300);
+    check(hash(page).startsWith(`#/s/${byName.get(cmpFirst)?.id}`) && qp("tab") === "why" && !!qp("vs"), `«Почему такой порядок» из сравнения → «Разбор» первого (${cmpFirst}), второй рядом`, hash(page));
+
+    step("Цвет шкал по третям на странице поставщика: балл, подшкалы, полнота");
+    for (const id of ["rosspak", "u2b-upakovka-dlya-biznesa"]) {
+      await page.goto(base + `#/s/${id}?cat=packaging`, { waitUntil: "networkidle" });
+      const sc = await page.evaluate(() => ({
+        big: [document.querySelector(".sp-big").className, Number(document.querySelector(".sp-big").firstChild.textContent)],
+        rules: [...document.querySelectorAll(".score-panel .rule")].map((r) => [r.className, Number(r.querySelector(".rule-top .num").textContent), r.querySelector(".rule-top span").textContent, getComputedStyle(r.querySelector(".rule-bar"), "::after").backgroundColor]),
+        fill: [document.querySelector(".collected .fbar").className, document.querySelector(".collected .fbar-n").textContent],
+      }));
+      const bad = sc.rules.filter(([c, n]) => !c.includes(`lv-${lvOf(n)}`));
+      const [ff, ft] = sc.fill[1].split("/").map(Number);
+      check(sc.big[0].includes(`lv-${lvOf(sc.big[1])}`) && bad.length === 0 && sc.fill[0].includes(`lv-${lvOf(ff, ft)}`),
+        `${id}: балл ${sc.big[1]}, шесть подшкал и полнота ${sc.fill[1]} — цветом своей трети`, bad.map((b) => b.slice(1, 3).join(" ")).join(", "));
+      const rel = sc.rules.find((r) => r[2] === "Надёжность");
+      if (rel[1] === 100) check(rel[3] === "rgb(98, 213, 146)", `${id}: надёжность 100 — зелёная, а не красная`, rel[3]);
+    }
+
+    step("Логотип на странице поставщика — свои цвета с первого кадра; белый — на тёмной плашке; нет логотипа — монограмма");
+    await page.goto(base + "#/s/rosspak?cat=packaging", { waitUntil: "networkidle" });
+    check(await page.locator(".card-id .ava img").evaluate((i) => getComputedStyle(i).filter) === "none", "шапка: логотип РоссПак без перекраски, без наведения");
+    await page.goto(base + "#/s/anfish?cat=fish", { waitUntil: "networkidle" });
+    check(await page.locator(".card-id .ava.dk").evaluate((a) => getComputedStyle(a).backgroundColor) === "rgb(42, 58, 84)", "белый логотип ANFISH — на тёмной плашке");
+    await page.goto(base + "#/s/prod66?cat=fish", { waitUntil: "networkidle" });
+    check(await page.locator(".card-id .mono").count() === 1 && await page.locator(".card-id .ava").count() === 0, "без логотипа — монограмма");
+    await page.goto(base + "#/s/rosspak?cat=packaging&tab=why", { waitUntil: "networkidle" });
+    const rkF = await page.locator(".order.rk .ava img").evaluateAll((is) => is.map((i) => getComputedStyle(i).filter));
+    check(rkF.length > 20 && rkF.every((f) => f === "none"), `рейтинг во вкладке: ${rkF.length} логотипов в своих цветах`);
+    await page.evaluate(() => { const it = { status: "Не связывались", note: "", note_at: null, added_at: "2026-10-15T10:00:00.000Z" }; localStorage.setItem("supplier-scout:v1", JSON.stringify({ shortlist: { rosspak: it, anfish: it }, compare: [], returned: [], collected: {}, last: null })); });
+    await page.goto(base + "#/shortlist", { waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "networkidle" });        // смена только # страницу не перезагружает — шорт-лист читается из localStorage при старте
+    const slRow = page.locator(".sl-row", { has: page.locator(".ava:not(.dk) img") }).first();
+    await page.mouse.move(5, 5);
+    const sl0 = await slRow.locator(".ava img").evaluate((i) => getComputedStyle(i).filter);
+    await slRow.hover({ position: { x: 300, y: 20 } });
+    await page.waitForTimeout(250);
+    const sl1 = await slRow.locator(".ava img").evaluate((i) => getComputedStyle(i).filter);
+    check(await page.locator(".sl-row .ava").count() === 2 && sl0.includes("ava-navy") && sl1 === "none", "шорт-лист: логотипы синие, по наведению на строку — свои цвета", `${sl0} → ${sl1}`);
+    await page.goto(base + "#/compare?ids=kraft-upakovka,po-karton,tara-dlya-tovara,parus-pak&cat=packaging", { waitUntil: "networkidle" });
+    const hd = page.locator(".cmp-grid .hd", { has: page.locator(".ava img") }).first();
+    await page.mouse.move(5, 5);
+    const c0 = await hd.locator(".ava img").evaluate((i) => getComputedStyle(i).filter);
+    await hd.hover();
+    await page.waitForTimeout(250);
+    const c1 = await hd.locator(".ava img").evaluate((i) => getComputedStyle(i).filter);
+    check(c0.includes("ava-navy") && c1 === "none", "сравнение: логотипы в шапках столбцов синие, по наведению — свои цвета", `${c0} → ${c1}`);
+
+    step("Отзывы: оценка и число — в шапке и в плашке; «N отзывов» открывает правую панель со своим скроллом, сортировкой и фильтром (Павел, круг 3)");
+    const samples = { "u2b-upakovka-dlya-biznesa": [12, "4,4"], "td-gurman": [1, "5,0"], arosa: [1, "5,0"], "sen-soy": [1, "4,0"] };
+    const got = [];
+    for (const [id, [n, avg]] of Object.entries(samples)) {
+      await page.goto(base + `#/s/${id}`, { waitUntil: "networkidle" });
+      await page.locator(".rev-sum").waitFor();
+      const head = norm(await page.locator(".card-rev .rbadge").innerText());
+      const sum = norm(await page.locator(".rev-sum").innerText());
+      const closed = await page.locator(".rev-drawer").count() === 0;
+      await page.locator(".rev-sum").click();
+      await page.locator(".rev-drawer").waitFor();
+      const ex = await page.locator(".rev-drawer .rev-ex").evaluateAll((ls) => ls.map((l) => l.querySelector(".rev-ex-pill").textContent.includes("пример отзыва")));
+      const ok = head.includes(avg) && head.includes(`${n} отзыв`) && sum.startsWith(avg) && sum.includes(`${n} отзыв`) && closed && ex.length === n && ex.every(Boolean);
+      got.push(`${id}: «${head}», в плашке «${sum}», в панели ${ex.length}${ok ? "" : " ❌"}`);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(150);
+    }
+    check(!got.some((g) => g.includes("❌")), "в шапке и в плашке — средняя и «N отзывов» с учётом примеров; по клику — панель с отзывами, у примеров плашка", got.join("; "));
+    check(await page.locator(".rev-drawer").count() === 0, "  Esc закрывает панель");
+
+    // длинный список: U2B, 12 отзывов — открываем из шапки на «Разборе», раздел не меняется
+    await page.goto(base + "#/s/u2b-upakovka-dlya-biznesa?cat=packaging&tab=why", { waitUntil: "networkidle" });
+    await page.locator(".card-rev .rbadge").click();
+    await page.locator(".rev-drawer").waitFor();
+    await page.waitForTimeout(400);                     // панель выезжает с анимацией
+    const dr = await page.evaluate(() => {
+      const d = document.querySelector(".rev-drawer").getBoundingClientRect(), l = document.querySelector(".rd-list"), b = document.querySelector(".rd-foot .btn").getBoundingClientRect();
+      return { right: Math.round(innerWidth - d.right), h: Math.round(d.height), vh: innerHeight, own: l.scrollHeight > l.clientHeight + 20, body: getComputedStyle(document.body).overflow, btn: b.bottom <= innerHeight };
+    });
+    check(qp("tab") === "why" && dr.right === 0 && dr.h === dr.vh && dr.own && dr.body === "hidden" && dr.btn,
+      "из шапки на «Разборе» — панель справа во всю высоту, у списка свой скролл, страница под ней не прокручивается, «Оставить отзыв» на экране", JSON.stringify(dr));
+    const readList = () => page.locator(".rd-list li").evaluateAll((ls) => ls.map((l) => ({ r: l.querySelector(".rev-stars b").textContent.length, d: l.querySelector(".sub").textContent.split("·").pop().trim().split(".").reverse().join("-") })));
+    const isSorted = (a, cmp) => a.every((x, i) => i === 0 || cmp(a[i - 1], x) <= 0);
+    const lNew = await readList();
+    await page.locator(".rd-sort select").selectOption("old");
+    const lOld = await readList();
+    await page.locator(".rd-sort select").selectOption("bad");
+    const lBad = await readList();
+    await page.locator(".rd-sort select").selectOption("good");
+    const lGood = await readList();
+    check(lNew.length === 12 && isSorted(lNew, (a, b) => b.d.localeCompare(a.d)) && isSorted(lOld, (a, b) => a.d.localeCompare(b.d)) && isSorted(lBad, (a, b) => a.r - b.r) && isSorted(lGood, (a, b) => b.r - a.r) && lBad[0].r === 3 && lGood[0].r === 5,
+      "сортировка: по умолчанию сначала новые; старые, плохие, хорошие — в своём порядке", `новые ${lNew[0].d}…${lNew.at(-1).d}, плохие ${lBad.map((x) => x.r).join("")}`);
+    await page.locator(".rd-h", { hasText: "3 ★" }).click();
+    const l3 = await readList();
+    const shownTxt = norm(await page.locator(".rd-shown").innerText());
+    check(l3.length === 2 && l3.every((x) => x.r === 3) && shownTxt.includes("2 из 12") && await page.locator(".rd-h", { hasText: "3 ★" }).getAttribute("aria-pressed") === "true", "строка «3 ★» в распределении — фильтр: два отзыва на три звезды", shownTxt);
+    await page.locator(".rd-tools .link-btn", { hasText: "показать все" }).click();
+    check((await readList()).length === 12 && await page.locator(".rd-h:disabled").count() === 2, "«показать все» снимает фильтр; пустые оценки (2 и 1 ★) не нажимаются");
+    await page.locator(".rd-x").click();
+    await page.waitForTimeout(150);
+    check(await page.locator(".rev-drawer").count() === 0 && await page.evaluate(() => getComputedStyle(document.body).overflow) !== "hidden", "× закрывает панель, прокрутка страницы возвращается");
+    await page.locator(".card-rev .rbadge").click();
+    await page.locator(".rev-scrim").click({ position: { x: 40, y: 400 } });
+    await page.waitForTimeout(150);
+    check(await page.locator(".rev-drawer").count() === 0, "клик мимо панели закрывает её");
+    await page.goto(base + "#/s/rosspak?cat=packaging", { waitUntil: "networkidle" });
+    await page.locator(".rev-sum-none, .panel .rev-own").first().waitFor();
+    check(await page.locator(".rev-ex").count() === 0 && await page.locator(".card-rev").count() === 0 && (await page.locator(".rev-sum-none").innerText()).includes("пока нет"), "у остальных оценки в шапке нет, в плашке — «отзывов пока нет»");
+    await page.goto(base + "#/catalog", { waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    const withRev = await page.locator(".lcard", { has: page.locator(".rbadge") }).evaluateAll((cs) => cs.map((c) => [c.querySelector("a.nm").textContent.trim(), c.querySelector(".rbadge").textContent.replace(/\s+/g, " ").trim()]));
+    const expectRev = Object.keys(samples).map((id) => DATA.suppliers.find((x) => x.id === id).name.trim());
+    check(sameSet(withRev.map((w) => w[0]), expectRev) && withRev.every((w) => /★\s?\d,\d/.test(w[1])), `«Все поставщики»: оценка по отзывам у тех, у кого есть отзывы — ${withRev.map((w) => `${w[0]} ${w[1]}`).join("; ")}`);
+    await page.goto(base + "#/results?cat=packaging", { waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    const u2bName = DATA.suppliers.find((x) => x.id === "u2b-upakovka-dlya-biznesa").name.trim();
+    check(await page.locator(".rows .lcard", { hasText: u2bName }).locator(".rbadge").count() === 1 && await page.locator(".first .gcard", { hasText: u2bName }).locator(".rbadge").count() === 1, "«Поиск по категории»: оценка в карточке списка и в «Кому написать первым»");
+    await ctx.close();
+  }
+
+  // ---------- страница поставщика: ничего не вылезает за плашки на 1024 / 1280 / 1440 (T-543) ----------
+  {
+    step("Страница поставщика на 1024 / 1280 / 1440: колонка с меню, шапка, виджеты, разбор и сравнение не вылезают за свои блоки");
+    const bad = [];
+    for (const w of [1024, 1280, 1440]) {
+      const { ctx, page } = await newPage(w, 900);
+      for (const h of ["#/s/rosspak?cat=packaging", "#/s/u2b-upakovka-dlya-biznesa?cat=packaging&tab=why&vs=rosspak", "#/s/anfish?cat=dairy&sub=mozzarella&tab=why", "#/s/td-gurman?cat=dairy&tab=terms", "#/s/rosspak?cat=packaging&tab=assortment"]) {
+        await page.goto(base + h, { waitUntil: "networkidle" });
+        const over = await page.evaluate(() => {
+          const out = [];
+          for (const el of document.querySelectorAll(".card-rail, .card-nav .nav-item, .prio-sw button, .card-h2, .card-id .actions, .wdg, .wrow, .brk-grid, .brk-grid > *, .order.rk li, .score-panel, .sp-crits .rule, .collected, .lcard .lc-title")) {
+            if (el.scrollWidth > el.clientWidth + 1) out.push(`${el.className.split(" ")[0]} ${el.scrollWidth}/${el.clientWidth}`);
+          }
+          const main = document.querySelector(".card-main")?.getBoundingClientRect(), side = document.querySelector(".side")?.getBoundingClientRect();
+          if (main && side && side.top < main.bottom && main.right > side.left + 1 && side.left > main.left) out.push(`левый столбец заходит под правый на ${Math.round(main.right - side.left)} px`);
+          return [...new Set(out)];
+        });
+        if (over.length) bad.push(`${w} ${h}: ${over.slice(0, 4).join("; ")}`);
+      }
+      await ctx.close();
+    }
+    check(bad.length === 0, "ни на одном из 15 экранов содержимое не вылезает за свой блок", bad.join(" | "));
+  }
+
   // ---------- шорт-лист: чистый профиль ----------
   {
     const { ctx, page } = await newPage(1440, 900);
@@ -647,8 +945,24 @@ const picker = {
         `${name}: фильтры за кнопкой, панель открывается и закрывается «Показать», на кнопке «Фильтры · 1»`);
     }
 
+    step("Телефон 390: вкладки страницы поставщика прилипают под полосой меню, а не прячутся под неё (T-543)");
+    await page.goto(base + "#/s/rosspak?cat=packaging&tab=why", { waitUntil: "networkidle" });
+    await page.locator(".order.rk").evaluate((ol) => ol.scrollIntoView({ block: "end" }));     // конец рейтинга: 13-я строка ушла бы вверх
+    await page.waitForTimeout(150);
+    const stuck = await page.evaluate(() => {
+      const t = document.querySelector(".card-tabs").getBoundingClientRect(), n = document.querySelector(".side-nav").getBoundingClientRect();
+      const hit = document.elementFromPoint(40, t.top + t.height / 2);
+      const me = document.querySelector(".order.rk li.me").getBoundingClientRect();
+      return { ok: Math.abs(t.top - n.bottom) <= 1 && !!hit?.closest(".card-tabs") && me.top >= t.bottom - 1 && me.bottom <= innerHeight, why: `меню до ${Math.round(n.bottom)}, вкладки ${Math.round(t.top)}…${Math.round(t.bottom)}, строка компании ${Math.round(me.top)}…${Math.round(me.bottom)}` };
+    });
+    check(stuck.ok, "вкладки сразу под полосой меню и видны; закреплённая строка рейтинга — под ними", stuck.why);
+    await page.locator(".card-tabs .nav-item", { hasText: "Условия" }).click();
+    await page.waitForTimeout(250);
+    const yTab = await page.evaluate(() => [Math.round(document.querySelector(".card-tabs").getBoundingClientRect().top), Math.round(document.querySelector(".side-nav").getBoundingClientRect().bottom), Math.round(window.scrollY)]);
+    check(new URLSearchParams(hash(page).split("?")[1]).get("tab") === "terms" && Math.abs(yTab[0] - yTab[1]) <= 1 && yTab[2] > 0, "переключение вкладки на телефоне: начало вкладки под меню, наверх страница не прыгает", `вкладки ${yTab[0]}, меню до ${yTab[1]}, scrollY ${yTab[2]}`);
+
     step("Телефон 390: нет горизонтального скролла");
-    const screens = ["#/", "#/find", "#/find?q=моцарелла", "#/find?q=молоко", "#/find?q=кофе", "#/find?q=малоко", "#/find?q=рыба для суши", "#/categories", "#/categories?open=packaging", "#/categories?open=fish", "#/categories?open=dairy", "#/categories?open=grocery", "#/results?cat=packaging", "#/results?cat=packaging&sub=pizza-boxes", "#/results?cat=fish", "#/results?cat=fish&sub=shrimp", "#/results?cat=packaging&sub=cups", "#/results?cat=dairy&sub=mozzarella", "#/results?cat=fish&sub=shrimp&view=table", "#/find?q=стаканчики", "#/find?q=тапиока", "#/s/anfish?cat=dairy&sub=mozzarella", "#/s/rosspak?cat=packaging", "#/catalog?cats=packaging&sub=cups", "#/results?cat=dairy", "#/results?cat=grocery&view=table", "#/results?cat=packaging&view=table", "#/catalog", "#/compare?ids=kraft-upakovka,po-karton,tara-dlya-tovara,parus-pak&cat=packaging", "#/why?cat=fish", "#/s/ubplastik?cat=packaging", "#/compare", "#/why?cat=packaging", "#/shortlist", "#/add", "#/about-data", "#/assistant"];
+    const screens = ["#/", "#/find", "#/find?q=моцарелла", "#/find?q=молоко", "#/find?q=кофе", "#/find?q=малоко", "#/find?q=рыба для суши", "#/categories", "#/categories?open=packaging", "#/categories?open=fish", "#/categories?open=dairy", "#/categories?open=grocery", "#/results?cat=packaging", "#/results?cat=packaging&sub=pizza-boxes", "#/results?cat=fish", "#/results?cat=fish&sub=shrimp", "#/results?cat=packaging&sub=cups", "#/results?cat=dairy&sub=mozzarella", "#/results?cat=fish&sub=shrimp&view=table", "#/find?q=стаканчики", "#/find?q=тапиока", "#/s/anfish?cat=dairy&sub=mozzarella", "#/s/rosspak?cat=packaging", "#/s/rosspak?cat=packaging&tab=why", "#/s/rosspak?cat=packaging&tab=why&vs=u2b-upakovka-dlya-biznesa", "#/s/rosspak?cat=packaging&tab=terms", "#/s/rosspak?cat=packaging&tab=docs", "#/s/rosspak?cat=packaging&tab=assortment", "#/s/u2b-upakovka-dlya-biznesa?cat=packaging", "#/catalog?cats=packaging&sub=cups", "#/results?cat=dairy", "#/results?cat=grocery&view=table", "#/results?cat=packaging&view=table", "#/catalog", "#/compare?ids=kraft-upakovka,po-karton,tara-dlya-tovara,parus-pak&cat=packaging", "#/why?cat=fish", "#/s/ubplastik?cat=packaging", "#/compare", "#/why?cat=packaging", "#/shortlist", "#/add", "#/about-data", "#/assistant"];
     await page.evaluate(() => { const it = { status: "Не связывались", note: "заметка", note_at: null, added_at: "2026-10-14T10:00:00.000Z" }; localStorage.setItem("supplier-scout:v1", JSON.stringify({ shortlist: { ubplastik: it, pack24: it, "demo-old-1": it }, compare: [], returned: [], collected: {}, last: null })); });
     const bad = [];
     for (const r of screens) {

@@ -65,5 +65,7 @@ export const match = (needs: Pick<Need, "label" | "terms">[]) => post<Match>("/a
 export interface Review { rating: number; text: string; author: string | null; created_at: string }
 export interface Reviews { supplier_id: string; count: number; avg: number | null; items: Review[] }
 export const reviews = (id: string) => call<Reviews>(`/reviews/${encodeURIComponent(id)}`);
+/** Сводка по всем поставщикам одним запросом: id → число отзывов и средняя (для списков, T-543). */
+export const reviewsSummary = () => call<Record<string, { count: number; avg: number | null }>>("/reviews");
 export const addReview = (id: string, data: { rating: number; text: string; author: string; website: string }) =>
   post<Reviews>(`/reviews/${encodeURIComponent(id)}`, data);
