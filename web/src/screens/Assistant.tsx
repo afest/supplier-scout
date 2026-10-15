@@ -2,25 +2,25 @@
 // кодом по ассортименту набора. Модель названий поставщиков не видит, поэтому назвать того, кого нет в наборе, не может.
 // T-544: ожидание со счётчиком секунд, ответ на уточняющий вопрос кнопкой (один раунд), мини-карточки в подборе,
 // подбор переживает переход к поставщику и «назад» — без повторного вызова модели.
+// T-546: второй способ — «Загрузить план закупа» (screens/PlanImport.tsx), переключатель в адресе: #/assistant?mode=plan.
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
-import { href } from "../router.ts";
+import { href, navigate, type Route } from "../router.ts";
 import { useStore } from "../store.ts";
 import { byId, categoryOf, defaultScores } from "../data.ts";
-import { clock, plural } from "../lib/format.ts";
-import { ApiError, assist, health, match, type Found, type Health, type Match, type Suggest } from "../lib/api.ts";
-import { Hint } from "../components/ui.tsx";
+import { plural } from "../lib/format.ts";
+import { ApiError, assist, cachedHealth, health, match, type Found, type Health, type Match, type Suggest } from "../lib/api.ts";
+import { Hint, Seg } from "../components/ui.tsx";
+import { Wait } from "../components/AssistWait.tsx";
+import { PlanImport } from "./PlanImport.tsx";
 import { CoverChips, ListCard } from "../components/ListCard.tsx";
 
 const EXAMPLES = ["у меня бабл-ти в ТЦ", "суши-бар на доставку", "пиццерия у дома", "кофейня у метро"];
 const TEXT_MAX = 500;                 // как TEXT_MAX на сервере (api/assistant.py)
 const ANSWER_MAX = 80;
-const SLOW_SEC = 20;                  // дольше — пишем, что модель задерживается, и даём отменить
-const GIVE_UP_SEC = 90;               // столько не ждём: запрос отменяется, кнопки снова работают
 const NO_MORE = "Уточнение уже получено, вопросов больше не задавай.";
 // пока модель думает — сменяющиеся фразы о том, что сейчас происходит (Павел 15.10: «чтобы было видно, что идёт работа»)
 const PHRASES_ASK = ["Читаю описание", "Определяю, что за точка", "Составляю список закупок", "Подбираю названия, как в прайсах", "Сверяю с ассортиментом набора"];
 const PHRASES_REPLY = ["Учитываю ответ", "Уточняю список закупок", "Подбираю названия, как в прайсах", "Сверяю с ассортиментом набора"];
-const PHRASE_MS = 2500;
 const OOPS = "Что-то пошло не так. Попробуйте ещё раз.";
 
 /** Описание и уточнение одним текстом: сервер истории не помнит. Склейка не длиннее TEXT_MAX — при нужде укорачивается
@@ -133,10 +133,37 @@ function reset() {
 
 const toggle = (id: string) => set({ res: null, picked: state.picked.includes(id) ? state.picked.filter((x) => x !== id) : [...state.picked, id] });
 
-export function Assistant() {
+type Mode = "words" | "plan";
+const MODES: { id: Mode; label: string }[] = [{ id: "words", label: "Описать словами" }, { id: "plan", label: "Загрузить план закупа" }];
+
+export function Assistant({ route }: { route: Route }) {
+  const mode: Mode = route.params.get("mode") === "plan" ? "plan" : "words";
+  return (
+    <div className="assistant">
+      <div className="label">Помощник</div>
+      {mode === "plan" ? (
+        <>
+          <h1 className="h1">Есть план закупа?</h1>
+          <p className="lead-sm">Загрузите его файлом или вставьте колонку из Excel — помощник разберёт строки, найдёт, у кого из собранного набора что есть, и предложит, у кого брать: до трёх поставщиков на весь план.</p>
+        </>
+      ) : (
+        <>
+          <h1 className="h1">Не знаете, как искать?</h1>
+          <p className="lead-sm">Опишите точку своими словами — помощник предложит, что ей обычно закупают, а поставщиков подберёт из собранного набора по их ассортименту.</p>
+        </>
+      )}
+      <div className="assist-modes">
+        <Seg label="Способ" options={MODES} value={mode} onChange={(m) => navigate("/assistant", { mode: m === "plan" ? "plan" : null }, { replace: true })} />
+      </div>
+      {mode === "plan" ? <PlanImport /> : <Describe />}
+    </div>
+  );
+}
+
+function Describe() {
   const st = useAssist();
   const { text, first, answer, sug, picked, res, busy, err } = st;
-  const [hl, setHl] = useState<Health | null>(null);
+  const [hl, setHl] = useState<Health | null>(cachedHealth);
   const [editing, setEditing] = useState(false);
   const field = useRef<HTMLInputElement>(null);
 
@@ -154,11 +181,7 @@ export function Assistant() {
   const error = (at: Busy) => err?.at === at && <div className="panel warn"><b>{err.text}</b></div>;
 
   return (
-    <div className="assistant">
-      <div className="label">Помощник</div>
-      <h1 className="h1">Не знаете, как искать?</h1>
-      <p className="lead-sm">Опишите точку своими словами — помощник предложит, что ей обычно закупают, а поставщиков подберёт из собранного набора по их ассортименту.</p>
-
+    <>
       <div className="assist-in-block">
         <form className="add-form" onSubmit={submit}>
           <span className="assist-field">
@@ -187,7 +210,7 @@ export function Assistant() {
         )}
       </div>
 
-      {busy === "ask" && <Wait since={st.since} phrases={PHRASES_ASK} />}
+      {busy === "ask" && <Wait since={st.since} phrases={PHRASES_ASK} abort={(r) => inflight?.abort(r)} />}
       {error("ask")}
 
       {sug && (
@@ -208,7 +231,7 @@ export function Assistant() {
               <button type="button" className="link-btn" disabled={!!busy} onClick={() => setEditing(true)}>Изменить</button>
             </p>
           )}
-          {busy === "reply" && <Wait since={st.since} phrases={PHRASES_REPLY} />}
+          {busy === "reply" && <Wait since={st.since} phrases={PHRASES_REPLY} abort={(r) => inflight?.abort(r)} />}
           {error("reply")}
           {/* после ответа второй вопрос кнопками не задаём: если модель всё же спросила — просто текстом */}
           {answer !== null && sug.question && <p className="assist-q">{sug.question}</p>}
@@ -234,29 +257,7 @@ export function Assistant() {
       )}
 
       {res && <Result res={res} sort={st.sort} />}
-    </div>
-  );
-}
-
-/** Ожидание ответа модели: анимация, сменяющаяся фраза и секунды, как у живого сбора. Дольше обычного — пишем об этом и даём отменить,
- *  через полторы минуты запрос отменяется сам: кнопки не залипают. */
-function Wait({ since, phrases }: { since: number; phrases: string[] }) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const iv = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(iv);
-  }, []);
-  const sec = Math.max(0, Math.floor((now - since) / 1000));
-  const phrase = phrases[Math.floor(Math.max(0, now - since) / PHRASE_MS) % phrases.length];
-  useEffect(() => { if (sec >= GIVE_UP_SEC) inflight?.abort("timeout"); }, [sec]);
-  return (
-    <div className="assist-wait" role="status">
-      <span className="assist-dots" aria-hidden="true"><i /><i /><i /></span>
-      <b><span key={phrase} className="assist-phrase">{phrase}</span> · <span className="num" aria-hidden="true">{clock(sec)}</span></b>
-      {sec >= SLOW_SEC
-        ? <span className="sub">Дольше обычного: модель задерживается. <button type="button" className="link-btn" onClick={() => inflight?.abort("cancel")}>Отменить</button></span>
-        : <span className="sub">обычно 5–15 секунд</span>}
-    </div>
+    </>
   );
 }
 

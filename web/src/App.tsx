@@ -116,7 +116,7 @@ export function App() {
   else if (path === "/shortlist") screen = <Shortlist />;
   else if (path === "/add") screen = <AddSupplier route={route} />;
   else if (path === "/about-data") screen = <AboutData />;
-  else if (path === "/assistant") screen = <Assistant />;
+  else if (path === "/assistant") screen = <Assistant route={route} />;
   else if (import.meta.env.DEV && path === "/lab/avatar") screen = <AvatarLab />;
   else screen = (
     <div className="empty">

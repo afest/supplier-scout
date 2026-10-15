@@ -117,6 +117,31 @@ def assist_match(body: MatchIn, request: Request):
     return assistant.match([n.model_dump() for n in body.needs])
 
 
+class PlanIn(BaseModel):
+    lines: list[str]
+
+
+@app.post("/assist/plan")
+def assist_plan(body: PlanIn, request: Request):
+    """План закупа (T-546): названия позиций из файла закупщика → позиции и группы (один вызов модели) → поставщики
+    набора по каждой (код). Файл разбирает браузер, сюда приходят только названия. Тратит один запрос помощника из тех же
+    лимитов стенда и адреса; повтор того же списка — из кэша."""
+    fresh = not assistant.plan_cached(body.lines)
+    if fresh:
+        limits.check(request, "assist", limit=5, window_sec=DAY)
+    try:
+        out = assistant.plan(body.lines)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except quota.Exhausted as e:
+        raise HTTPException(429, str(e))
+    except assistant.Unavailable as e:
+        raise HTTPException(503, str(e))
+    if fresh:
+        limits.record(request, "assist")
+    return out
+
+
 # ---- отзывы ----
 class ReviewIn(BaseModel):
     rating: int

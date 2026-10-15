@@ -1505,3 +1505,93 @@ button.rbadge:hover .rb-n, button.rbadge:focus-visible .rb-n { color: var(--ink)
   .rd-head, .rd-sum, .rd-tools, .rd-list, .rd-foot { padding-left: 16px; padding-right: 16px; }
   .rd-sum { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 }
+
+/* ---------- помощник: два способа, план закупа (T-546) ---------- */
+.assist-modes { margin-top: 32px; }
+.assist-modes + .assist-in-block { margin-top: 32px; }
+/* вход: файл слева, вставка справа; «или» между ними */
+.plan-in { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 16px; margin-top: 32px; }
+.plan-drop { display: grid; justify-items: center; align-content: center; gap: 6px; min-height: 168px; padding: 24px; border-radius: var(--r-lg); background: var(--surface); text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow .15s, background .15s; }
+.plan-drop:hover, .plan-drop.on { box-shadow: inset 0 0 0 1.5px var(--ink); background: #fff; }
+.plan-drop:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.plan-drop .sub { max-width: 320px; }
+.plan-glyph { color: var(--steel-ink); margin-bottom: 6px; }
+.plan-drop-t { font-size: 16px; }
+.plan-drop-t u { text-decoration-color: var(--muted-soft); text-underline-offset: 3px; }
+.plan-or { align-self: center; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.plan-paste { min-height: 168px; font-size: 14.5px; }
+.plan-in + .examples { margin-top: 20px; }
+/* прочитано: число позиций, колонка, что отброшено, строки */
+.plan-read { margin-top: 40px; }
+.plan-read-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.plan-read-h .label { margin-bottom: 6px; }
+.plan-read-n { margin: 0; font-size: 17px; }
+.plan-read-n b { font-size: 40px; font-weight: var(--fw-light); line-height: 1; margin-right: 4px; }
+.plan-clear { position: static; transform: none; flex: none; }
+.plan-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-top: 16px; font-size: 13.5px; color: var(--muted); }
+.plan-col { display: inline-flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
+.plan-col select.input.sm { min-width: 0; max-width: 340px; padding-right: 34px; background-color: #fff; background-position: right 12px center; text-overflow: ellipsis; }
+.plan-cut { color: var(--lvl-mid-ink); }
+.plan-lines { list-style: none; margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 24px; font-size: 14.5px; }
+.plan-lines li { display: flex; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
+.plan-lines li .num { flex: none; width: 22px; text-align: right; color: var(--muted); }
+.plan-go { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 24px; }
+.plan-go .assist-quota { margin: 0; }
+.plan-none { margin: 16px 0 0; color: var(--steel-ink); }
+/* итог: «у кого брать» — зона, как «Кому написать первым» */
+.plan-res { display: grid; gap: 16px; margin-top: 56px; }
+.plan-res .first { margin-top: 0; }
+.plan-verdict .first-head { margin-bottom: 12px; justify-content: flex-start; align-items: center; }
+.plan-verdict-text { position: relative; z-index: 1; margin: 0 0 28px; max-width: 760px; font-size: 18px; line-height: 1.5; font-weight: var(--fw-light); }
+.plan-verdict .cards3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.plan-pick { min-width: 0; }
+.plan-role { min-width: 0; align-self: center; font-size: 11.5px; font-weight: var(--fw-medium); letter-spacing: .09em; text-transform: uppercase; color: var(--steel-ink); overflow-wrap: anywhere; }
+.plan-pick .who > div { min-width: 0; overflow-wrap: anywhere; }
+.plan-takes { margin-top: 18px; }
+.plan-k { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.plan-k b { font-size: 15px; font-weight: var(--fw-semibold); color: var(--ink); }
+.plan-pick .mc-chips { margin-top: 0; }
+.plan-pick .mc-chip { height: auto; min-height: 24px; padding: 4px 9px; line-height: 1.2; overflow-wrap: anywhere; }
+.plan-why { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
+.plan-why li { display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.plan-prices { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(34, 34, 34, .08); font-size: 13px; display: grid; gap: 3px; }
+.plan-prices > div:not(.plan-k) { display: flex; justify-content: space-between; gap: 10px; min-width: 0; }
+.plan-prices span { min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-prices b { flex: none; font-weight: var(--fw-medium); }
+/* что не закрыто */
+.plan-gaps { background: var(--surface-cool); }
+.plan-gaps ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14.5px; }
+.plan-gaps b { font-weight: var(--fw-medium); }
+.plan-gaps .sub { margin: 14px 0 0; }
+/* кто что закрывает — по группам */
+.plan-cover { margin-top: 40px; display: grid; gap: 16px; }
+.plan-cover .assist-step-h { margin-bottom: 0; }
+.plan-group .panel-h b { min-width: 0; }
+.plan-group .panel-h .sub { text-align: right; }
+/* как прочитаны строки */
+.plan-parse { margin-top: 24px; padding: 20px 28px; border-radius: var(--r-xl); background: var(--surface); }
+.plan-parse summary { cursor: pointer; font-weight: var(--fw-medium); }
+.plan-parse > .sub { margin: 12px 0 0; }
+.plan-parse ul { list-style: none; margin: 16px 0 0; padding: 0; display: grid; font-size: 13.5px; }
+.plan-parse li { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 90px 110px; gap: 4px 16px; padding: 8px 0; border-top: 1px solid var(--line); }
+.plan-parse li > span { min-width: 0; overflow-wrap: anywhere; }
+.plan-parse-line { color: var(--muted); }
+.plan-parse-n { text-align: right; }
+@media (max-width: 900px) {
+  .plan-in { grid-template-columns: minmax(0, 1fr); }
+  .plan-or { justify-self: center; }
+  .plan-drop, .plan-paste { min-height: 132px; }
+}
+@media (max-width: 600px) {
+  .plan-lines { grid-template-columns: minmax(0, 1fr); }
+  .plan-read-n b { font-size: 32px; }
+  .plan-verdict .first-head { flex-direction: row; align-items: center; }   /* заголовок и «?» — одной строкой, как на широком */
+  .plan-verdict-text { font-size: 16px; margin-bottom: 20px; }
+  .plan-parse { padding: 16px; }
+  .plan-parse li { grid-template-columns: minmax(0, 1fr) auto; }
+  .plan-parse-line { grid-column: 1 / -1; }
+  .plan-parse-g { display: none; }
+  .plan-col { flex-wrap: wrap; }
+  .plan-group .panel-h { flex-wrap: wrap; }
+  .plan-group .panel-h .sub { text-align: left; }
+}

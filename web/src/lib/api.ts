@@ -30,7 +30,11 @@ export interface Health {
   model_configured: boolean;
   demo_left: Record<"collect" | "assist", { left: number; per_day: number }>;
 }
-export const health = () => call<Health>("/health");
+let lastHealth: Health | null = null;
+/** Последний ответ /health: экран помощника рисует остаток лимита сразу, пока идёт свежий запрос. Без него строка лимита
+ *  появлялась после «назад» с опозданием и сдвигала страницу на свою высоту — место прокрутки уезжало (T-546). */
+export const cachedHealth = () => lastHealth;
+export const health = () => call<Health>("/health").then((h) => (lastHealth = h));
 
 // ---- живой сбор ----
 export interface Job {
@@ -62,6 +66,16 @@ export interface Match {
 export const assist = (text: string, signal?: AbortSignal) =>
   call<Suggest>("/assist", { method: "POST", body: JSON.stringify({ text }), signal });
 export const match = (needs: Pick<Need, "label" | "terms">[]) => post<Match>("/assist/match", { needs });
+
+// ---- план закупа (T-546): уходят только названия позиций, файл остаётся в браузере ----
+/** group — id категории набора или "other" (вне набора); parsed: false — модель строку пропустила, искали по её тексту */
+export interface PlanPosition {
+  id: string; label: string; group: string; terms: string[]; lines: string[]; parsed: boolean;
+  suppliers: { id: string; exact: boolean; matched: string[]; price: { item: string; price: string } | null }[];
+}
+export interface PlanResult { positions: PlanPosition[]; skipped: string[] }
+export const plan = (lines: string[], signal?: AbortSignal) =>
+  call<PlanResult>("/assist/plan", { method: "POST", body: JSON.stringify({ lines }), signal });
 
 // ---- отзывы ----
 export interface Review { rating: number; text: string; author: string | null; created_at: string }

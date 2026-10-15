@@ -14,7 +14,7 @@ from pathlib import Path
 
 PER_DAY = {"collect": int(os.environ.get("DEMO_COLLECT_PER_DAY", "5")),
            "assist": int(os.environ.get("DEMO_ASSIST_PER_DAY", "10"))}
-NAMES = {"collect": "живых сборов", "assist": "диалогов помощника"}
+NAMES = {"collect": "живых сборов", "assist": "запросов помощника"}   # описание словами и план закупа (T-546) — вместе
 YEKT = timezone(timedelta(hours=5))          # Екатеринбург, без перехода на летнее время
 
 _lock = threading.Lock()

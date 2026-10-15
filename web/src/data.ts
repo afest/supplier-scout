@@ -1,6 +1,6 @@
 import raw from "../../data/suppliers.json";
 import type { Category, Dataset, Supplier } from "./types.ts";
-import type { Priority } from "./lib/score.ts";
+import type { Priority, Scored } from "./lib/score.ts";
 import { PRIORITIES, rank } from "./lib/score.ts";
 import type { State } from "./store.ts";
 
@@ -88,10 +88,15 @@ export function subCover(q: Query, s: Supplier) {
   return { items: picked.map((x) => x.name), has: new Set(picked.filter((x) => s.subcategories.includes(x.id)).map((x) => x.name)) };
 }
 
-/** Балл каждого поставщика внутри его категории при запросе по умолчанию (закупка 20 000 ₽, сбалансированно) —
- *  для списков вне категории: поиск по товару, подбор помощника. Исключённых из рекомендации в карте нет. */
-export function defaultScores(state: Pick<State, "collected" | "returned">) {
-  const m = new Map<string, number>();
-  for (const c of CATEGORIES) for (const sc of rankCategory(readQuery(new URLSearchParams({ cat: c.id })), state).ranked) m.set(sc.supplier.id, sc.total);
+/** Оценка каждого поставщика внутри его категории при запросе по умолчанию (закупка 20 000 ₽, сбалансированно) —
+ *  целиком, с критериями: итогу плана закупа (T-546) нужен и крупный опт. Исключённых из рекомендации в карте нет. */
+export function defaultScored(state: Pick<State, "collected" | "returned">) {
+  const m = new Map<string, Scored>();
+  for (const c of CATEGORIES) for (const sc of rankCategory(readQuery(new URLSearchParams({ cat: c.id })), state).ranked) m.set(sc.supplier.id, sc);
   return m;
+}
+
+/** Балл по умолчанию — для списков вне категории: поиск по товару, подбор помощника. */
+export function defaultScores(state: Pick<State, "collected" | "returned">) {
+  return new Map([...defaultScored(state)].map(([id, sc]) => [id, sc.total]));
 }

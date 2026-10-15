@@ -80,6 +80,8 @@ const hash = (page) => decodeURIComponent(new URL(page.url()).hash);
       const zero = await page.locator(".assist-need .assist-n.zero").count();
       const on = await page.locator(".assist-need.on").count();
       check(on === needs.length - zero && on > 0, "отмечены варианты, для которых в наборе есть поставщики", `отмечено ${on}, «нет» у ${zero}`);
+      // остаток приходит отдельным запросом /health после ответа — ждём его, а не читаем строку в ту же миллисекунду
+      await page.waitForFunction(() => /осталось 9 из 10/.test(document.querySelector(".assist-quota")?.textContent ?? ""), null, { timeout: 3000 }).catch(() => {});
       check(/осталось 9 из 10/.test(await page.locator(".assist-quota").innerText()), "лимит уменьшился на один запрос");
       await page.locator(".assist-need", { hasText: "Тапиока" }).click();
       await page.locator(".assist-step .btn.pr").click();
@@ -152,6 +154,146 @@ const hash = (page) => decodeURIComponent(new URL(page.url()).hash);
       await page.locator(".examples .pill-out", { hasText: "у меня бабл-ти в ТЦ" }).click();
       await page.waitForSelector(".assist-need");
       check(/осталось 9 из 10/.test(await page.locator(".assist-quota").innerText()), "повтор того же описания лимит не тратит");
+      await ctx.close();
+    }
+
+    // ---------- план закупа (T-546) ----------
+    {
+      const { ctx, page } = await newPage(1440, 900);
+      step("План закупа: пример → что прочитано → итог «у кого брать» → кто что закрывает (T-546)");
+      // свой адрес клиента: лимит адреса общий с «Описать словами»
+      await page.route("**/assist/plan", (route) => route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": "198.51.100.41" } }));
+      const planBodies = [];
+      page.on("request", (r) => { if (r.method() === "POST" && new URL(r.url()).pathname === "/assist/plan") planBodies.push(JSON.parse(r.postData())); });
+      await page.goto(base + "#/assistant", { waitUntil: "networkidle" });
+      await page.locator(".assist-modes .seg button", { hasText: "Загрузить план закупа" }).click();
+      await page.waitForSelector(".plan-drop");
+      check(hash(page) === "#/assistant?mode=plan", "второй способ рядом с «Описать словами» — свой адрес", hash(page));
+      check(/на сервер уходят только названия/.test(await page.locator(".plan-drop").innerText()), "у загрузки сказано, что файл на сервер не уходит");
+      const exHref = await page.locator(".examples a[download]").getAttribute("href");
+      const exFile = await page.request.get(new URL(exHref, base + "x").href);
+      check(exFile.ok() && (await exFile.body()).length > 1000, "пример скачивается файлом", exHref);
+      await page.locator(".examples .pill-out", { hasText: "суши-бар" }).click();
+      await page.waitForSelector(".plan-read");
+      const readText = (await page.locator(".plan-read").innerText()).replace(/\s+/g, " ");
+      check(/20 позиций/.test(readText) && /лист «План закупа»/.test(readText), "пример прочитан: 20 позиций, лист назван", readText.slice(0, 120));
+      check(await page.locator(".plan-col select").inputValue() === "1" && await page.locator(".plan-col select option:checked").innerText() === "Наименование",
+        "колонка названий определена по шапке, её можно сменить", await page.locator(".plan-col select option:checked").innerText());
+      check(/шапка — 3 строки/.test(readText) && /итоги — 1/.test(readText) && /пустые — 1/.test(readText), "отброшены шапка, итог и пустая строка — и это видно",
+        (/Отброшено:[^.]*/.exec(readText) || [""])[0]);
+      check(await page.locator(".plan-lines li").count() === 8 && /Показать все · 20/.test(readText), "строки плана — первые 8, остальные по кнопке");
+      await page.locator(".plan-read .assist-more").click();
+      const lines = (await page.locator(".plan-lines li").allInnerTexts()).map((x) => x.replace(/^\d+\s*/, ""));
+      check(lines.length === 20 && lines.includes("Имбирь маринованный розовый 1,4 кг"), "«Показать все» — 20 строк, «1,4 кг» целиком");
+      await page.waitForSelector(".plan-go .assist-quota");
+      const standLeft = async () => (await (await fetch(`${api.url}/health`)).json()).demo_left.assist.left;
+      const q0 = await standLeft();
+      check(await quotaLeft(page) === q0, "у кнопки — остаток лимита стенда", `${q0}`);
+      await page.locator(".plan-go .btn.pr").click();
+      await page.waitForSelector(".plan-verdict .plan-pick");
+      check(planBodies.length === 1 && JSON.stringify(Object.keys(planBodies[0])) === '["lines"]' && planBodies[0].lines.length === 20
+        && !planBodies[0].lines.some((x) => /^\d+$|итого/i.test(x)), "на сервер ушли только 20 названий — без количеств, единиц и итога");
+      const seen = await (await fetch(`${api.url}/_stub/seen`)).json();
+      check(JSON.stringify(seen.plans.at(-1)) === JSON.stringify(lines), "до модели дошли те же строки, что показаны на экране");
+      const verdictText = (await page.locator(".plan-verdict-text").innerText()).replace(/\s+/g, " ");
+      const picks = await page.locator(".plan-pick").evaluateAll((as) => as.map((a) => ({
+        id: a.getAttribute("href").replace("#/s/", ""), takes: [...a.querySelectorAll(".mc-chip.on")].map((x) => x.textContent),
+        role: a.querySelector(".plan-role").textContent, why: a.querySelector(".plan-why").textContent })));
+      check(picks.length >= 1 && picks.length <= 3 && picks.every((p) => ids.has(p.id)), "итог — от одного до трёх поставщиков, все из набора", picks.map((p) => `${p.id}: ${p.role}`).join(" · "));
+      const covered = Number((/закрывают (\d+) из 20/.exec(verdictText) || [])[1]);
+      check(/Одной компании, которая поставляет всё, в наборе нет/.test(verdictText) && covered === picks.reduce((n, p) => n + p.takes.length, 0),
+        "текст итога: «одной компании нет», лучшая комбинация, «закрывают K из 20» — K совпадает с позициями в карточках", verdictText);
+      check(picks.every((p) => p.takes.length > 0 && p.role && verdictText.includes(p.role)), "у каждого — свои позиции и роль, роль названа в тексте итога");
+      check(picks.every((p) => /мин\. заказ|минимального/.test(p.why) && /доставка/.test(p.why)), "у каждого — минимальный заказ и доставка");
+      check(!/эконом|сэконом|дешевле/i.test(await page.locator(".plan-res").innerText()), "слов про экономию нет");
+      const gaps = (await page.locator(".plan-gaps").innerText()).replace(/\s+/g, " ");
+      check(/Вне набора: Огурцы свежие, Авокадо/.test(gaps) && /четырём/.test(gaps), "что не закрыл никто — отдельной строкой, «вне набора»", gaps.slice(0, 140));
+      const groups = await page.locator(".plan-group").evaluateAll((ps) => ps.map((p) => ({
+        title: p.querySelector(".panel-h b").textContent.trim(),
+        cards: [...p.querySelectorAll(".lcard.mini")].map((c) => ({ all: c.querySelectorAll(".mc-chip").length, on: c.querySelectorAll(".mc-chip.on").length,
+          pick: !!c.querySelector(".fresh-pill") })),
+      })));
+      check(["Упаковка", "Рыба", "Сыр", "Рис"].every((t) => groups.some((g) => g.title.startsWith(t))), "покрытие — по группам набора", groups.map((g) => `${g.title} ${g.cards.length}`).join(" · "));
+      check(groups.every((g) => g.cards.every((c) => c.on >= 1 && c.all === g.cards[0].all)), "в каждой группе у карточки — чипы позиций группы, хоть одна тёмная");
+      check(groups.flatMap((g) => g.cards).filter((c) => c.pick).length >= picks.length, "выбранные в итог помечены «в итоге»");
+      check(groups.every((g) => g.cards.length <= 6), "в группе — не больше 6 карточек, остальные по кнопке");
+      await page.locator(".plan-parse summary").click();
+      check(await page.locator(".plan-parse li").count() === 20, "«Как помощник прочитал строки» — 20 строк");
+      check(await standLeft() === q0 - 1, "разбор плана — один запрос из дневного лимита помощника", `${q0} → ${await standLeft()}`);
+      const callsBefore = planBodies.length;
+      // карточка итога → назад → итог на месте, модель не вызвана
+      await page.locator(".plan-pick").first().click();
+      await page.waitForFunction(() => location.hash.startsWith("#/s/"));
+      await page.goBack();
+      await page.waitForSelector(".plan-verdict .plan-pick");
+      check(hash(page) === "#/assistant?mode=plan" && (await page.locator(".plan-verdict-text").innerText()).replace(/\s+/g, " ") === verdictText,
+        "«назад» с поставщика: тот же способ, итог и таблица на месте");
+      check(planBodies.length === callsBefore, "«назад» модель не вызывает");
+      // тот же файл через выбор файла — ответ из кэша, лимит не тратится
+      await page.locator(".plan-clear").click();
+      check(await page.locator(".plan-read, .plan-res").count() === 0, "«Очистить» убирает прочитанное и итог");
+      await page.setInputFiles(".plan-drop input[type=file]", path.join(ROOT, "web", "public", "plan-sushi-bar.xlsx"));
+      await page.waitForSelector(".plan-read");
+      check(/файл «plan-sushi-bar\.xlsx»/.test(await page.locator(".plan-read").innerText()), "файл загружается кнопкой выбора");
+      await page.locator(".plan-go .btn.pr").click();
+      await page.waitForSelector(".plan-verdict .plan-pick");
+      check(await standLeft() === q0 - 1, "повтор того же плана — из кэша, лимит не тратится", `${q0} → ${await standLeft()}`);
+      // CSV из русского Excel — в Windows-1251, с «;» и «3,2%»
+      const tmp = path.join(ROOT, "e2e-out", "plan-1251.csv");
+      fs.mkdirSync(path.dirname(tmp), { recursive: true });
+      const cp1251 = (s) => Buffer.from([...s].map((ch) => { const c = ch.codePointAt(0); return c < 128 ? c : c >= 0x410 && c <= 0x44f ? c - 0x350 : ch === "ё" ? 0xb8 : 0xa8; }));
+      fs.writeFileSync(tmp, cp1251("Наименование;Кол-во\r\nМолоко 3,2% Простоквашино 1л;20\r\nСливки 33%, 1 л;4\r\n\r\nИтого;24\r\n"));
+      await page.setInputFiles(".plan-drop input[type=file]", tmp);
+      await page.waitForFunction(() => /2 позиции/.test(document.querySelector(".plan-read")?.textContent ?? ""));
+      const csvLines = await page.locator(".plan-lines li").allInnerTexts();
+      check(csvLines.map((x) => x.replace(/^\d+\s*/, "")).join("|") === "Молоко 3,2% Простоквашино 1л|Сливки 33%, 1 л" && await page.locator(".plan-res").count() === 0,
+        "CSV в Windows-1251: кириллица и «3,2%» целы, старый итог скрыт", csvLines.join(" | "));
+      // вставка колонкой: запятая — часть названия; две колонки без шапки — выбор колонки
+      await page.locator(".plan-paste").fill("Стакан 0,5 л, белый\nКрышка купольная\n");
+      await page.waitForFunction(() => /2 позиции/.test(document.querySelector(".plan-read")?.textContent ?? ""));
+      check(/из вставленного текста/.test(await page.locator(".plan-read").innerText()) && (await page.locator(".plan-lines li").first().innerText()).includes("Стакан 0,5 л, белый"),
+        "вставка: строка — одна позиция, запятая её не делит");
+      await page.locator(".plan-paste").fill("101\tРис для суши\n102\tНори Gold\n");
+      await page.waitForSelector(".plan-col select");
+      check(await page.locator(".plan-col select").inputValue() === "1", "две колонки без шапки — названия угаданы, колонку можно выбрать");
+      await page.locator(".plan-col select").selectOption("0");
+      check(/Строк с названием товара не нашлось/.test(await page.locator(".plan-read").innerText()), "выбрал колонку с кодами — честно: строк нет");
+      // переполнение внутри карточек итога и таблицы — на трёх ширинах (правило: сузил зону — смотри внутрь карточек)
+      await page.locator(".plan-clear").click();
+      await page.locator(".examples .pill-out", { hasText: "суши-бар" }).click();
+      await page.locator(".plan-go .btn.pr").click();                                     // тот же план — из кэша
+      await page.waitForSelector(".plan-verdict .plan-pick");
+      await page.locator(".plan-parse summary").click();
+      for (const w of [1024, 1280, 1440]) {
+        await page.setViewportSize({ width: w, height: 900 });
+        await page.waitForTimeout(150);
+        const over = await page.locator(".plan-pick, .plan-pick *, .plan-group .lcard.mini, .plan-group .lcard.mini *, .plan-parse li, .plan-parse li *, .plan-read, .plan-read *, .plan-gaps")
+          .evaluateAll((els) => els.filter((el) => {
+            if (el.tagName === "OPTION" || getComputedStyle(el).textOverflow === "ellipsis") return false;   // цена с сайта — многоточием намеренно
+            const box = el.closest(".plan-pick, .lcard, .plan-parse li, .plan-read, .plan-gaps").getBoundingClientRect();
+            const r = el.getBoundingClientRect();
+            if (!r.width && !r.height) return false;                                          // <title> в значках — без размера
+            return el.scrollWidth > el.clientWidth + 1 || r.right > box.right + 1 || r.left < box.left - 1;
+          }).map((el) => el.getAttribute("class") || el.tagName));
+        check(over.length === 0 && await noHScroll(page), `${w}: внутри карточек итога, таблицы и разбора строк ничего не вылезает`, over.slice(0, 4).join(", "));
+        if (w === 1440) await page.screenshot({ path: path.join(ROOT, "e2e-out", "plan-1440.png"), fullPage: true });
+      }
+      await ctx.close();
+    }
+    {
+      const { ctx, page } = await newPage(390, 844);
+      step("План закупа на телефоне 390");
+      await page.goto(base + "#/assistant?mode=plan", { waitUntil: "networkidle" });
+      check(await noHScroll(page), "загрузка плана без горизонтального скролла");
+      await page.locator(".examples .pill-out", { hasText: "суши-бар" }).click();
+      await page.waitForSelector(".plan-read");
+      await page.locator(".plan-go .btn.pr").click();       // тот же план — ответ из кэша, лимит не тратится
+      await page.waitForSelector(".plan-verdict .plan-pick");
+      await page.locator(".plan-parse summary").click();
+      check(await noHScroll(page), "итог, таблица и разбор строк на 390 без горизонтального скролла");
+      const over = await page.locator(".plan-pick, .plan-group .lcard.mini, .plan-parse li").evaluateAll((els) => els.filter((el) => el.scrollWidth > el.clientWidth + 1).length);
+      check(over === 0, "карточки итога и таблицы на 390 без переполнения внутри", `${over}`);
+      await page.screenshot({ path: path.join(ROOT, "e2e-out", "plan-390.png"), fullPage: true });
       await ctx.close();
     }
 
