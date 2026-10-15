@@ -372,6 +372,16 @@ def t539_cases() -> list[bool]:
     build.redact_person(person, "770708389312")
     res.append(case("ИП из реестра без приставки «ИП»: имя сокращено до «ИП Петров П. С.», полного ФИО в карточке нет",
                     person["legal_name"]["value"] == "ИП Петров П. С." and "Пётр Сергеевич" not in json.dumps(person, ensure_ascii=False)))
+    # T-546: ФНС отдала ФИО заглавными — шаблон его не видел, и полное ФИО ушло в публичный набор (ФИО вымышленное)
+    caps = {"name": "Пример", "legal_name": F("ПЕТРОВ ПЁТР СЕРГЕЕВИЧ", "found", ["pb"]), "inn": F(None, "not_found"),
+            "phones": F(["+7 (343) 226-09-36"], "claimed"), "meta": {"sources": []},
+            "company": F({"form": "ООО", "note": "ПЕТРОВ ПЁТР СЕРГЕЕВИЧ"}, "found", ["pb"]),
+            "address": F("ул. Ленина, 1", "found", ["site"], quote="Владелец Петров Пётр Сергеевич, ул. Ленина, 1")}
+    build.redact_person(caps, None)
+    dump = json.dumps(caps, ensure_ascii=False)
+    res.append(case("ИП из реестра заглавными: «ИП Петров П. С.», ни заглавного, ни обычного полного ФИО, цитата с ним снята",
+                    caps["legal_name"]["value"] == "ИП Петров П. С." and "ПЁТР" not in dump and "Пётр Сергеевич" not in dump
+                    and caps["address"]["quote"] is None))
     return res
 
 

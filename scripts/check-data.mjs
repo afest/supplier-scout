@@ -61,9 +61,16 @@ for (const f of files) {
   const fio = text.match(fullName);
   if (fio) problems.push(`data/${f}: полное ФИО индивидуального предпринимателя («${fio[0].split(/\s+/).slice(0, 2).join(" ")} …»)`);
 }
+// ФИО заглавными, как отдаёт ФНС: «ФАМИЛИЯ ИМЯ ОТЧЕСТВО» — шаблон выше его не видит (Italika, T-546)
+const capsName = /[А-ЯЁ]{2,}\s+[А-ЯЁ]{2,}\s+[А-ЯЁ]{2,}(ВИЧ|ВНА|ИЧНА|ОГЛЫ|КЫЗЫ)(?![А-ЯЁа-яё])/;
 for (const s of d.suppliers) {
   const person = /^ИП\s/.test(s.legal_name?.value || "") || s.company?.value?.form === "ИП"
     || (s.inn?.searched_in || []).some((t) => t.includes("индивидуального предпринимателя"));
+  const caps = JSON.stringify(s).match(capsName);
+  if (caps) problems.push(`${s.name}: полное ФИО заглавными («${caps[0].split(/\s+/)[0]} …»)`);
+  // у ИП в «юрлице» — только «ИП Фамилия И. О.»: всё другое значит, что сокращение не сработало
+  const legal = s.legal_name?.value || "";
+  if (person && legal && !/^ИП [А-ЯЁ][а-яё-]+ [А-ЯЁ]\.( ?[А-ЯЁ]\.)?$/.test(legal)) problems.push(`${s.name}: у ИП «юрлицо» не сокращено до «ИП Фамилия И. О.»`);
   const mobiles = (s.phones?.value || []).filter((p) => /^9/.test(p.replace(/\D/g, "").slice(-10)));
   if (person && mobiles.length) problems.push(`${s.name}: у ИП в карточке мобильный номер — это личные данные`);
 }

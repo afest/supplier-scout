@@ -412,6 +412,11 @@ def redact_person(sup: dict, inn: str | None):
     """ИНН физлица, полное ФИО и мобильные — персональные данные: в карточку не идут. Цитата с полным ФИО снимается,
     источник-страница остаётся — по ссылке видно, откуда значение."""
     legal = (sup["legal_name"]["value"] or "").strip()
+    # ФНС отдаёт ФИО и заглавными: «ФАМИЛИЯ ИМЯ ОТЧЕСТВО» (Italika, T-546). Шаблоны ниже ждут «Фамилия Имя» — заглавное ФИО
+    # проходило мимо них и уходило в публичный набор целиком. Приводим к обычному виду, а заглавный вариант тоже вычищаем
+    caps = legal if legal.isupper() and BARE_FIO.fullmatch(legal.title()) else None
+    if caps:
+        legal = caps.title()
     # ФНС отдаёт ИП без приставки: «Фамилия Имя Отчество» (так пришло у одного ИП, T-539). Шаблон ФИО ищет «ИП Фамилия Имя», и имя
     # из реестра уходило в карточку целиком; реестровое имя ИП — всегда ФИО, поэтому приставка дописывается
     if sup["legal_name"]["status"] == "found" and BARE_FIO.fullmatch(legal):
@@ -443,11 +448,13 @@ def redact_person(sup: dict, inn: str | None):
         v = PERSON_RX.sub(_short, v)
         if bare:
             v = v.replace(bare, _short(m)[3:])
+        if caps and m:
+            v = v.replace(caps, _short(m)[3:])
         return v.replace(inn, "(ИНН скрыт)") if inn else v
 
     def walk(x):
         if isinstance(x, dict):
-            if isinstance(x.get("quote"), str) and (PERSON_RX.search(x["quote"]) or any(n in x["quote"] for n in names)
+            if isinstance(x.get("quote"), str) and (PERSON_RX.search(x["quote"]) or any(n.lower() in x["quote"].lower() for n in names)
                                                      or (inn and inn in digits(x["quote"]))):
                 x["quote"] = None
             for k, v in x.items():
