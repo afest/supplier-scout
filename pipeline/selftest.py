@@ -157,9 +157,48 @@ def main() -> int:
         case("robots: своя группа бота важнее «*»", not rb.allowed("SupplierScoutBot", "https://x.ru/private/a")
              and rb.allowed("SupplierScoutBot", "https://x.ru/search")),
     ]
-    res += network_cases() + hours_cases() + assortment_cases() + build_cases() + subcat_cases() + t539_cases()
+    res += network_cases() + hours_cases() + assortment_cases() + build_cases() + subcat_cases() + t539_cases() + assist_cases()
     print(f"\n{sum(res)} из {len(res)}")
     return 0 if all(res) else 1
+
+
+def assist_cases() -> list[bool]:
+    """Помощник (T-544): варианты ответа на уточняющий вопрос и длина описания — модель и квота подменены."""
+    from api import assistant, quota
+
+    seen: list[str] = []
+    reply: dict = {}
+
+    def fake(text):
+        seen.append(text)
+        return reply
+    saved = assistant._ask_model, quota.take
+    assistant._ask_model, quota.take = fake, (lambda kind: None)
+    try:
+        assistant._cache.clear()
+        reply.update(place="пончиковая", needs=[], question="Пончики жарите на месте или привозите готовыми?",
+                     answers=["Жарим на месте", "Привозим  готовыми", "Ответ длиннее тридцати знаков, его нет", "жарим на месте",
+                              "", 7, "Ещё не решили", "Пока думаем", "Шестой"])
+        a = assistant.suggest("пончики на фудкорте")
+        reply.update(question=None)
+        b = assistant.suggest("пончики у метро")
+        long_text = "кофейня у метро, " * 40                                    # 680 знаков
+        assistant.suggest(long_text)
+        fits = ("пончики на фудкорте " * 22)[:440] + ". Уточнение: Жарите? — Жарим на месте"
+        assistant.suggest(fits)
+        calls = len(seen)
+        assistant.suggest("ПОНЧИКИ на фудкорте")
+    finally:
+        assistant._ask_model, quota.take = saved
+        assistant._cache.clear()
+    return [
+        case("помощник: варианты ответа — не больше 4, длиннее 30 знаков и повтор отброшены, пробелы схлопнуты",
+             a["answers"] == ["Жарим на месте", "Привозим готовыми", "Ещё не решили", "Пока думаем"]),
+        case("помощник: вопроса нет — вариантов ответа тоже нет", b["question"] is None and b["answers"] == []),
+        case("помощник: описание длиннее 500 знаков сервер режет до 500, а не падает", len(seen[2]) == assistant.TEXT_MAX == 500),
+        case("помощник: описание с уточнением в 476 знаков доходит до модели целиком", seen[3] == fits.strip()),
+        case("помощник: то же описание другим регистром — из кэша, модель не вызвана", len(seen) == calls),
+    ]
 
 
 def t539_cases() -> list[bool]:

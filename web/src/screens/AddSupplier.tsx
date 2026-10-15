@@ -3,7 +3,7 @@ import { href, type Route } from "../router.ts";
 import { actions, useStore } from "../store.ts";
 import { CATEGORIES, catById, categoryOf, DATA, rankCategory, readQuery, volParam } from "../data.ts";
 import { flagsText, profileDeclarations } from "../lib/score.ts";
-import { ageYears, isKnown, minOrderText, plural, years } from "../lib/format.ts";
+import { ageYears, clock, isKnown, minOrderText, plural, years } from "../lib/format.ts";
 import { ApiError, collect, health, job as loadJob, type Health, type Job } from "../lib/api.ts";
 import type { Supplier } from "../types.ts";
 import { DemoPill, Hint, Mono, Score } from "../components/ui.tsx";
@@ -14,7 +14,6 @@ type Phase = "idle" | "run" | "confirm" | "done" | "exists" | "need-cat" | "live
 interface Step { text: string; state: "done" | "run" | "wait" }
 const POLL_MS = 2000;
 const isInn = (v: string) => /^\d{10}(\d{2})?$/.test(v.replace(/\s/g, ""));
-const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 const STEP_MS = 900;
 const LIVE = DATA.suppliers.filter((s) => s.live_only);

@@ -18,9 +18,48 @@ const emit = () => {
   current = parse();
   listeners.forEach((l) => l());
 };
+
+// Прокрутка по записям истории (T-544): «назад» возвращает туда, где читали список, новый переход — наверх.
+// У каждой записи свой ключ в history.state; браузер сам прокрутку не восстанавливает — иначе он спорит с этим кодом.
+const SCROLL_KEY = "supplier-scout:scroll";
+const scrolls: Record<string, number> = (() => {
+  try {
+    return JSON.parse(sessionStorage.getItem(SCROLL_KEY) || "{}");
+  } catch {
+    return {};
+  }
+})();
+function entryKey(): string {
+  const st = history.state as { k?: string } | null;
+  if (st?.k) return st.k;
+  const k = Math.random().toString(36).slice(2, 10);
+  history.replaceState({ ...st, k }, "");
+  return k;
+}
+/** Прокрутить к y, когда страница дорастёт до него: экран рисуется после смены адреса, картинки догружаются. */
+function scrollWhenReady(y: number, tries = 20) {
+  requestAnimationFrame(() => {
+    window.scrollTo(0, y);
+    if (Math.abs(window.scrollY - y) > 2 && tries > 0) scrollWhenReady(y, tries - 1);
+  });
+}
+history.scrollRestoration = "manual";
+let entry = entryKey();
+if (scrolls[entry]) scrollWhenReady(scrolls[entry]);
+window.addEventListener("scroll", () => { scrolls[entry] = window.scrollY; }, { passive: true });
+window.addEventListener("pagehide", () => {
+  try {
+    sessionStorage.setItem(SCROLL_KEY, JSON.stringify(scrolls));
+  } catch {
+    /* хранилище недоступно — прокрутка помнится до перезагрузки */
+  }
+});
 window.addEventListener("hashchange", () => {
+  entry = entryKey();
   emit();
-  window.scrollTo(0, 0);
+  const y = scrolls[entry];
+  if (y) scrollWhenReady(y);
+  else window.scrollTo(0, 0);
 });
 
 export function useRoute(): Route {
@@ -47,7 +86,7 @@ export function href(path: string, params: Params = {}) {
 export function navigate(path: string, params: Params = {}, opts: { replace?: boolean; keepScroll?: boolean } = {}) {
   const h = href(path, params);
   if (opts.replace) {
-    history.replaceState(null, "", h);
+    history.replaceState(history.state, "", h);       // ключ записи сохраняется — прокрутка остаётся за ней
     emit();
   } else if (opts.keepScroll) {
     history.pushState(null, "", h);
