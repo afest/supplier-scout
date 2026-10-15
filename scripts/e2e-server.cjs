@@ -442,6 +442,23 @@ const hash = (page) => decodeURIComponent(new URL(page.url()).hash);
         const y1 = await page.evaluate(() => Math.round(window.scrollY));
         check(hash(page) === h0 && y0 > 200 && Math.abs(y1 - y0) <= 4, `${name}: «назад» с карточки — те же фильтры и место прокрутки`, `${h0} · ${y0} → ${y1}`);
       }
+      // вкладки карточки (T-543) поверх прокрутки по записям (T-544): «назад» и «вперёд» — каждая вкладка на своём месте
+      await page.goto(base + "#/s/u2b-upakovka-dlya-biznesa?cat=packaging", { waitUntil: "networkidle" });
+      await page.evaluate(() => window.scrollTo(0, 300));
+      await page.waitForTimeout(150);
+      await page.locator("nav[aria-label='Разделы карточки'] .nav-item:visible", { hasText: "Разбор" }).first().click();
+      await page.waitForTimeout(300);
+      await page.evaluate(() => window.scrollBy(0, 500));
+      await page.waitForTimeout(150);
+      const yWhy = await page.evaluate(() => Math.round(window.scrollY));
+      await page.goBack();
+      await page.waitForTimeout(400);
+      const yMain = await page.evaluate(() => Math.round(window.scrollY));
+      await page.goForward();
+      await page.waitForTimeout(400);
+      const yFwd = await page.evaluate(() => Math.round(window.scrollY));
+      check(/tab=why/.test(hash(page)) && Math.abs(yMain - 300) <= 4 && yWhy > 300 && Math.abs(yFwd - yWhy) <= 4,
+        "вкладки карточки: «назад» — «Основное» на своём месте, «вперёд» — «Разбор» на своём, не наверху", `${yMain} · ${yWhy} → ${yFwd}`);
       await page.goto(base + "#/catalog", { waitUntil: "networkidle" });
       await page.evaluate(() => window.scrollTo(0, 700));
       await page.waitForTimeout(100);

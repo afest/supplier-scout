@@ -29,10 +29,11 @@ const scrolls: Record<string, number> = (() => {
     return {};
   }
 })();
+const newKey = () => Math.random().toString(36).slice(2, 10);
 function entryKey(): string {
   const st = history.state as { k?: string } | null;
   if (st?.k) return st.k;
-  const k = Math.random().toString(36).slice(2, 10);
+  const k = newKey();
   history.replaceState({ ...st, k }, "");
   return k;
 }
@@ -89,7 +90,11 @@ export function navigate(path: string, params: Params = {}, opts: { replace?: bo
     history.replaceState(history.state, "", h);       // ключ записи сохраняется — прокрутка остаётся за ней
     emit();
   } else if (opts.keepScroll) {
-    history.pushState(null, "", h);
+    // своя запись со своим ключом: прокрутка вкладки не затирает прокрутку прошлой, «вперёд» на неё не прыгает наверх
+    const k = newKey();
+    scrolls[k] = window.scrollY;
+    history.pushState({ k }, "", h);
+    entry = k;
     emit();
   } else {
     window.location.hash = h;
